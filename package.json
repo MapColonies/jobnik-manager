@@ -1,7 +1,7 @@
 {
-  "name": "service-name",
+  "name": "jobnik-manager",
   "version": "1.0.0",
-  "description": "This is template for map colonies typescript service",
+  "description": "This is jobnik management server",
   "main": "./src/index.ts",
   "scripts": {
     "test:unit": "jest --config=./tests/configurations/unit/jest.config.js",
@@ -21,7 +21,13 @@
     "assets:copy": "copyfiles -f ./config/* ./dist/config && copyfiles -f ./openapi3.yaml ./dist/ && copyfiles ./package.json dist",
     "clean": "rimraf dist",
     "generate:openapi-types": "openapi-helpers ./openapi3.yaml ./src/openapi.d.ts --format --add-typed-request-handler",
-    "prepare": "node .husky/install.mjs"
+    "prepare": "node .husky/install.mjs",
+    "migration:validate": "npx prisma validate --schema ./src/db/prisma/schema.prisma  ",
+    "migration:format": "npx prisma format --check --schema ./src/db/prisma/schema.prisma  ",
+    "migration:format-fix": "npx prisma format --schema ./src/db/prisma/schema.prisma  ",
+    "migration:dev": "npx prisma migrate dev --schema ./src/db/prisma/schema.prisma --name ",
+    "migration:generate": "npx prisma generate --schema ./src/db/prisma/schema.prisma",
+    "migration:deploy": "npx prisma migrate deploy --schema ./src/db/prisma/schema.prisma"
   },
   "directories": {
     "test": "tests"
@@ -39,6 +45,7 @@
     "@map-colonies/schemas": "^1.0.1",
     "@map-colonies/telemetry": "^7.0.1",
     "@opentelemetry/api": "^1.7.0",
+    "@prisma/client": "^6.2.1",
     "compression": "^1.7.4",
     "express": "^4.19.2",
     "express-openapi-validator": "^5.0.4",
@@ -73,6 +80,7 @@
     "jest-openapi": "^0.14.2",
     "prettier": "^3.3.3",
     "pretty-quick": "^4.0.0",
+    "prisma": "^6.2.1",
     "rimraf": "^5.0.1",
     "supertest": "^7.0.0",
     "ts-jest": "^29.2.5",

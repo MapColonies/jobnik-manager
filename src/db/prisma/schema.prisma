@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  data            Json            @default("{}")
+  status          OperationStatus @default(PENDING)
+  percentage      Int             @default(0)
+  creation_time   DateTime?       @default(now())
+  update_time     DateTime?       @updatedAt
+  expiration_time DateTime?
+  type            JobMode         @default(PREDEFINED)
+  metadata        Json?
+  priority        Priority        @default(VERYHIGH)
+  creator         Creator         @default(UNKNOWN)
+  TTL             DateTime?
+  notification    Json?
+  name            Name            @default(DEFAULT)
+
+  @@map("job")
+}
+
+model Jobkkk {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  data            Json            @default("{}")
+  status          OperationStatus @default(PENDING)
+  percentage      Int             @default(0)
+  creation_time   DateTime?       @default(now())
+  update_time     DateTime?       @updatedAt
+  expiration_time DateTime?
+  type            JobMode         @default(PREDEFINED)
+  metadata        Json?
+  priority        Priority        @default(VERYHIGH)
+  creator         Creator         @default(UNKNOWN)
+  TTL             DateTime?
+  notification    Json?
+  name            Name            @default(DEFAULT)
+
+  @@map("jobkkk")
+}
+enum OperationStatus {
+  PENDING            @map("Pending")
+  INPROGRESS         @map("In-Progress")
+  COMPLETED          @map("Completed")
+  FAILED             @map("Failed")
+  ABORTED            @map("Aborted")
+  WAITING            @map("Waiting")
+  WAITINGFORAPPROVAL @map("Waiting-For-Approval")
+  PAUSED             @map("Paused")
+
+  @@map("operation_status_enum")
+}
+
+enum Priority {
+  VERYHIGH @map("Very-High")
+  HIGH     @map("High")
+  MEDIUM   @map("Medium")
+  LOW      @map("Low")
+  VERYLOW  @map("Very-Low")
+
+  @@map("priority_enum")
+}
+
+enum JobMode {
+  PREDEFINED @map("Pre-Defined")
+  DYNAMIC    @map("Dynamic")
+
+  @@map("job_mode_enum")
+}
+
+enum Creator {
+  MAPCOLONIES @map("Map-Colonies")
+  UNKNOWN     @map("Unknown")
+
+  @@map("creator")
+}
+
+enum Name {
+  INGESTION @map("Ingestion")
+  EXPORT    @map("Export")
+  DEFAULT   @map("Default")
+
+  @@map("name")
+}
