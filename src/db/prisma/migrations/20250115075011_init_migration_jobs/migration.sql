@@ -32,23 +32,3 @@ CREATE TABLE "job" (
 
     CONSTRAINT "job_pkey" PRIMARY KEY ("id")
 );
-
--- CreateTable
-CREATE TABLE "jobkkk" (
-    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
-    "data" JSONB NOT NULL DEFAULT '{}',
-    "status" "operation_status_enum" NOT NULL DEFAULT 'Pending',
-    "percentage" INTEGER NOT NULL DEFAULT 0,
-    "creation_time" TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-    "update_time" TIMESTAMP(3),
-    "expiration_time" TIMESTAMP(3),
-    "type" "job_mode_enum" NOT NULL DEFAULT 'Pre-Defined',
-    "metadata" JSONB,
-    "priority" "priority_enum" NOT NULL DEFAULT 'Very-High',
-    "creator" "creator" NOT NULL DEFAULT 'Unknown',
-    "TTL" TIMESTAMP(3),
-    "notification" JSONB,
-    "name" "name" NOT NULL DEFAULT 'Default',
-
-    CONSTRAINT "jobkkk_pkey" PRIMARY KEY ("id")
-);
