@@ -14,16 +14,29 @@ This server provides a management interface for job trees and includes a RESTful
 ------------------------
 
 ## Migration
-**Development Workflow:**
+<u>**How to create a new migration**</u>
 
-* **Schema Validation:** `npm run migration:validate` - Ensures the integrity and correctness of your Prisma schema.
-* **Schema Formatting:** 
+***Update and Edit schema***
+
+* New migration will be executed once you have made modification on 'schema.prisma' file [read more](https://www.prisma.io/docs/orm/reference/prisma-schema-reference)
+* For example:
+    * You modified exists model
+    * Add another model or type
+    * Remove some model
+    * Add some constraint.
+
+***Create new migration on modified schema***
+
+1. **Schema Validation:** `npm run migration:validate` - Ensures the integrity and correctness of your Prisma schema.
+2. **Schema Formatting:** 
     * `npm run migration:format` - Formats the Prisma schema for consistency and readability.
     * `npm run migration:format-fix` - Automatically applies formatting changes to the schema.
-* **Migration Creation:** `npm run migration:dev` - Creates and applies a new migration to your local development database.
-* **Type Generation:** `npm run migration:generate` - Generates and updates TypeScript types for your database models.
+3. **Migration Creation:** `npm run migration:generate <migration name>` - Creates and applies a new migration to your local development database.
 
-**Production Deployment:**
+    * To apply only current migration - `npm run migration:dev`
+4. **Type Generation:** `npm run migration:generate-types` - Generates and updates TypeScript types for your database models.
+
+<u>**Production Deployment:**</u>
 * **Migration Deployment:** `npm run migration:deploy` - Deploys the latest migrations to your production database.
 
 > [!CAUTION]

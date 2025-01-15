@@ -12,11 +12,11 @@ model Job {
   data            Json            @default("{}")
   status          OperationStatus @default(PENDING)
   percentage      Int             @default(0)
-  creation_time   DateTime?       @default(now())
-  update_time     DateTime?       @updatedAt
+  creation_time   DateTime        @default(now())
+  update_time     DateTime?       @updatedAt // make it mandatory after CRUD implementation
   expiration_time DateTime?
   type            JobMode         @default(PREDEFINED)
-  metadata        Json?
+  metadata        Json            @default("{}")
   priority        Priority        @default(VERYHIGH)
   creator         Creator         @default(UNKNOWN)
   TTL             DateTime?
