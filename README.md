@@ -18,7 +18,7 @@ This server provides a management interface for job trees and includes a RESTful
 
 ***Update and Edit schema***
 
-* New migration will be executed once you have made modification on 'schema.prisma' file [read more](https://www.prisma.io/docs/orm/reference/prisma-schema-reference)
+* New migration will need to be generated once you have made modification on 'schema.prisma' file [read more](https://www.prisma.io/docs/orm/reference/prisma-schema-reference)
 * For example:
     * You modified exists model
     * Add another model or type
