@@ -14,7 +14,7 @@ This server provides a management interface for job trees and includes a RESTful
 ------------------------
 
 ## Migration
-<u>**How to create a new migration**</u>
+<ins>**How to create a new migration**</ins>
 
 ***Update and Edit schema***
 
@@ -36,7 +36,7 @@ This server provides a management interface for job trees and includes a RESTful
     * To apply only current migration - `npm run migration:dev`
 4. **Type Generation:** `npm run migration:generate-types` - Generates and updates TypeScript types for your database models.
 
-<u>**Production Deployment:**</u>
+<ins>**Production Deployment:**</ins>
 * **Migration Deployment:** `npm run migration:deploy` - Deploys the latest migrations to your production database.
 
 > [!CAUTION]
