@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Job {
-  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id              String          @id @default(uuid()) @db.Uuid
   data            Json            @default("{}")
   status          OperationStatus @default(PENDING)
   percentage      Int             @default(0)
   creation_time   DateTime        @default(now())
   update_time     DateTime?       @updatedAt // make it mandatory after CRUD implementation
   expiration_time DateTime?
-  type            JobMode         @default(PREDEFINED)
+  type            JobMode         @default(PRE_DEFINED)
   metadata        Json            @default("{}")
-  priority        Priority        @default(VERYHIGH)
+  priority        Priority        @default(VERY_LOW)
   creator         Creator         @default(UNKNOWN)
   TTL             DateTime?
   notification    Json?
@@ -27,38 +27,38 @@ model Job {
 }
 
 enum OperationStatus {
-  PENDING            @map("Pending")
-  INPROGRESS         @map("In-Progress")
-  COMPLETED          @map("Completed")
-  FAILED             @map("Failed")
-  ABORTED            @map("Aborted")
-  WAITING            @map("Waiting")
-  WAITINGFORAPPROVAL @map("Waiting-For-Approval")
-  PAUSED             @map("Paused")
+  PENDING              @map("Pending")
+  IN_PROGRESS          @map("In-Progress")
+  COMPLETED            @map("Completed")
+  FAILED               @map("Failed")
+  ABORTED              @map("Aborted")
+  WAITING              @map("Waiting")
+  WAITING_FOR_APPROVAL @map("Waiting-For-Approval")
+  PAUSED               @map("Paused")
 
   @@map("operation_status_enum")
 }
 
 enum Priority {
-  VERYHIGH @map("Very-High")
-  HIGH     @map("High")
-  MEDIUM   @map("Medium")
-  LOW      @map("Low")
-  VERYLOW  @map("Very-Low")
+  VERY_HIGH @map("Very-High")
+  HIGH      @map("High")
+  MEDIUM    @map("Medium")
+  LOW       @map("Low")
+  VERY_LOW  @map("Very-Low")
 
   @@map("priority_enum")
 }
 
 enum JobMode {
-  PREDEFINED @map("Pre-Defined")
-  DYNAMIC    @map("Dynamic")
+  PRE_DEFINED @map("Pre-Defined")
+  DYNAMIC     @map("Dynamic")
 
   @@map("job_mode_enum")
 }
 
 enum Creator {
-  MAPCOLONIES @map("Map-Colonies")
-  UNKNOWN     @map("Unknown")
+  MAP_COLONIES @map("Map-Colonies")
+  UNKNOWN      @map("Unknown")
 
   @@map("creator")
 }
