@@ -2,13 +2,18 @@ import { getOtelMixin } from '@map-colonies/telemetry';
 import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
+import { Pool } from 'pg';
 import jsLogger from '@map-colonies/js-logger';
 import { InjectionObject, registerDependencies } from '@common/dependencyRegistration';
 import { SERVICES, SERVICE_NAME } from '@common/constants';
+import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getTracing } from '@common/tracing';
+import { instancePerContainerCachingFactory } from 'tsyringe';
 import { resourceNameRouterFactory, RESOURCE_NAME_ROUTER_SYMBOL } from './resourceName/routes/resourceNameRouter';
 import { anotherResourceRouterFactory, ANOTHER_RESOURCE_ROUTER_SYMBOL } from './anotherResource/routes/anotherResourceRouter';
+import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
+import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -17,7 +22,8 @@ export interface RegisterOptions {
 
 export const registerExternalValues = async (options?: RegisterOptions): Promise<DependencyContainer> => {
   const configInstance = getConfig();
-
+  const dbConfig = configInstance.get('db') as commonDbFullV1Type;
+  console.log(dbConfig);
   const loggerConfig = configInstance.get('telemetry.logger');
 
   const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin() });
@@ -26,13 +32,33 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
   const metricsRegistry = new Registry();
   configInstance.initializeMetrics(metricsRegistry);
 
+  let pool: Pool;
+  try {
+    pool = await initPoolConnection(createConnectionOptions(dbConfig));
+  } catch (error) {
+    const errMsg = (error as Error).message;
+    throw new Error(`Failed to connect to the database with error: ${errMsg}`);
+  }
+  // const prismaClient =  createPrismaClient(pool,dbConfig.schema)
+  // console.log(await prismaClient.job.count())
+
   const dependencies: InjectionObject<unknown>[] = [
     { token: SERVICES.CONFIG, provider: { useValue: configInstance } },
     { token: SERVICES.LOGGER, provider: { useValue: logger } },
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METRICS, provider: { useValue: metricsRegistry } },
+    { token: SERVICES.PG_POOL, provider: { useValue: pool } },
     { token: RESOURCE_NAME_ROUTER_SYMBOL, provider: { useFactory: resourceNameRouterFactory } },
     { token: ANOTHER_RESOURCE_ROUTER_SYMBOL, provider: { useFactory: anotherResourceRouterFactory } },
+    { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
+    {
+      token: SERVICES.PRISMA,
+      provider: {
+        useFactory: instancePerContainerCachingFactory((container) => {
+          return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
+        }),
+      },
+    },
     {
       token: 'onSignal',
       provider: {

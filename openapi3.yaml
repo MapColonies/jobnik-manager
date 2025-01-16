@@ -1,12 +1,58 @@
 openapi: 3.0.1
 info:
-  title: service-name
-  description: basic template for map colonies service
+  title: Job Manager Service
+  description: Job Manager Service
   version: 1.0.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 paths:
+  /jobs:
+    get:
+      operationId: findJobs
+      parameters:
+        - $ref: '#/components/parameters/jmode'
+        - $ref: '#/components/parameters/jname'
+        - $ref: '#/components/parameters/fromDate'
+        - $ref: '#/components/parameters/tillDate'
+        - $ref: '#/components/parameters/priority'
+        - $ref: '#/components/parameters/creator'
+      summary: find jobs by criteria
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Array of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/jobResponse'
+    post:
+      operationId: createJob
+      summary: Creates a new job
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createJobPayload'
+      responses:
+        '201':
+          description: Job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/createJobResponse'
+        '400':
+          description: Invalid request, could not create job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
   /anotherResource:
     get:
       operationId: getAnotherResource
@@ -58,7 +104,356 @@ paths:
               schema:
                 $ref: '#/components/schemas/error'
 components:
+  parameters:
+    jobId:
+      in: path
+      name: jobId
+      description: ID of Job
+      required: true
+      schema:
+        $ref: '#/components/schemas/jobId'
+    stageId:
+      in: path
+      name: stageId
+      description: ID of Stage
+      required: true
+      schema:
+        $ref: '#/components/schemas/stageId'
+    taskId:
+      in: path
+      name: taskId
+      description: ID of requested task
+      required: true
+      schema:
+        type: string
+    taskType:
+      in: path
+      name: taskType
+      description: ID of requested task
+      required: true
+      schema:
+        $ref: '#/components/schemas/taskType'
+    status:
+      in: query
+      name: status
+      description: |
+        The status of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/status'
+    jmode:
+      in: query
+      name: job_mode
+      description: |
+        The mode of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobMode'
+    jname:
+      in: query
+      name: job_name
+      description: |
+        The type name of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobType'
+    priority:
+      in: query
+      name: priority
+      description: |
+        The type of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/priority'
+    creator:
+      in: query
+      name: creator
+      description: |
+        Name of job creator
+      required: false
+      schema:
+        type: string
+    fromDate:
+      in: query
+      name: from_date
+      description: results start update date
+      required: false
+      schema:
+        type: string
+        format: date-time
+    tillDate:
+      in: query
+      name: till_date
+      description: results end update date
+      required: false
+      schema:
+        type: string
+        format: date-time
+    sId:
+      in: query
+      name: stage_id
+      description: unique stage identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/stageId'
+    jId:
+      in: query
+      name: job_id
+      description: unique job identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobId'
+    sType:
+      in: query
+      name: stage_type
+      description: stage's type
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
+    tType:
+      in: query
+      name: task_type
+      description: task's type
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
+    jobType:
+      in: path
+      name: jobType
+      description: the type of the job
+      required: true
+      schema:
+        $ref: '#/components/schemas/jobType'
   schemas:
+    creationTime:
+      type: string
+      format: date-time
+    updateTime:
+      type: string
+      format: date-time
+    expirationTime:
+      type: string
+      format: date-time
+    TTL:
+      type: string
+      format: date-time
+    jobId:
+      type: string
+      format: uuid
+    jobPayload:
+      type: object
+    percentage:
+      type: integer
+      minimum: 0
+      maximum: 100
+    attempts:
+      type: integer
+    stageId:
+      type: string
+      format: uuid
+    stagePayload:
+      type: object
+    notifications:
+      type: object
+    priority:
+      type: string
+      enum:
+        - Very-High
+        - High
+        - Medium
+        - Low
+        - Very-Low
+      example: Low
+    status:
+      type: string
+      enum:
+        - Pending
+        - In-Progress
+        - Completed
+        - Failed
+        - Aborted
+        - Waiting-For-Approval
+        - Paused
+        - Waiting
+      example: Pending
+    jobMode:
+      type: string
+      enum:
+        - Pre-defined
+        - Dynamic
+      example: Pre-defined
+    jobType:
+      type: string
+      enum:
+        - Tile-Ingestion
+        - Tile-Export
+      example: Tile-Ingestion
+    userMetadata:
+      type: object
+    summary:
+      type: object
+    createJobPayload:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/jobType'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        status:
+          $ref: '#/components/schemas/status'
+        priority:
+          $ref: '#/components/schemas/priority'
+        expirationTime:
+          $ref: '#/components/schemas/expirationTime'
+        TTL:
+          $ref: '#/components/schemas/TTL'
+        notifications:
+          $ref: '#/components/schemas/notifications'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        creator:
+          type: string
+      required:
+        - data
+        - type
+        - creator
+      additionalProperties: false
+    jobResponse:
+      allOf:
+        - $ref: '#/components/schemas/createJobPayload'
+        - type: object
+          required:
+            - id
+          description: job Response model
+          properties:
+            id:
+              $ref: '#/components/schemas/jobId'
+            percentage:
+              $ref: '#/components/schemas/percentage'
+            creationTime:
+              $ref: '#/components/schemas/creationTime'
+            updateTime:
+              $ref: '#/components/schemas/updateTime'
+    createStagePayload:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/stagePayload'
+        status:
+          $ref: '#/components/schemas/status'
+        jobId:
+          $ref: '#/components/schemas/jobId'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+      required:
+        - data
+        - type
+        - jobId
+      additionalProperties: false
+    stageResponse:
+      allOf:
+        - $ref: '#/components/schemas/createStagePayload'
+        - type: object
+          required:
+            - id
+          properties:
+            id:
+              $ref: '#/components/schemas/stageId'
+            summary:
+              $ref: '#/components/schemas/summary'
+            percentage:
+              $ref: '#/components/schemas/percentage'
+    taskId:
+      type: string
+      format: uuid
+    taskType:
+      type: string
+      enum:
+        - Tile-Merging
+        - Tile-Seeding
+        - Tile-Exporing
+      maxLength: 255
+      example: Tile-Merging
+    taskPayload:
+      type: object
+    createTaskPayload:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/taskPayload'
+        status:
+          $ref: '#/components/schemas/status'
+        stageId:
+          $ref: '#/components/schemas/stageId'
+      required:
+        - data
+        - type
+        - stageId
+      additionalProperties: false
+    taskResponse:
+      allOf:
+        - $ref: '#/components/schemas/createTaskPayload'
+      type: object
+      required:
+        - id
+        - stageId
+        - status
+      properties:
+        id:
+          $ref: '#/components/schemas/taskId'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
+        status:
+          $ref: '#/components/schemas/status'
+        attempts:
+          $ref: '#/components/schemas/attempts'
+        priority:
+          $ref: '#/components/schemas/priority'
+    createJobResponse:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/jobId'
+        taskIds:
+          type: array
+          items:
+            $ref: '#/components/schemas/taskId'
+      additionalProperties: false
+      required:
+        - id
+    errorMessage:
+      type: object
+      properties:
+        'message:':
+          type: string
+        stacktrace:
+          type: string
+      required:
+        - message
+    defaultOkMessage:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - JOB_MODIFIED_SUCCESSFULLY
+            - TTL_MODIFIED_SUCCESSFULLY
+            - JOB_RESTARTED_SUCCESSFULLY
+            - STAGE_MODIFIED_SUCCESSFULLY
+            - STATUS_MODIFIED_SUCCESSFULLY
+            - USER_METADATA_MODIFIED_SUCCESSFULLY
+            - TASKS_ADDED_SUCCESSFULLY
+            - TASK_FAILED_SUCCESSFULLY
+            - TASK_COMPLETED_SUCCESSFULLY
+          example: JOB_MODIFIED_SUCCESSFULLY
+      required:
+        - code
     error:
       type: object
       required:
