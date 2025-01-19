@@ -5,15 +5,17 @@ import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { Pool } from 'pg';
 import jsLogger from '@map-colonies/js-logger';
 import { InjectionObject, registerDependencies } from '@common/dependencyRegistration';
-import { SERVICES, SERVICE_NAME } from '@common/constants';
+import { DB_CONNECTION_TIMEOUT, SERVICES, SERVICE_NAME } from '@common/constants';
 import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getTracing } from '@common/tracing';
-import { instancePerContainerCachingFactory } from 'tsyringe';
+import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
+import { HealthCheck } from '@godaddy/terminus';
 import { resourceNameRouterFactory, RESOURCE_NAME_ROUTER_SYMBOL } from './resourceName/routes/resourceNameRouter';
 import { anotherResourceRouterFactory, ANOTHER_RESOURCE_ROUTER_SYMBOL } from './anotherResource/routes/anotherResourceRouter';
 import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
+import { promiseTimeout } from './common/utils/promiseTimeout';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -39,8 +41,15 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     const errMsg = (error as Error).message;
     throw new Error(`Failed to connect to the database with error: ${errMsg}`);
   }
-  // const prismaClient =  createPrismaClient(pool,dbConfig.schema)
-  // console.log(await prismaClient.job.count())
+
+  const healthCheck = (pool: Pool): HealthCheck => {
+    return async (): Promise<void> => {
+      const check = pool.query('SELECT 1').then(() => {
+        return;
+      });
+      return promiseTimeout<void>(DB_CONNECTION_TIMEOUT, check);
+    };
+  };
 
   const dependencies: InjectionObject<unknown>[] = [
     { token: SERVICES.CONFIG, provider: { useValue: configInstance } },
@@ -56,6 +65,15 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       provider: {
         useFactory: instancePerContainerCachingFactory((container) => {
           return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
+        }),
+      },
+    },
+    {
+      token: SERVICES.HEALTHCHECK,
+      provider: {
+        useFactory: instanceCachingFactory((container) => {
+          const pool = container.resolve<Pool>(SERVICES.PG_POOL);
+          return healthCheck(pool);
         }),
       },
     },
