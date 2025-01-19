@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["driverAdapters"]
 }
 
@@ -9,20 +9,20 @@ datasource db {
 }
 
 model Job {
-  id              String          @id @default(uuid()) @db.Uuid
-  data            Json            @default("{}")
-  status          OperationStatus @default(PENDING)
-  percentage      Int             @default(0)
-  creation_time   DateTime        @default(now())
-  update_time     DateTime?       @updatedAt // make it mandatory after CRUD implementation
-  expiration_time DateTime?
-  type            JobMode         @default(PRE_DEFINED)
-  metadata        Json            @default("{}")
-  priority        Priority        @default(VERY_LOW)
-  creator         Creator         @default(UNKNOWN)
-  TTL             DateTime?
-  notification    Json?
-  name            Name            @default(DEFAULT)
+  id             String          @id @default(uuid()) @db.Uuid
+  data           Json            @default("{}")
+  status         OperationStatus @default(PENDING)
+  percentage     Int             @default(0)
+  creation_time  DateTime        @default(now())
+  update_time    DateTime?       @updatedAt // make it mandatory after CRUD implementation
+  expirationTime DateTime?       @map("expiration_time")
+  type           JobMode         @default(PRE_DEFINED)
+  userMetadata   Json            @default("{}")
+  priority       Priority        @default(VERY_LOW)
+  creator        Creator         @default(UNKNOWN)
+  TTL            DateTime?
+  notifications  Json?
+  name           Name            @default(DEFAULT)
 
   @@map("job")
 }

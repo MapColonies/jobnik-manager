@@ -31,11 +31,25 @@ export class JobController {
 
   public getJobs: TypedRequestHandlers['GET /jobs'] = (req, res) => {
     this.getJobsCounter.inc(1);
+    // const params = req.query;
+    const params = {
+      type: req.query?.job_mode,
+      name: req.query?.job_name,
+      fromDate: req.query?.from_date,
+      tillDate: req.query?.till_date,
+      creator: req.query?.creator,
+    };
+    console.log(params);
+
     return res.status(httpStatus.OK).json(this.manager.getJobs());
   };
 
-  public createJob: TypedRequestHandlers['POST /jobs'] = (req, res) => {
+  public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {
     this.createJobCounter.inc(1);
-    return res.status(httpStatus.OK).json(this.manager.createJob(req.body));
+    try {
+      return res.status(httpStatus.OK).json(await this.manager.createJob(req.body));
+    } catch (error) {
+      return next(error);
+    }
   };
 }

@@ -76,29 +76,32 @@ export type components = {
     stagePayload: Record<string, never>;
     notifications: Record<string, never>;
     /**
-     * @example Low
+     * @example LOW
      * @enum {string}
      */
-    priority: 'Very-High' | 'High' | 'Medium' | 'Low' | 'Very-Low';
+    priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
+    /** @enum {string} */
+    creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
-     * @example Pending
+     * @example PENDING
      * @enum {string}
      */
-    status: 'Pending' | 'In-Progress' | 'Completed' | 'Failed' | 'Aborted' | 'Waiting-For-Approval' | 'Paused' | 'Waiting';
+    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING_FOR_APPROVAL' | 'PAUSED' | 'WAITING';
     /**
-     * @example Pre-defined
+     * @example PRE_DEFINED
      * @enum {string}
      */
-    jobMode: 'Pre-defined' | 'Dynamic';
+    jobMode: 'PRE_DEFINED' | 'DYNAMIC';
     /**
-     * @example Tile-Ingestion
+     * @example INGESTION
      * @enum {string}
      */
-    jobType: 'Tile-Ingestion' | 'Tile-Export';
+    jobType: 'INGESTION' | 'EXPORT';
     userMetadata: Record<string, never>;
     summary: Record<string, never>;
     createJobPayload: {
-      type: components['schemas']['jobType'];
+      type: components['schemas']['jobMode'];
+      name?: components['schemas']['jobType'];
       data: components['schemas']['jobPayload'];
       status?: components['schemas']['status'];
       priority?: components['schemas']['priority'];
@@ -106,7 +109,7 @@ export type components = {
       TTL?: components['schemas']['TTL'];
       notifications?: components['schemas']['notifications'];
       userMetadata?: components['schemas']['userMetadata'];
-      creator: string;
+      creator: components['schemas']['creator'];
     };
     jobResponse: components['schemas']['createJobPayload'] & {
       id: components['schemas']['jobId'];

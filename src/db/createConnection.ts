@@ -19,17 +19,20 @@ export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfi
     password: dbConfig.password,
     database: dbConfig.database,
   };
-
-  if (dbConfig.ssl.enabled) {
-    dataSourceOptions.ssl = { key: readFileSync(dbConfig.ssl.key), cert: readFileSync(dbConfig.ssl.cert), ca: readFileSync(dbConfig.ssl.ca) };
+  const sslParams = dbConfig.ssl;
+  if (sslParams.enabled) {
+    dataSourceOptions.ssl = { key: readFileSync(sslParams.key), cert: readFileSync(sslParams.cert), ca: readFileSync(sslParams.ca) };
   }
-  console.log(dataSourceOptions);
   return dataSourceOptions;
 };
 
 export async function initPoolConnection(dbConfig: PoolConfig): Promise<Pool> {
   const pool = new Pool(dbConfig);
   await pool.query('SELECT NOW()');
+  //   pool.on('error', (err) => {
+  //     console.error('Pool error:', err);
+
+  //   });
   return pool;
 }
 

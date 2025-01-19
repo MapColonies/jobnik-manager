@@ -258,36 +258,41 @@ components:
     priority:
       type: string
       enum:
-        - Very-High
-        - High
-        - Medium
-        - Low
-        - Very-Low
-      example: Low
+        - VERY_HIGH
+        - HIGH
+        - MEDIUM
+        - LOW
+        - VERY_LOW
+      example: LOW
+    creator:
+      type: string
+      enum:
+        - MAP_COLONIES
+        - UNKNOWN
     status:
       type: string
       enum:
-        - Pending
-        - In-Progress
-        - Completed
-        - Failed
-        - Aborted
-        - Waiting-For-Approval
-        - Paused
-        - Waiting
-      example: Pending
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - WAITING_FOR_APPROVAL
+        - PAUSED
+        - WAITING
+      example: PENDING
     jobMode:
       type: string
       enum:
-        - Pre-defined
-        - Dynamic
-      example: Pre-defined
+        - PRE_DEFINED
+        - DYNAMIC
+      example: PRE_DEFINED
     jobType:
       type: string
       enum:
-        - Tile-Ingestion
-        - Tile-Export
-      example: Tile-Ingestion
+        - INGESTION
+        - EXPORT
+      example: INGESTION
     userMetadata:
       type: object
     summary:
@@ -296,6 +301,8 @@ components:
       type: object
       properties:
         type:
+          $ref: '#/components/schemas/jobMode'
+        name:
           $ref: '#/components/schemas/jobType'
         data:
           $ref: '#/components/schemas/jobPayload'
@@ -312,7 +319,7 @@ components:
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
         creator:
-          type: string
+          $ref: '#/components/schemas/creator'
       required:
         - data
         - type
