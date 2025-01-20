@@ -156,7 +156,7 @@ components:
         The type name of the job.
       required: false
       schema:
-        $ref: '#/components/schemas/jobType'
+        $ref: '#/components/schemas/jobName'
     priority:
       in: query
       name: priority
@@ -172,7 +172,7 @@ components:
         Name of job creator
       required: false
       schema:
-        type: string
+        $ref: '#/components/schemas/creator'
     fromDate:
       in: query
       name: from_date
@@ -217,13 +217,13 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/taskType'
-    jobType:
+    jobName:
       in: path
-      name: jobType
+      name: jobName
       description: the type of the job
       required: true
       schema:
-        $ref: '#/components/schemas/jobType'
+        $ref: '#/components/schemas/jobName'
   schemas:
     creationTime:
       type: string
@@ -287,12 +287,13 @@ components:
         - PRE_DEFINED
         - DYNAMIC
       example: PRE_DEFINED
-    jobType:
+    jobName:
       type: string
       enum:
         - INGESTION
         - EXPORT
-      example: INGESTION
+        - DEFAULT
+      example: DEFAULT
     userMetadata:
       type: object
     summary:
@@ -303,7 +304,7 @@ components:
         type:
           $ref: '#/components/schemas/jobMode'
         name:
-          $ref: '#/components/schemas/jobType'
+          $ref: '#/components/schemas/jobName'
         data:
           $ref: '#/components/schemas/jobPayload'
         status:
@@ -331,6 +332,7 @@ components:
         - type: object
           required:
             - id
+            - name
           description: job Response model
           properties:
             id:

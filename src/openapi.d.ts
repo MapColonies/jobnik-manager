@@ -93,15 +93,15 @@ export type components = {
      */
     jobMode: 'PRE_DEFINED' | 'DYNAMIC';
     /**
-     * @example INGESTION
+     * @example DEFAULT
      * @enum {string}
      */
-    jobType: 'INGESTION' | 'EXPORT';
+    jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
     userMetadata: Record<string, never>;
     summary: Record<string, never>;
     createJobPayload: {
       type: components['schemas']['jobMode'];
-      name?: components['schemas']['jobType'];
+      name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       status?: components['schemas']['status'];
       priority?: components['schemas']['priority'];
@@ -207,13 +207,13 @@ export type components = {
     jmode: components['schemas']['jobMode'];
     /** @description The type name of the job.
      *      */
-    jname: components['schemas']['jobType'];
+    jname: components['schemas']['jobName'];
     /** @description The type of the job.
      *      */
     priority: components['schemas']['priority'];
     /** @description Name of job creator
      *      */
-    creator: string;
+    creator: components['schemas']['creator'];
     /** @description results start update date */
     fromDate: string;
     /** @description results end update date */
@@ -227,7 +227,7 @@ export type components = {
     /** @description task's type */
     tType: components['schemas']['taskType'];
     /** @description the type of the job */
-    jobType: components['schemas']['jobType'];
+    jobName: components['schemas']['jobName'];
   };
   requestBodies: never;
   headers: never;

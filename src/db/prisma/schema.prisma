@@ -13,16 +13,16 @@ model Job {
   data           Json            @default("{}")
   status         OperationStatus @default(PENDING)
   percentage     Int             @default(0)
-  creation_time  DateTime        @default(now())
-  update_time    DateTime?       @updatedAt // make it mandatory after CRUD implementation
+  creationTime   DateTime        @default(now()) @map("creation_time")
+  updateTime     DateTime        @updatedAt @map("update_time")
   expirationTime DateTime?       @map("expiration_time")
   type           JobMode         @default(PRE_DEFINED)
   userMetadata   Json            @default("{}")
   priority       Priority        @default(VERY_LOW)
   creator        Creator         @default(UNKNOWN)
   TTL            DateTime?
-  notifications  Json?
-  name           Name            @default(DEFAULT)
+  notifications  Json            @default("{}")
+  name           JobName         @default(DEFAULT)
 
   @@map("job")
 }
@@ -64,10 +64,10 @@ enum Creator {
   @@map("creator")
 }
 
-enum Name {
+enum JobName {
   INGESTION @map("Ingestion")
   EXPORT    @map("Export")
   DEFAULT   @map("Default")
 
-  @@map("name")
+  @@map("job_name_enum")
 }

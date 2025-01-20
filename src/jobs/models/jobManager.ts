@@ -3,30 +3,7 @@ import { inject, injectable } from 'tsyringe';
 import { components } from '@src/openapi';
 import { SERVICES } from '@common/constants';
 import { PrismaClient, Prisma } from '@prisma/client';
-
-// todo - temporally for development
-const jobInstance: IJobModel = {
-  type: 'PRE_DEFINED',
-  creator: 'UNKNOWN',
-  data: {},
-  id: '37e0d875-7023-4a13-8733-9e19f7fa09fb',
-  creationTime: '2025-01-16 08:11:08.051',
-  expirationTime: '2025-01-16 08:11:08.051',
-  notifications: {},
-  percentage: 0,
-  priority: 'HIGH',
-  status: 'ABORTED',
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  TTL: '2025-01-16 08:11:08.051',
-  updateTime: '2025-01-16 08:11:08.051',
-  userMetadata: {},
-};
-
-// todo - temporally for development
-const jobCreateInstance: IJobCreateResponse = {
-  id: '37e0d875-7023-4a13-8733-9e19f7fa09fb',
-  taskIds: undefined,
-};
+import { JobFindCriteriaArg } from '../repositories/jobRepository';
 
 export type IJobModel = components['schemas']['jobResponse'];
 export type IJobCreateModel = components['schemas']['createJobPayload'];
@@ -40,18 +17,25 @@ export class JobManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient
   ) {}
 
-  public async getJobs(params: IJobGetParams): Promise<IJobModel[]> {
-    await this.prisma.job.findMany({
-      where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        AND: {
-          type: { equals: params.jmode },
+  public async getJobs(params: JobFindCriteriaArg): Promise<IJobModel[]> {
+    let queryBody = undefined;
+    if (params !== undefined) {
+      queryBody = {
+        where: {
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          AND: {
+            type: { equals: params.job_mode },
+            name: { equals: params.job_name },
+            priority: { equals: params.priority },
+            creator: { equals: params.creator },
+            creationTime: { gte: params.from_date, lte: params.till_date },
+          },
         },
-      },
-    });
-    this.logger.info('logging');
-    // console.log(parameters)
-    return [jobInstance];
+      };
+    }
+    const jobs = await this.prisma.job.findMany(queryBody);
+    const result = jobs.map((job) => this.convertPrismaToJobResponse(job));
+    return result;
   }
 
   public async createJob(body: IJobCreateModel): Promise<IJobCreateResponse> {
@@ -64,5 +48,26 @@ export class JobManager {
       this.logger.error(`Failed creating job with error: ${(error as Error).message}`);
       throw error;
     }
+  }
+  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
+    const jobObject: IJobModel = {
+      type: prismaObjects.type,
+      creator: prismaObjects.creator,
+      data: prismaObjects.data as Record<string, never>,
+      id: prismaObjects.id,
+      creationTime: prismaObjects.creationTime.toISOString(),
+      userMetadata: prismaObjects.userMetadata as Record<string, never>,
+      expirationTime: prismaObjects.expirationTime ? prismaObjects.expirationTime.toISOString() : undefined,
+      name: prismaObjects.name,
+      notifications: prismaObjects.notifications as Record<string, never>,
+      percentage: prismaObjects.percentage,
+      updateTime: prismaObjects.updateTime.toISOString(),
+      priority: prismaObjects.priority,
+      status: prismaObjects.status,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      TTL: prismaObjects.TTL ? prismaObjects.TTL.toISOString() : undefined,
+    };
+
+    return jobObject;
   }
 }

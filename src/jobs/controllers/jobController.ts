@@ -5,6 +5,7 @@ import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { JobManager } from '../models/jobManager';
+import { JobFindCriteriaArg } from '../repositories/jobRepository';
 
 @injectable()
 export class JobController {
@@ -29,19 +30,13 @@ export class JobController {
     });
   }
 
-  public getJobs: TypedRequestHandlers['GET /jobs'] = (req, res) => {
+  public getJobs: TypedRequestHandlers['GET /jobs'] = async (req, res) => {
     this.getJobsCounter.inc(1);
     // const params = req.query;
-    const params = {
-      type: req.query?.job_mode,
-      name: req.query?.job_name,
-      fromDate: req.query?.from_date,
-      tillDate: req.query?.till_date,
-      creator: req.query?.creator,
-    };
+    const params: JobFindCriteriaArg = req.query;
     console.log(params);
 
-    return res.status(httpStatus.OK).json(this.manager.getJobs());
+    return res.status(httpStatus.OK).json(await this.manager.getJobs(params));
   };
 
   public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {

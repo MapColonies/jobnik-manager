@@ -29,10 +29,6 @@ export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfi
 export async function initPoolConnection(dbConfig: PoolConfig): Promise<Pool> {
   const pool = new Pool(dbConfig);
   await pool.query('SELECT NOW()');
-  //   pool.on('error', (err) => {
-  //     console.error('Pool error:', err);
-
-  //   });
   return pool;
 }
 
