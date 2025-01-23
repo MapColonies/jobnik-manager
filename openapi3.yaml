@@ -234,14 +234,17 @@ components:
     expirationTime:
       type: string
       format: date-time
+      nullable: true
     TTL:
       type: string
       format: date-time
+      nullable: true
     jobId:
       type: string
       format: uuid
     jobPayload:
       type: object
+      additionalProperties: true
     percentage:
       type: integer
       minimum: 0
@@ -325,7 +328,9 @@ components:
         - data
         - type
         - creator
-      additionalProperties: false
+        - userMetadata
+        - notifications
+      additionalProperties: true
     jobResponse:
       allOf:
         - $ref: '#/components/schemas/createJobPayload'
@@ -429,10 +434,33 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/jobId'
-        taskIds:
-          type: array
-          items:
-            $ref: '#/components/schemas/taskId'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        status:
+          $ref: '#/components/schemas/status'
+        percentage:
+          $ref: '#/components/schemas/percentage'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
+        expirationTime:
+          $ref: '#/components/schemas/expirationTime'
+        type:
+          $ref: '#/components/schemas/jobMode'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        priority:
+          $ref: '#/components/schemas/priority'
+        creator:
+          $ref: '#/components/schemas/creator'
+        TTL:
+          $ref: '#/components/schemas/TTL'
+        notifications:
+          $ref: '#/components/schemas/notifications'
+        name:
+          $ref: '#/components/schemas/jobName'
+
       additionalProperties: false
       required:
         - id

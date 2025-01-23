@@ -23,6 +23,8 @@ module.exports = {
     ],
   ],
   moduleDirectories: ['node_modules', 'src'],
+  globalSetup: '<rootDir>/tests/configurations/integration/jest.globalSetup.ts',
+  globalTeardown: '<rootDir>/tests/configurations/integration/jest.globalTeardown.ts',
   testEnvironment: 'node',
   coverageThreshold: {
     global: {

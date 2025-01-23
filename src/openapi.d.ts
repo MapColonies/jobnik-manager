@@ -63,12 +63,14 @@ export type components = {
     /** Format: date-time */
     updateTime: string;
     /** Format: date-time */
-    expirationTime: string;
+    expirationTime: string | null;
     /** Format: date-time */
-    TTL: string;
+    TTL: string | null;
     /** Format: uuid */
     jobId: string;
-    jobPayload: Record<string, never>;
+    jobPayload: {
+      [key: string]: unknown;
+    };
     percentage: number;
     attempts: number;
     /** Format: uuid */
@@ -107,8 +109,8 @@ export type components = {
       priority?: components['schemas']['priority'];
       expirationTime?: components['schemas']['expirationTime'];
       TTL?: components['schemas']['TTL'];
-      notifications?: components['schemas']['notifications'];
-      userMetadata?: components['schemas']['userMetadata'];
+      notifications: components['schemas']['notifications'];
+      userMetadata: components['schemas']['userMetadata'];
       creator: components['schemas']['creator'];
     };
     jobResponse: components['schemas']['createJobPayload'] & {
@@ -153,7 +155,19 @@ export type components = {
     } & WithRequired<components['schemas']['createTaskPayload'], 'stageId' | 'status'>;
     createJobResponse: {
       id: components['schemas']['jobId'];
-      taskIds?: components['schemas']['taskId'][];
+      data?: components['schemas']['jobPayload'];
+      status?: components['schemas']['status'];
+      percentage?: components['schemas']['percentage'];
+      creationTime?: components['schemas']['creationTime'];
+      updateTime?: components['schemas']['updateTime'];
+      expirationTime?: components['schemas']['expirationTime'];
+      type?: components['schemas']['jobMode'];
+      userMetadata?: components['schemas']['userMetadata'];
+      priority?: components['schemas']['priority'];
+      creator?: components['schemas']['creator'];
+      TTL?: components['schemas']['TTL'];
+      notifications?: components['schemas']['notifications'];
+      name?: components['schemas']['jobName'];
     };
     errorMessage: {
       'message:'?: string;
@@ -286,7 +300,7 @@ export interface operations {
     };
     responses: {
       /** @description Job created successfully */
-      201: {
+      200: {
         headers: {
           [name: string]: unknown;
         };

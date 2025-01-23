@@ -32,17 +32,14 @@ export class JobController {
 
   public getJobs: TypedRequestHandlers['GET /jobs'] = async (req, res) => {
     this.getJobsCounter.inc(1);
-    // const params = req.query;
     const params: JobFindCriteriaArg = req.query;
-    console.log(params);
-
     return res.status(httpStatus.OK).json(await this.manager.getJobs(params));
   };
 
   public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {
     this.createJobCounter.inc(1);
     try {
-      return res.status(httpStatus.OK).json(await this.manager.createJob(req.body));
+      return res.status(httpStatus.CREATED).json(await this.manager.createJob(req.body));
     } catch (error) {
       return next(error);
     }

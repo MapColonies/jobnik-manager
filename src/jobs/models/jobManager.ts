@@ -40,7 +40,9 @@ export class JobManager {
 
   public async createJob(body: IJobCreateModel): Promise<IJobCreateResponse> {
     try {
-      const res: IJobCreateResponse = await this.prisma.job.create({ data: body });
+      const input: Prisma.JobCreateInput = { data: body.data };
+
+      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug('Created new job successfully', body);
       return res;

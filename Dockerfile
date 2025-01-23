@@ -28,6 +28,8 @@ RUN npm ci --only=production
 COPY --chown=node:node --from=build /tmp/buildApp/dist .
 COPY --chown=node:node ./config ./config
 
+# to include prisma cli installation 
+RUN npm run migration:format 
 
 USER node
 EXPOSE 8080
