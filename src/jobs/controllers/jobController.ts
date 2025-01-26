@@ -30,18 +30,26 @@ export class JobController {
     });
   }
 
-  public getJobs: TypedRequestHandlers['GET /jobs'] = async (req, res) => {
+  public getJobs: TypedRequestHandlers['GET /jobs'] = async (req, res, next) => {
     this.getJobsCounter.inc(1);
     const params: JobFindCriteriaArg = req.query;
-    return res.status(httpStatus.OK).json(await this.manager.getJobs(params));
+    try {
+      const response = await this.manager.getJobs(params);
+      return res.status(httpStatus.OK).json(response);
+    } catch (err) {
+      this.logger.error(`Error occurred on getting job with error`, err);
+      next(err);
+    }
   };
 
   public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {
     this.createJobCounter.inc(1);
     try {
-      return res.status(httpStatus.CREATED).json(await this.manager.createJob(req.body));
-    } catch (error) {
-      return next(error);
+      const response = await this.manager.createJob(req.body);
+      return res.status(httpStatus.CREATED).json(response);
+    } catch (err) {
+      this.logger.error(`Error occurred on creating new job with error`, err);
+      return next(err);
     }
   };
 }

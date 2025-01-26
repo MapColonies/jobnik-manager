@@ -51,7 +51,7 @@ export class JobManager {
       throw error;
     }
   }
-  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
+  public convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
     const jobObject: IJobModel = {
       type: prismaObjects.type,
       creator: prismaObjects.creator,

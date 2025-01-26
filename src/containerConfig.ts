@@ -10,8 +10,6 @@ import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getTracing } from '@common/tracing';
 import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
 import { HealthCheck } from '@godaddy/terminus';
-import { resourceNameRouterFactory, RESOURCE_NAME_ROUTER_SYMBOL } from './resourceName/routes/resourceNameRouter';
-import { anotherResourceRouterFactory, ANOTHER_RESOURCE_ROUTER_SYMBOL } from './anotherResource/routes/anotherResourceRouter';
 import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
@@ -56,8 +54,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METRICS, provider: { useValue: metricsRegistry } },
     { token: SERVICES.PG_POOL, provider: { useValue: pool } },
-    { token: RESOURCE_NAME_ROUTER_SYMBOL, provider: { useFactory: resourceNameRouterFactory } },
-    { token: ANOTHER_RESOURCE_ROUTER_SYMBOL, provider: { useFactory: anotherResourceRouterFactory } },
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
       token: SERVICES.PRISMA,

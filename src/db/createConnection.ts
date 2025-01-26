@@ -21,6 +21,7 @@ export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfi
   };
   const sslParams = dbConfig.ssl;
   if (sslParams.enabled) {
+    // todo - should be tested on future development (current version not support cert full deployment)
     dataSourceOptions.ssl = { key: readFileSync(sslParams.key), cert: readFileSync(sslParams.cert), ca: readFileSync(sslParams.ca) };
   }
   return dataSourceOptions;
