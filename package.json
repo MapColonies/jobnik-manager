@@ -13,7 +13,7 @@
     "lint:openapi": "openapi lint ./openapi3.yaml",
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
-    "test": "tsc --noEmit -p tsconfig.test.json && npm run migration:generate-types && npm run test:unit && npm run test:integration",
+    "test": "tsc --noEmit -p tsconfig.test.json && npm run test:unit && npm run test:integration",
     "prebuild": "npm run clean",
     "build": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run assets:copy",
     "start": "npm run build && cd dist && node --import ./instrumentation.mjs ./index.js",

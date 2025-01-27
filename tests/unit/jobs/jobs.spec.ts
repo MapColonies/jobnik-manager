@@ -1,5 +1,6 @@
 import jsLogger from '@map-colonies/js-logger';
 import { Creator, JobMode, JobName, Prisma, PrismaClient } from '@prisma/client';
+
 import { JobManager } from '@src/jobs/models/jobManager';
 
 let jobManager: JobManager;
