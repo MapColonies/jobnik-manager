@@ -18,6 +18,7 @@ module.exports = {
     '!**/controllers/**',
     '!**/routes/**',
     '!<rootDir>/src/*',
+    '!<rootDir>/src/db/createConnection.ts',
   ],
   coverageDirectory: '<rootDir>/coverage',
   reporters: [

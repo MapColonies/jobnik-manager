@@ -1,12 +1,12 @@
 import path from 'node:path';
 import { commonDbFullV1Type } from '@map-colonies/schemas';
-import config from 'config';
 
 /**
  * Extract and build DB connection url based on configuration
+ * @param dbConfig DB config object 'commonDbFullV1Type'
+ * @returns string represent connection url according: https://www.prisma.io/docs/orm/overview/databases/postgresql#3-instantiate-prisma-client-using-the-driver-adapter
  */
-function dbConnectUrlFromConfig(): string {
-  const dbConfig = config.get<commonDbFullV1Type>('db');
+function createDbConnectUrl(dbConfig: commonDbFullV1Type): string {
   const { username, password, host, database, port, schema, ssl } = dbConfig;
 
   let connectionUrl = `postgresql://${username}:${password}@${host}:${port}/${database}?schema=${schema}`;
@@ -20,4 +20,4 @@ function dbConnectUrlFromConfig(): string {
   return connectionUrl;
 }
 
-export { dbConnectUrlFromConfig };
+export { createDbConnectUrl };

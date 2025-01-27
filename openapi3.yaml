@@ -355,7 +355,7 @@ components:
       enum:
         - Tile-Merging
         - Tile-Seeding
-        - Tile-Exporing
+        - Tile-Exporting
       maxLength: 255
       example: Tile-Merging
     taskPayload:

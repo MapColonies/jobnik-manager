@@ -104,7 +104,7 @@ export type components = {
      * @example Tile-Merging
      * @enum {string}
      */
-    taskType: 'Tile-Merging' | 'Tile-Seeding' | 'Tile-Exporing';
+    taskType: 'Tile-Merging' | 'Tile-Seeding' | 'Tile-Exporting';
     taskPayload: Record<string, never>;
     createTaskPayload: {
       type: components['schemas']['taskType'];
