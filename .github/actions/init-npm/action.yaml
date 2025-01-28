@@ -19,6 +19,3 @@ runs:
     - name: Build project
       shell: bash
       run: npm run build
-    # - name: Generate Prisma types from schema
-    #   shell: bash
-    #   run: npm run migration:generate-types

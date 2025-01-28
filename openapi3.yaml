@@ -73,42 +73,42 @@ paths:
                 $ref: '#/components/schemas/errorMessage'
 components:
   parameters:
-    jobId:
-      in: path
-      name: jobId
-      description: ID of Job
-      required: true
-      schema:
-        $ref: '#/components/schemas/jobId'
-    stageId:
-      in: path
-      name: stageId
-      description: ID of Stage
-      required: true
-      schema:
-        $ref: '#/components/schemas/stageId'
-    taskId:
-      in: path
-      name: taskId
-      description: ID of requested task
-      required: true
-      schema:
-        type: string
-    taskType:
-      in: path
-      name: taskType
-      description: ID of requested task
-      required: true
-      schema:
-        $ref: '#/components/schemas/taskType'
-    status:
-      in: query
-      name: status
-      description: |
-        The status of the job.
-      required: false
-      schema:
-        $ref: '#/components/schemas/status'
+    # jobId:
+    #   in: path
+    #   name: jobId
+    #   description: ID of Job
+    #   required: true
+    #   schema:
+    #     $ref: '#/components/schemas/jobId'
+    # stageId:
+    #   in: path
+    #   name: stageId
+    #   description: ID of Stage
+    #   required: true
+    #   schema:
+    #     $ref: '#/components/schemas/stageId'
+    # taskId:
+    #   in: path
+    #   name: taskId
+    #   description: ID of requested task
+    #   required: true
+    #   schema:
+    #     type: string
+    # taskType:
+    #   in: path
+    #   name: taskType
+    #   description: ID of requested task
+    #   required: true
+    #   schema:
+    #     $ref: '#/components/schemas/taskType'
+    # status:
+    #   in: query
+    #   name: status
+    #   description: |
+    #     The status of the job.
+    #   required: false
+    #   schema:
+    #     $ref: '#/components/schemas/status'
     jmode:
       in: query
       name: job_mode
@@ -157,41 +157,41 @@ components:
       schema:
         type: string
         format: date-time
-    sId:
-      in: query
-      name: stage_id
-      description: unique stage identifier
-      required: false
-      schema:
-        $ref: '#/components/schemas/stageId'
-    jId:
-      in: query
-      name: job_id
-      description: unique job identifier
-      required: false
-      schema:
-        $ref: '#/components/schemas/jobId'
-    sType:
-      in: query
-      name: stage_type
-      description: stage's type
-      required: false
-      schema:
-        $ref: '#/components/schemas/taskType'
-    tType:
-      in: query
-      name: task_type
-      description: task's type
-      required: false
-      schema:
-        $ref: '#/components/schemas/taskType'
-    jobName:
-      in: path
-      name: jobName
-      description: the type of the job
-      required: true
-      schema:
-        $ref: '#/components/schemas/jobName'
+    # sId:
+    #   in: query
+    #   name: stage_id
+    #   description: unique stage identifier
+    #   required: false
+    #   schema:
+    #     $ref: '#/components/schemas/stageId'
+    # jId:
+    #   in: query
+    #   name: job_id
+    #   description: unique job identifier
+    #   required: false
+    #   schema:
+    #     $ref: '#/components/schemas/jobId'
+    # sType:
+    #   in: query
+    #   name: stage_type
+    #   description: stage's type
+    #   required: false
+    #   schema:
+    #     $ref: '#/components/schemas/taskType'
+    # tType:
+    #   in: query
+    #   name: task_type
+    #   description: task's type
+    #   required: false
+    #   schema:
+    #     $ref: '#/components/schemas/taskType'
+    # jobName:
+    #   in: path
+    #   name: jobName
+    #   description: the type of the job
+    #   required: true
+    #   schema:
+    #     $ref: '#/components/schemas/jobName'
   schemas:
     creationTime:
       type: string
@@ -441,24 +441,24 @@ components:
           type: string
       required:
         - message
-    defaultOkMessage:
-      type: object
-      properties:
-        code:
-          type: string
-          enum:
-            - JOB_MODIFIED_SUCCESSFULLY
-            - TTL_MODIFIED_SUCCESSFULLY
-            - JOB_RESTARTED_SUCCESSFULLY
-            - STAGE_MODIFIED_SUCCESSFULLY
-            - STATUS_MODIFIED_SUCCESSFULLY
-            - USER_METADATA_MODIFIED_SUCCESSFULLY
-            - TASKS_ADDED_SUCCESSFULLY
-            - TASK_FAILED_SUCCESSFULLY
-            - TASK_COMPLETED_SUCCESSFULLY
-          example: JOB_MODIFIED_SUCCESSFULLY
-      required:
-        - code
+    # defaultOkMessage:
+    #   type: object
+    #   properties:
+    #     code:
+    #       type: string
+    #       enum:
+    #         - JOB_MODIFIED_SUCCESSFULLY
+    #         - TTL_MODIFIED_SUCCESSFULLY
+    #         - JOB_RESTARTED_SUCCESSFULLY
+    #         - STAGE_MODIFIED_SUCCESSFULLY
+    #         - STATUS_MODIFIED_SUCCESSFULLY
+    #         - USER_METADATA_MODIFIED_SUCCESSFULLY
+    #         - TASKS_ADDED_SUCCESSFULLY
+    #         - TASK_FAILED_SUCCESSFULLY
+    #         - TASK_COMPLETED_SUCCESSFULLY
+    #       example: JOB_MODIFIED_SUCCESSFULLY
+    #   required:
+    #     - code
     error:
       type: object
       required:

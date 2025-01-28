@@ -140,39 +140,12 @@ export type components = {
       'message:'?: string;
       stacktrace?: string;
     };
-    defaultOkMessage: {
-      /**
-       * @example JOB_MODIFIED_SUCCESSFULLY
-       * @enum {string}
-       */
-      code:
-        | 'JOB_MODIFIED_SUCCESSFULLY'
-        | 'TTL_MODIFIED_SUCCESSFULLY'
-        | 'JOB_RESTARTED_SUCCESSFULLY'
-        | 'STAGE_MODIFIED_SUCCESSFULLY'
-        | 'STATUS_MODIFIED_SUCCESSFULLY'
-        | 'USER_METADATA_MODIFIED_SUCCESSFULLY'
-        | 'TASKS_ADDED_SUCCESSFULLY'
-        | 'TASK_FAILED_SUCCESSFULLY'
-        | 'TASK_COMPLETED_SUCCESSFULLY';
-    };
     error: {
       message: string;
     };
   };
   responses: never;
   parameters: {
-    /** @description ID of Job */
-    jobId: components['schemas']['jobId'];
-    /** @description ID of Stage */
-    stageId: components['schemas']['stageId'];
-    /** @description ID of requested task */
-    taskId: string;
-    /** @description ID of requested task */
-    taskType: components['schemas']['taskType'];
-    /** @description The status of the job.
-     *      */
-    status: components['schemas']['status'];
     /** @description The mode of the job.
      *      */
     jmode: components['schemas']['jobMode'];
@@ -189,16 +162,6 @@ export type components = {
     fromDate: string;
     /** @description results end update date */
     tillDate: string;
-    /** @description unique stage identifier */
-    sId: components['schemas']['stageId'];
-    /** @description unique job identifier */
-    jId: components['schemas']['jobId'];
-    /** @description stage's type */
-    sType: components['schemas']['taskType'];
-    /** @description task's type */
-    tType: components['schemas']['taskType'];
-    /** @description the type of the job */
-    jobName: components['schemas']['jobName'];
   };
   requestBodies: never;
   headers: never;
