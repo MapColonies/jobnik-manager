@@ -13,6 +13,7 @@ void getApp()
     const logger = container.resolve<Logger>(SERVICES.LOGGER);
     const config = container.resolve<ConfigType>(SERVICES.CONFIG);
     const port = config.get('server.port');
+
     const healthCheck = container.resolve<HealthCheck>(SERVICES.HEALTHCHECK);
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const server = createTerminus(createServer(app), { healthChecks: { '/liveness': healthCheck }, onSignal: container.resolve('onSignal') });

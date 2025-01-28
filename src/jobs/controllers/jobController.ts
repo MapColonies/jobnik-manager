@@ -1,11 +1,10 @@
-import { Logger } from '@map-colonies/js-logger';
-import client, { Registry } from 'prom-client';
+import type { Logger } from '@map-colonies/js-logger';
 import httpStatus from 'http-status-codes';
 import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { JobManager } from '../models/jobManager';
-import { JobFindCriteriaArg } from '../repositories/jobRepository';
+import type { JobFindCriteriaArg } from '../repositories/jobRepository';
 
 @injectable()
 export class JobController {
