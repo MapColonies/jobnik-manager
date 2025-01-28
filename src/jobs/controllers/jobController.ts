@@ -5,7 +5,7 @@ import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import type { JobManager } from '../models/jobManager';
-import { JobFindCriteriaArg } from '../repositories/jobRepository';
+import type { JobFindCriteriaArg } from '../repositories/jobRepository';
 
 @injectable()
 export class JobController {
