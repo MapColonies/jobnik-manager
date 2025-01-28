@@ -71,6 +71,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+
+security: []
+
 components:
   parameters:
     # jobId:
