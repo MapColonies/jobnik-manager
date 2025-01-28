@@ -16,6 +16,6 @@ runs:
     - name: Install TS Project dependencies
       shell: bash
       run: npm ci
-    - name: Generate Prisma types from schema
-      shell: bash
-      run: npm run migration:generate-types
+    # - name: Generate Prisma types from schema
+    #   shell: bash
+    #   run: npm run migration:generate-types
