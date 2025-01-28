@@ -111,7 +111,6 @@ describe('job', function () {
 
   describe('Sad Path', function () {
     it('should return 500 status code when the database is down on getting jobs', async function () {
-      //const prisma = new PrismaClient();
       jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('Database error'));
       const response = await requestSender.findJobs({});
       expect(response.status).toBe(httpStatusCodes.INTERNAL_SERVER_ERROR);
@@ -119,7 +118,6 @@ describe('job', function () {
     });
 
     it('should return 500 status code when the database is down on create job', async function () {
-      //const prisma = new PrismaClient();
       jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('Database error'));
       const response = await requestSender.createJob({
         requestBody: {
