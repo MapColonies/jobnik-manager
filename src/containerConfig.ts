@@ -56,19 +56,19 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: SERVICES.PG_POOL, provider: { useValue: pool } },
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
-      token: SERVICES.PRISMA,
-      provider: {
-        useFactory: instancePerContainerCachingFactory((container) => {
-          return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
-        }),
-      },
-    },
-    {
       token: SERVICES.HEALTHCHECK,
       provider: {
         useFactory: instanceCachingFactory((container) => {
           const pool = container.resolve<Pool>(SERVICES.PG_POOL);
           return healthCheck(pool);
+        }),
+      },
+    },
+    {
+      token: SERVICES.PRISMA,
+      provider: {
+        useFactory: instancePerContainerCachingFactory((container) => {
+          return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
         }),
       },
     },

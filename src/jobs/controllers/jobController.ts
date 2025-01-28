@@ -9,29 +9,12 @@ import { JobFindCriteriaArg } from '../repositories/jobRepository';
 
 @injectable()
 export class JobController {
-  private readonly getJobsCounter: client.Counter;
-  private readonly createJobCounter: client.Counter;
-
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(JobManager) private readonly manager: JobManager,
-    @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry
-  ) {
-    this.getJobsCounter = new client.Counter({
-      name: 'get_jobs',
-      help: 'number of get jobs requests',
-      registers: [this.metricsRegistry],
-    });
-
-    this.createJobCounter = new client.Counter({
-      name: 'create_job',
-      help: 'number of create jobs requests',
-      registers: [this.metricsRegistry],
-    });
-  }
+    @inject(JobManager) private readonly manager: JobManager
+  ) {}
 
   public getJobs: TypedRequestHandlers['GET /jobs'] = async (req, res, next) => {
-    this.getJobsCounter.inc(1);
     const params: JobFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getJobs(params);
@@ -43,7 +26,6 @@ export class JobController {
   };
 
   public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {
-    this.createJobCounter.inc(1);
     try {
       const response = await this.manager.createJob(req.body);
       return res.status(httpStatus.CREATED).json(response);
