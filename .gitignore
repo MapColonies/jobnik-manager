@@ -110,3 +110,8 @@ dist
 # Jest
 jest_html_reporters.html
 reports
+
+# local values
+local-*.json
+local.json
+*myvalues*
