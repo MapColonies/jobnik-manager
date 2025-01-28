@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
-import { commonDbFullV1Type } from '@map-colonies/schemas';
+import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { createDbConnectUrl } from '@src/db/helpers';
 
 function createJobEntity(override: Partial<commonDbFullV1Type>) {

@@ -1,14 +1,9 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import { components } from '@src/openapi';
 import { SERVICES } from '@common/constants';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { JobFindCriteriaArg } from '../repositories/jobRepository';
-
-export type IJobModel = components['schemas']['jobResponse'];
-export type IJobCreateModel = components['schemas']['createJobPayload'];
-export type IJobCreateResponse = components['schemas']['createJobResponse'];
-export type IJobGetParams = components['parameters'];
+import { IJobCreateModel, IJobCreateResponse, IJobModel } from './models';
 
 @injectable()
 export class JobManager {
@@ -22,7 +17,6 @@ export class JobManager {
     if (params !== undefined) {
       queryBody = {
         where: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           AND: {
             type: { equals: params.job_mode },
             name: { equals: params.job_name },
