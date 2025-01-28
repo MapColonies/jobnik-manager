@@ -7,10 +7,17 @@ import { createDbConnectUrl } from '../../../src/db/helpers';
 export default async function globalSetup(): Promise<void> {
   await initConfig(true);
   const configInstance = getConfig();
+  console.log(process.env['NODE_ENV'], '***********', process.execPath);
   const dbConfig = configInstance.get('db') as commonDbFullV1Type; // todo - temporary - will removed after dedicated schema with db will be published
   const connectionDbUrl = createDbConnectUrl(dbConfig);
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const $$ = $({ env: { DATABASE_URL: connectionDbUrl } });
-  // await $$`node_modules/.bin/prisma generate --schema ./src/db/prisma/schema.prisma`;
+  const $$ = $({ env: { ...process.env, DATABASE_URL: connectionDbUrl } });
+  $.verbose = true;
+  //  await $`env`;
+  // const x =await $`env`.pipe($`node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`);
+
+  await $`env;node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
+  //  await $$`env;node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
+
   await $$`node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
 }
