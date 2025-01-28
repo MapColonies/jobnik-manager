@@ -27,6 +27,7 @@ export class JobManager {
         },
       };
     }
+
     const jobs = await this.prisma.job.findMany(queryBody);
     const result = jobs.map((job) => this.convertPrismaToJobResponse(job));
     return result;
