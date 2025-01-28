@@ -16,7 +16,7 @@ export default async function globalSetup(): Promise<void> {
   //  await $`env`;
   // const x =await $`env`.pipe($`node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`);
 
-  await $`env;node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
+  // await $`env;node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
   //  await $$`env;node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
 
   await $$`node_modules/.bin/prisma migrate deploy --schema ./src/db/prisma/schema.prisma`;
