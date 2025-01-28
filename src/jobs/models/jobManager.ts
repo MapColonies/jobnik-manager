@@ -46,6 +46,7 @@ export class JobManager {
       throw error;
     }
   }
+  
   public convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
     const jobObject: IJobModel = {
       type: prismaObjects.type,
