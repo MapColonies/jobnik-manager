@@ -206,7 +206,7 @@ components:
       type: string
       format: date-time
       nullable: true
-    TTL:
+    ttl:
       type: string
       format: date-time
       nullable: true
@@ -287,8 +287,8 @@ components:
           $ref: '#/components/schemas/priority'
         expirationTime:
           $ref: '#/components/schemas/expirationTime'
-        TTL:
-          $ref: '#/components/schemas/TTL'
+        ttl:
+          $ref: '#/components/schemas/ttl'
         notifications:
           $ref: '#/components/schemas/notifications'
         userMetadata:
@@ -425,8 +425,8 @@ components:
           $ref: '#/components/schemas/priority'
         creator:
           $ref: '#/components/schemas/creator'
-        TTL:
-          $ref: '#/components/schemas/TTL'
+        ttl:
+          $ref: '#/components/schemas/ttl'
         notifications:
           $ref: '#/components/schemas/notifications'
         name:

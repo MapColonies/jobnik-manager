@@ -25,7 +25,7 @@ model Job {
   userMetadata   Json            @default("{}")
   priority       Priority        @default(VERY_LOW)
   creator        Creator         @default(UNKNOWN)
-  TTL            DateTime?
+  ttl            DateTime?
   notifications  Json            @default("{}")
   name           JobName         @default(DEFAULT)
 

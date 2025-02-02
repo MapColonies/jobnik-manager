@@ -39,14 +39,15 @@ export class JobManager {
 
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
-      this.logger.debug('Created new job successfully', body);
+      const { data, ...logData } = res;
+      this.logger.debug('Created new job successfully', logData);
       return res;
     } catch (error) {
       this.logger.error(`Failed creating job with error: ${(error as Error).message}`);
       throw error;
     }
   }
-  
+
   public convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
     const jobObject: IJobModel = {
       type: prismaObjects.type,
@@ -63,7 +64,7 @@ export class JobManager {
       priority: prismaObjects.priority,
       status: prismaObjects.status,
       // eslint-disable-next-line @typescript-eslint/naming-convention
-      TTL: prismaObjects.TTL ? prismaObjects.TTL.toISOString() : undefined,
+      ttl: prismaObjects.ttl ? prismaObjects.ttl.toISOString() : undefined,
     };
 
     return jobObject;

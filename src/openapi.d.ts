@@ -30,7 +30,7 @@ export type components = {
     /** Format: date-time */
     expirationTime: string | null;
     /** Format: date-time */
-    TTL: string | null;
+    ttl: string | null;
     /** Format: uuid */
     jobId: string;
     jobPayload: {
@@ -73,7 +73,7 @@ export type components = {
       status?: components['schemas']['status'];
       priority?: components['schemas']['priority'];
       expirationTime?: components['schemas']['expirationTime'];
-      TTL?: components['schemas']['TTL'];
+      ttl?: components['schemas']['ttl'];
       notifications: components['schemas']['notifications'];
       userMetadata: components['schemas']['userMetadata'];
       creator: components['schemas']['creator'];
@@ -132,7 +132,7 @@ export type components = {
       userMetadata?: components['schemas']['userMetadata'];
       priority?: components['schemas']['priority'];
       creator?: components['schemas']['creator'];
-      TTL?: components['schemas']['TTL'];
+      ttl?: components['schemas']['ttl'];
       notifications?: components['schemas']['notifications'];
       name?: components['schemas']['jobName'];
     };
