@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Creator, JobMode, JobName, Priority } from '@prisma/client';
+import type { Creator, JobMode, JobName, Priority } from '@prisma/client';
 
 /**
  * Represent openAPI's optional query params
