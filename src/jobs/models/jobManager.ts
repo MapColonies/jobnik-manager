@@ -2,8 +2,7 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { JobFindCriteriaArg } from '../repositories/jobRepository';
-import { IJobCreateModel, IJobCreateResponse, IJobModel } from './models';
+import { IJobCreateModel, IJobCreateResponse, IJobModel, JobFindCriteriaArg } from './models';
 
 @injectable()
 export class JobManager {
