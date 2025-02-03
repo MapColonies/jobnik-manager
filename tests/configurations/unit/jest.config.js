@@ -20,6 +20,8 @@ module.exports = {
     '!<rootDir>/src/*',
     '!<rootDir>/src/db/createConnection.ts',
   ],
+
+  setupFilesAfterEnv: ['jest-extended/all'],
   coverageDirectory: '<rootDir>/coverage',
   reporters: [
     'default',

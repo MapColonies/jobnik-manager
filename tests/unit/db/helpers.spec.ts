@@ -1,3 +1,4 @@
+/// <reference types="jest-extended" />
 /* eslint-disable @typescript-eslint/no-var-requires */
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { createDbConnectUrl } from '@src/db/helpers';
@@ -16,6 +17,14 @@ function createJobEntity(override: Partial<commonDbFullV1Type>) {
   } satisfies commonDbFullV1Type;
   return { ...dbParams, ...override };
 }
+
+function createQueryParamsObject(paramsString: string) {
+  const queryParamsArr = paramsString.split('&');
+  const queryParamsPairs = queryParamsArr.map((params) => params.split('='));
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const queryObject: object = Object.fromEntries(queryParamsPairs);
+  return queryObject;
+}
 describe('DB helpers', () => {
   describe('#createConnectionUrl', () => {
     it('should return no ssl url string', function () {
@@ -23,21 +32,29 @@ describe('DB helpers', () => {
       const { database, host, password, port, schema, username } = validUrlWithoutSsl;
       const connectionUrl = createDbConnectUrl(validUrlWithoutSsl);
 
-      const expectedResult = `postgresql://${username}:${password}@${host}:${port}/${database}?schema=${schema}`;
+      const splittedByQuestionMark = connectionUrl.split('?');
+      const connectionBaseUri = splittedByQuestionMark[0];
+      const queryParams = splittedByQuestionMark[1];
 
-      expect(connectionUrl).toContain(expectedResult);
-      expect(connectionUrl).not.toContain('sslcert');
+      expect(queryParams).toEndWith(schema);
+      expect(connectionBaseUri).toBe(`postgresql://${username}:${password}@${host}:${port}/${database}`);
     });
 
     it('should return with ssl url string', function () {
-      const validUrlWithoutSsl = createJobEntity({ ssl: { enabled: true, ca: '/path/rootCaTest', cert: '/path/certTest', key: '/path/keyTest' } });
-      const { database, host, password, port, schema, username } = validUrlWithoutSsl;
-      const connectionUrl = createDbConnectUrl(validUrlWithoutSsl);
+      const validUrlWithSsl = createJobEntity({ ssl: { enabled: true, ca: '/path/rootCaTest', cert: '/path/certTest', key: '/path/keyTest' } });
+      const { database, host, password, port, schema, username } = validUrlWithSsl;
+      const connectionUrl = createDbConnectUrl(validUrlWithSsl);
 
-      const expectedResult = `postgresql://${username}:${password}@${host}:${port}/${database}?schema=${schema}`;
-      expect(connectionUrl).toContain(expectedResult);
-      expect(connectionUrl).toContain('sslcert');
-      expect(connectionUrl).toContain('sslidentity');
+      const splittedByQuestionMark = connectionUrl.split('?');
+      const connectionBaseUri = splittedByQuestionMark[0];
+      const queryParams = splittedByQuestionMark[1];
+      const queryParamsObject = createQueryParamsObject(queryParams);
+
+      expect(Object.entries(queryParamsObject)).toHaveLength(3);
+      expect(connectionBaseUri).toBe(`postgresql://${username}:${password}@${host}:${port}/${database}`);
+      expect(queryParamsObject).toHaveProperty('schema', schema);
+      expect(queryParamsObject).toHaveProperty('sslidentity');
+      expect(queryParamsObject).toHaveProperty('sslcert');
     });
   });
 });
