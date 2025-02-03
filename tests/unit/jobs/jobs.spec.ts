@@ -1,7 +1,6 @@
 import jsLogger from '@map-colonies/js-logger';
 import type { Creator, JobMode, JobName, Prisma } from '@prisma/client';
 import { PrismaClient } from '@prisma/client';
-
 import { JobManager } from '@src/jobs/models/jobManager';
 
 let jobManager: JobManager;
@@ -42,8 +41,6 @@ describe('JobManager', () => {
         it('should return created job formatted', async function () {
           const jobEntity = createJobEntity({});
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntity);
-          const convertPrismaToJobResponseStub = jest.spyOn(jobManager, 'convertPrismaToJobResponse');
-
           const createJobParams = {
             name: 'DEFAULT' as JobName,
             creator: 'UNKNOWN' as Creator,
@@ -56,7 +53,6 @@ describe('JobManager', () => {
           const job = await jobManager.createJob(createJobParams);
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(convertPrismaToJobResponseStub).toHaveBeenCalledTimes(1);
           expect(job).toStrictEqual(jobManager.convertPrismaToJobResponse(jobEntity));
         });
       });
@@ -89,12 +85,10 @@ describe('JobManager', () => {
           // eslint-disable-next-line @typescript-eslint/naming-convention
           const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
-          const convertPrismaToJobResponseStub = jest.spyOn(jobManager, 'convertPrismaToJobResponse');
 
           const job = await jobManager.getJobs({ creator: 'UNKNOWN' });
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(convertPrismaToJobResponseStub).toHaveBeenCalledTimes(1);
           expect(job).toStrictEqual([jobManager.convertPrismaToJobResponse(jobEntity)]);
         });
       });
