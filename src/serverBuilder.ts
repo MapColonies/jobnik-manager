@@ -10,7 +10,7 @@ import httpLogger from '@map-colonies/express-access-log-middleware';
 import { getTraceContexHeaderMiddleware } from '@map-colonies/telemetry';
 import { collectMetricsExpressMiddleware } from '@map-colonies/telemetry/prom-metrics';
 import { Registry } from 'prom-client';
-import { ConfigType } from '@common/config';
+import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
 import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 
