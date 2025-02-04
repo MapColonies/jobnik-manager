@@ -61,7 +61,6 @@ export class JobManager {
       updateTime: prismaObjects.updateTime.toISOString(),
       priority: prismaObjects.priority,
       status: prismaObjects.status,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       ttl: prismaObjects.ttl ? prismaObjects.ttl.toISOString() : undefined,
     };
 

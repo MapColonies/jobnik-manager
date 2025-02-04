@@ -39,7 +39,7 @@ describe('JobManager', () => {
     describe('#createJob', () => {
       describe('#HappyPath', () => {
         it('should return created job formatted', async function () {
-          const jobEntity = createJobEntity({});
+          const jobEntity = createJobEntity({ data: { stages: [] } });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntity);
           const createJobParams = {
             name: 'DEFAULT' as JobName,
@@ -53,14 +53,13 @@ describe('JobManager', () => {
           const job = await jobManager.createJob(createJobParams);
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(job).toStrictEqual(jobManager.convertPrismaToJobResponse(jobEntity));
+          expect(job).toMatchObject(createJobParams);
         });
       });
 
       describe('#SadPath', () => {
         it('should failed on db error when creating job', async function () {
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('db connection error'));
-          const convertPrismaToJobResponseStub = jest.spyOn(jobManager, 'convertPrismaToJobResponse');
 
           const createJobParams = {
             name: 'DEFAULT' as JobName,
@@ -74,7 +73,6 @@ describe('JobManager', () => {
           await expect(jobManager.createJob(createJobParams)).rejects.toThrow('db connection error');
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(convertPrismaToJobResponseStub).toHaveBeenCalledTimes(0);
         });
       });
     });
@@ -86,22 +84,21 @@ describe('JobManager', () => {
           const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
 
-          const job = await jobManager.getJobs({ creator: 'UNKNOWN' });
+          const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
+          const ExpectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(job).toStrictEqual([jobManager.convertPrismaToJobResponse(jobEntity)]);
+          expect(jobs).toMatchObject(ExpectedJob);
         });
       });
 
       describe('#SadPath', () => {
         it('should failed on db error when find jobs', async function () {
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
-          const convertPrismaToJobResponseStub = jest.spyOn(jobManager, 'convertPrismaToJobResponse');
 
           await expect(jobManager.getJobs({ creator: 'UNKNOWN' })).rejects.toThrow('db connection error');
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(convertPrismaToJobResponseStub).toHaveBeenCalledTimes(0);
         });
       });
     });
