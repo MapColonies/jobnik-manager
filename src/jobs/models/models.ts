@@ -1,4 +1,4 @@
-import { components, operations } from '@src/openapi';
+import type { components, operations } from '@src/openapi';
 
 export type IJobModel = components['schemas']['jobResponse'];
 export type IJobCreateModel = components['schemas']['createJobPayload'];

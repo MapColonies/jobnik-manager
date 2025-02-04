@@ -35,11 +35,10 @@ export class JobManager {
   public async createJob(body: IJobCreateModel): Promise<IJobCreateResponse> {
     try {
       const input: Prisma.JobCreateInput = { data: body.data };
-
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
+
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
-      const { data, ...logData } = res;
-      this.logger.debug('Created new job successfully', logData);
+      this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
       this.logger.error(`Failed creating job with error: ${(error as Error).message}`);
