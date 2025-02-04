@@ -4,7 +4,7 @@ import httpStatusCodes from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
-import { paths, operations } from '@openapi';
+import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import type { Creator, JobMode, JobName, PrismaClient } from '@prisma/client';
 
