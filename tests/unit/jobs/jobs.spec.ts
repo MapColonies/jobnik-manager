@@ -85,10 +85,10 @@ describe('JobManager', () => {
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
 
           const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
-          const ExpectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
+          const expectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
-          expect(jobs).toMatchObject(ExpectedJob);
+          expect(jobs).toMatchObject(expectedJob);
         });
       });
 
