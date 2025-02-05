@@ -18,7 +18,6 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
     percentage: 0,
     priority: 'HIGH',
     status: 'PENDING',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     ttl: new Date(),
     type: 'PRE_DEFINED',
     updateTime: new Date(),
@@ -80,7 +79,6 @@ describe('JobManager', () => {
     describe('#findJobs', () => {
       describe('#HappyPath', () => {
         it('should return array with single job formatted object by criteria', async function () {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
 
