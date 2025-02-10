@@ -2,6 +2,7 @@ import jsLogger from '@map-colonies/js-logger';
 import type { Creator, JobMode, JobName } from '@prisma/client';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/jobManager';
+import { components } from '@src/openapi';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -43,13 +44,13 @@ describe('JobManager', () => {
           const jobEntity = createJobEntity({ data: { stages: [] } });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntity);
           const createJobParams = {
-            name: 'DEFAULT' as JobName,
-            creator: 'UNKNOWN' as Creator,
+            name: 'DEFAULT',
+            creator: 'UNKNOWN',
             data: { stages: [] },
-            type: 'PRE_DEFINED' as JobMode,
+            type: 'PRE_DEFINED',
             notifications: {},
             userMetadata: {},
-          };
+          } satisfies components['schemas']['createJobPayload'];
 
           const job = await jobManager.createJob(createJobParams);
 
@@ -63,13 +64,13 @@ describe('JobManager', () => {
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('db connection error'));
 
           const createJobParams = {
-            name: 'DEFAULT' as JobName,
-            creator: 'UNKNOWN' as Creator,
+            name: 'DEFAULT',
+            creator: 'UNKNOWN',
             data: { stages: [] },
-            type: 'PRE_DEFINED' as JobMode,
+            type: 'PRE_DEFINED',
             notifications: {},
             userMetadata: {},
-          };
+          } satisfies components['schemas']['createJobPayload'];
 
           await expect(jobManager.createJob(createJobParams)).rejects.toThrow('db connection error');
 
