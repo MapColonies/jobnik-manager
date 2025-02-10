@@ -212,7 +212,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/defaultOkMessage'
               example:
-                code: STATUS_MODIFIED_SUCCESSFULLY
+                code: JOB_MODIFIED_SUCCESSFULLY
         '400':
           description: Bad parameters input
           content:
