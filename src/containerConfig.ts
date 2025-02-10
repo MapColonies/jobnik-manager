@@ -2,13 +2,18 @@ import { getOtelMixin } from '@map-colonies/telemetry';
 import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
+import type { Pool } from 'pg';
 import jsLogger from '@map-colonies/js-logger';
 import { InjectionObject, registerDependencies } from '@common/dependencyRegistration';
-import { SERVICES, SERVICE_NAME } from '@common/constants';
+import { DB_CONNECTION_TIMEOUT, SERVICES, SERVICE_NAME } from '@common/constants';
+import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getTracing } from '@common/tracing';
-import { resourceNameRouterFactory, RESOURCE_NAME_ROUTER_SYMBOL } from './resourceName/routes/resourceNameRouter';
-import { anotherResourceRouterFactory, ANOTHER_RESOURCE_ROUTER_SYMBOL } from './anotherResource/routes/anotherResourceRouter';
+import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
+import { HealthCheck } from '@godaddy/terminus';
+import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
+import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
+import { promiseTimeout } from './common/utils/promiseTimeout';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -17,22 +22,57 @@ export interface RegisterOptions {
 
 export const registerExternalValues = async (options?: RegisterOptions): Promise<DependencyContainer> => {
   const configInstance = getConfig();
+  const dbConfig = configInstance.get('db') as commonDbFullV1Type;
 
   const loggerConfig = configInstance.get('telemetry.logger');
-
-  const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin() });
+  const loggerRedactionSettings = { paths: ['data', 'response.data'], remove: true };
+  const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin(), redact: loggerRedactionSettings });
 
   const tracer = trace.getTracer(SERVICE_NAME);
   const metricsRegistry = new Registry();
   configInstance.initializeMetrics(metricsRegistry);
+
+  let pool: Pool;
+  try {
+    pool = await initPoolConnection(createConnectionOptions(dbConfig));
+  } catch (error) {
+    const errMsg = (error as Error).message;
+    throw new Error(`Failed to connect to the database with error: ${errMsg}`);
+  }
+
+  const healthCheck = (pool: Pool): HealthCheck => {
+    return async (): Promise<void> => {
+      const check = pool.query('SELECT 1').then(() => {
+        return;
+      });
+      return promiseTimeout<void>(DB_CONNECTION_TIMEOUT, check);
+    };
+  };
 
   const dependencies: InjectionObject<unknown>[] = [
     { token: SERVICES.CONFIG, provider: { useValue: configInstance } },
     { token: SERVICES.LOGGER, provider: { useValue: logger } },
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METRICS, provider: { useValue: metricsRegistry } },
-    { token: RESOURCE_NAME_ROUTER_SYMBOL, provider: { useFactory: resourceNameRouterFactory } },
-    { token: ANOTHER_RESOURCE_ROUTER_SYMBOL, provider: { useFactory: anotherResourceRouterFactory } },
+    { token: SERVICES.PG_POOL, provider: { useValue: pool } },
+    {
+      token: SERVICES.HEALTHCHECK,
+      provider: {
+        useFactory: instanceCachingFactory((container) => {
+          const pool = container.resolve<Pool>(SERVICES.PG_POOL);
+          return healthCheck(pool);
+        }),
+      },
+    },
+    {
+      token: SERVICES.PRISMA,
+      provider: {
+        useFactory: instancePerContainerCachingFactory((container) => {
+          return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
+        }),
+      },
+    },
+    { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
       token: 'onSignal',
       provider: {

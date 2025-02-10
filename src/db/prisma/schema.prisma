@@ -1,27 +1,33 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
+generator json {
+  provider = "prisma-json-types-generator"
+}
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Job {
-  id              String          @id @default(uuid()) @db.Uuid
-  data            Json            @default("{}")
-  status          OperationStatus @default(PENDING)
-  percentage      Int             @default(0)
-  creation_time   DateTime        @default(now())
-  update_time     DateTime?       @updatedAt // make it mandatory after CRUD implementation
-  expiration_time DateTime?
-  type            JobMode         @default(PRE_DEFINED)
-  metadata        Json            @default("{}")
-  priority        Priority        @default(VERY_LOW)
-  creator         Creator         @default(UNKNOWN)
-  TTL             DateTime?
-  notification    Json?
-  name            Name            @default(DEFAULT)
+  id             String          @id @default(uuid()) @db.Uuid
+  /// [JobData]
+  data           Json            @default("{}")
+
+  status         OperationStatus @default(PENDING)
+  percentage     Int             @default(0)
+  creationTime   DateTime        @default(now()) @map("creation_time")
+  updateTime     DateTime        @updatedAt @map("update_time")
+  expirationTime DateTime?       @map("expiration_time")
+  type           JobMode         @default(PRE_DEFINED)
+  userMetadata   Json            @default("{}")
+  priority       Priority        @default(VERY_LOW)
+  creator        Creator         @default(UNKNOWN)
+  ttl            DateTime?
+  notifications  Json            @default("{}")
+  name           JobName         @default(DEFAULT)
 
   @@map("job")
 }
@@ -63,10 +69,10 @@ enum Creator {
   @@map("creator")
 }
 
-enum Name {
+enum JobName {
   INGESTION @map("Ingestion")
   EXPORT    @map("Export")
   DEFAULT   @map("Default")
 
-  @@map("name")
+  @@map("job_name_enum")
 }

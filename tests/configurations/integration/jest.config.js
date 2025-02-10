@@ -9,7 +9,16 @@ module.exports = {
   coverageReporters: ['text', 'html'],
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/' }),
   collectCoverage: true,
-  collectCoverageFrom: ['<rootDir>/src/**/*.ts', '!*/node_modules/', '!/vendor/**', '!*/common/**', '!**/models/**', '!<rootDir>/src/*'],
+  collectCoverageFrom: [
+    '<rootDir>/src/**/*.ts',
+    '!*/node_modules/',
+    '!/vendor/**',
+    '!*/common/**',
+    '!**/models/**',
+    '!<rootDir>/src/*',
+    '!<rootDir>/src/db/helpers.ts',
+    '!<rootDir>/src/db/createConnection.ts',
+  ],
   coverageDirectory: '<rootDir>/coverage',
   rootDir: '../../../.',
   testMatch: ['<rootDir>/tests/integration/**/*.spec.ts'],
@@ -23,6 +32,8 @@ module.exports = {
     ],
   ],
   moduleDirectories: ['node_modules', 'src'],
+  globalSetup: '<rootDir>/tests/configurations/integration/jest.globalSetup.ts',
+  globalTeardown: '<rootDir>/tests/configurations/integration/jest.globalTeardown.ts',
   testEnvironment: 'node',
   coverageThreshold: {
     global: {

@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "job" ALTER COLUMN "id" DROP DEFAULT,
-ALTER COLUMN "priority" SET DEFAULT 'Very-Low';
