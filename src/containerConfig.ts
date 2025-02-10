@@ -23,15 +23,10 @@ export interface RegisterOptions {
 export const registerExternalValues = async (options?: RegisterOptions): Promise<DependencyContainer> => {
   const configInstance = getConfig();
   const dbConfig = configInstance.get('db') as commonDbFullV1Type;
-  const loggerConfig = configInstance.get('telemetry.logger');
 
+  const loggerConfig = configInstance.get('telemetry.logger');
   const loggerRedactionSettings = { paths: ['data', 'response.data'], remove: true };
-  const logger = jsLogger({
-    ...loggerConfig,
-    prettyPrint: loggerConfig.prettyPrint,
-    mixin: getOtelMixin(),
-    redact: loggerRedactionSettings,
-  });
+  const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin(), redact: loggerRedactionSettings });
 
   const tracer = trace.getTracer(SERVICE_NAME);
   const metricsRegistry = new Registry();
@@ -60,7 +55,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METRICS, provider: { useValue: metricsRegistry } },
     { token: SERVICES.PG_POOL, provider: { useValue: pool } },
-    { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
       token: SERVICES.HEALTHCHECK,
       provider: {
@@ -78,6 +72,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
         }),
       },
     },
+    { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
       token: 'onSignal',
       provider: {

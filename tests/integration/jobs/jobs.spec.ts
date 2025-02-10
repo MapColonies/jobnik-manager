@@ -6,7 +6,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import { type Creator, type JobMode, type JobName, type PrismaClient } from '@prisma/client';
+import type { Creator, JobMode, JobName, PrismaClient } from '@prisma/client';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;

@@ -2,7 +2,7 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import { PrismaClient, Prisma, Priority, OperationStatus } from '@prisma/client';
-import { IJobCreateModel, IJobCreateResponse, IJobModel, JobFindCriteriaArg } from './models';
+import type { IJobCreateModel, IJobCreateResponse, IJobModel, JobFindCriteriaArg } from './models';
 import { JobNotFoundError } from './errors';
 
 @injectable()
@@ -38,6 +38,7 @@ export class JobManager {
       const input: Prisma.JobCreateInput = { data: body.data };
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
 
+      // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
@@ -122,7 +123,7 @@ export class JobManager {
     }
   }
 
-  public convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
+  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
     const jobObject: IJobModel = {
       type: prismaObjects.type,
       creator: prismaObjects.creator,
@@ -137,7 +138,6 @@ export class JobManager {
       updateTime: prismaObjects.updateTime.toISOString(),
       priority: prismaObjects.priority,
       status: prismaObjects.status,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
       ttl: prismaObjects.ttl ? prismaObjects.ttl.toISOString() : undefined,
     };
 

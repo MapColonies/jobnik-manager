@@ -1,5 +1,5 @@
 import config from 'config';
-import { commonDbFullV1Type } from '@map-colonies/schemas';
+import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { createConnectionOptions, initPoolConnection } from '../../../src/db/createConnection';
 
 export default async function globalSetup(): Promise<void> {
