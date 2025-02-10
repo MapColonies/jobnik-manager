@@ -173,7 +173,7 @@ describe('job', function () {
         }
 
         const createdJobId = createJobResponse.body.id;
-        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({ status: httpStatusCodes.OK, body: { status: 'PENDING', ...requestBody } });
@@ -182,7 +182,7 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
-        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: jobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: jobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -196,7 +196,7 @@ describe('job', function () {
       it('should return 500 status code when the database is down on create job', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.getJob({ pathParams: { jobId: jobId } });
+        const response = await requestSender.getJobById({ pathParams: { jobId: jobId } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -230,7 +230,7 @@ describe('job', function () {
           pathParams: { jobId: createdJobId },
           requestBody: userMetadataInput,
         });
-        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(updateUserMetadataResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ userMetadata: userMetadataInput });
@@ -284,8 +284,11 @@ describe('job', function () {
 
         const createdJobId = createJobResponse.body.id;
 
-        const setPriorityResponse = await requestSender.setPriority({ pathParams: { jobId: createdJobId }, requestBody: { priority: 'VERY_HIGH' } });
-        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+        const setPriorityResponse = await requestSender.updateJobPriority({
+          pathParams: { jobId: createdJobId },
+          requestBody: { priority: 'VERY_HIGH' },
+        });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
@@ -294,7 +297,7 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
-        const getJobResponse = await requestSender.setPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
+        const getJobResponse = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -308,7 +311,7 @@ describe('job', function () {
       it('should return 500 status code when the database is down on create job', async function () {
         jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.setPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
+        const response = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -339,8 +342,8 @@ describe('job', function () {
 
         const createdJobId = createJobResponse.body.id;
 
-        const setStatusResponse = await requestSender.changeJobStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: 'COMPLETED' } });
-        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+        const setStatusResponse = await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: 'COMPLETED' } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ status: 'COMPLETED' });
@@ -349,7 +352,7 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
-        const getJobResponse = await requestSender.changeJobStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
+        const getJobResponse = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -363,7 +366,7 @@ describe('job', function () {
       it('should return 500 status code when the database is down on updating status', async function () {
         jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.changeJobStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
+        const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });

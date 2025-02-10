@@ -30,7 +30,7 @@ export type paths = {
       cookie?: never;
     };
     /** Get job by id */
-    get: operations['getJob'];
+    get: operations['getJobById'];
     put?: never;
     post?: never;
     delete?: never;
@@ -73,7 +73,7 @@ export type paths = {
     options?: never;
     head?: never;
     /** change priority */
-    patch: operations['setPriority'];
+    patch: operations['updateJobPriority'];
     trace?: never;
   };
   '/jobs/{jobId}/status': {
@@ -88,7 +88,7 @@ export type paths = {
     };
     get?: never;
     /** change job's status */
-    put: operations['changeJobStatus'];
+    put: operations['updateStatus'];
     post?: never;
     delete?: never;
     options?: never;
@@ -354,7 +354,7 @@ export interface operations {
       };
     };
   };
-  getJob: {
+  getJobById: {
     parameters: {
       query?: never;
       header?: never;
@@ -449,7 +449,7 @@ export interface operations {
       };
     };
   };
-  setPriority: {
+  updateJobPriority: {
     parameters: {
       query?: never;
       header?: never;
@@ -505,7 +505,7 @@ export interface operations {
       };
     };
   };
-  changeJobStatus: {
+  updateStatus: {
     parameters: {
       query?: never;
       header?: never;

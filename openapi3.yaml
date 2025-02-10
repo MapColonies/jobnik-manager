@@ -75,7 +75,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/jobId'
     get:
-      operationId: getJob
+      operationId: getJobById
       summary: Get job by id
       tags:
         - jobs
@@ -143,7 +143,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/jobId'
     patch:
-      operationId: setPriority
+      operationId: updateJobPriority
       summary: change priority
       tags:
         - jobs
@@ -189,7 +189,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/jobId'
     put:
-      operationId: changeJobStatus
+      operationId: updateStatus
       summary: change job's status
       tags:
         - jobs
