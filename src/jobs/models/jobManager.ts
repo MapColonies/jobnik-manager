@@ -1,8 +1,9 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
-import { PrismaClient, Prisma, Priority, OperationStatus } from '@prisma/client';
-import type { IJobCreateModel, IJobCreateResponse, IJobModel, JobFindCriteriaArg } from './models';
+import type { PrismaClient, Priority, OperationStatus } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { JobNotFoundError } from './errors';
 
 @injectable()
@@ -12,7 +13,7 @@ export class JobManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient
   ) {}
 
-  public async getJobs(params: JobFindCriteriaArg): Promise<IJobModel[]> {
+  public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
     let queryBody = undefined;
     if (params !== undefined) {
       queryBody = {
@@ -33,7 +34,7 @@ export class JobManager {
     return result;
   }
 
-  public async createJob(body: IJobCreateModel): Promise<IJobCreateResponse> {
+  public async createJob(body: JobCreateModel): Promise<JobCreateResponse> {
     try {
       const input: Prisma.JobCreateInput = { data: body.data };
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
@@ -47,7 +48,7 @@ export class JobManager {
     }
   }
 
-  public async getJobById(jobId: string): Promise<IJobModel> {
+  public async getJobById(jobId: string): Promise<JobModel> {
     const queryBody = {
       where: {
         id: jobId,
@@ -123,8 +124,8 @@ export class JobManager {
     }
   }
 
-  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): IJobModel {
-    const jobObject: IJobModel = {
+  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
+    const jobObject: JobModel = {
       type: prismaObjects.type,
       creator: prismaObjects.creator,
       data: prismaObjects.data as Record<string, never>,

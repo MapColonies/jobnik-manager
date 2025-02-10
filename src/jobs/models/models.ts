@@ -1,7 +1,7 @@
 import type { components, operations } from '@src/openapi';
 
-export type IJobModel = components['schemas']['jobResponse'];
-export type IJobCreateModel = components['schemas']['createJobPayload'];
-export type IJobCreateResponse = components['schemas']['createJobResponse'];
-export type IJobGetParams = components['parameters'];
+export type JobModel = components['schemas']['jobResponse'];
+export type JobCreateModel = components['schemas']['createJobPayload'];
+export type JobCreateResponse = components['schemas']['createJobResponse'];
+export type JobGetParams = components['parameters'];
 export type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
