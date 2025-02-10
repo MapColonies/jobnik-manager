@@ -4,13 +4,14 @@ import httpStatusCodes from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
-import { paths, operations } from '@openapi';
+import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { Creator, JobMode, JobName, PrismaClient } from '@prisma/client';
+import { type Creator, type JobMode, type JobName, type PrismaClient } from '@prisma/client';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
+  const jobId = 'bd314e87-4f4e-4fc7-84cb-d8bf10b0b0e7';
 
   beforeAll(async function () {
     await initConfig(true);
@@ -144,6 +145,225 @@ describe('job', function () {
         const response = await requestSender.createJob({
           requestBody: requestBody,
         });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#getJobById', function () {
+    describe('Happy Path', function () {
+      it('should return 200 status code and return the job', async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+        };
+
+        const createJobResponse = await requestSender.createJob({
+          requestBody: requestBody,
+        });
+
+        if (createJobResponse.status !== 201) {
+          throw new Error();
+        }
+
+        const createdJobId = createJobResponse.body.id;
+        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({ status: httpStatusCodes.OK, body: { status: 'PENDING', ...requestBody } });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: jobId } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: httpStatusCodes.NOT_FOUND,
+          body: { message: 'JOB_NOT_FOUND' },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database is down on create job', async function () {
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.getJob({ pathParams: { jobId: jobId } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#updateUserMetadata', function () {
+    describe('Happy Path', function () {
+      it("should return 200 status code and modify job's userMetadata object", async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+        } satisfies components['schemas']['createJobPayload'];
+        const userMetadataInput = { someTestKey: 'someTestData' };
+
+        const createJobResponse = await requestSender.createJob({
+          requestBody: requestBody,
+        });
+
+        if (createJobResponse.status !== 201) {
+          throw new Error();
+        }
+
+        const createdJobId = createJobResponse.body.id;
+        const updateUserMetadataResponse = await requestSender.updateUserMetadata({
+          pathParams: { jobId: createdJobId },
+          requestBody: userMetadataInput,
+        });
+        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+
+        expect(updateUserMetadataResponse).toSatisfyApiSpec();
+        expect(getJobResponse.body).toMatchObject({ userMetadata: userMetadataInput });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+        const getJobResponse = await requestSender.updateUserMetadata({ pathParams: { jobId: jobId }, requestBody: { avi: 'avi' } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: httpStatusCodes.NOT_FOUND,
+          body: { message: 'JOB_NOT_FOUND' },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database is down on create job', async function () {
+        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.updateUserMetadata({ pathParams: { jobId }, requestBody: {} });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#updateJobPriority', function () {
+    describe('Happy Path', function () {
+      it("should return 200 status code and modify job's priority", async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+          priority: 'VERY_LOW',
+        } satisfies components['schemas']['createJobPayload'];
+
+        const createJobResponse = await requestSender.createJob({
+          requestBody: requestBody,
+        });
+
+        if (createJobResponse.status !== 201) {
+          throw new Error();
+        }
+
+        const createdJobId = createJobResponse.body.id;
+
+        const setPriorityResponse = await requestSender.setPriority({ pathParams: { jobId: createdJobId }, requestBody: { priority: 'VERY_HIGH' } });
+        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+
+        expect(setPriorityResponse).toSatisfyApiSpec();
+        expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+        const getJobResponse = await requestSender.setPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: httpStatusCodes.NOT_FOUND,
+          body: { message: 'JOB_NOT_FOUND' },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database is down on create job', async function () {
+        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.setPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#updateStatus', function () {
+    describe('Happy Path', function () {
+      it("should return 200 status code and modify job's status", async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+          priority: 'VERY_LOW',
+        } satisfies components['schemas']['createJobPayload'];
+
+        const createJobResponse = await requestSender.createJob({
+          requestBody: requestBody,
+        });
+
+        if (createJobResponse.status !== 201) {
+          throw new Error();
+        }
+
+        const createdJobId = createJobResponse.body.id;
+
+        const setStatusResponse = await requestSender.changeJobStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: 'COMPLETED' } });
+        const getJobResponse = await requestSender.getJob({ pathParams: { jobId: createdJobId } });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(getJobResponse.body).toMatchObject({ status: 'COMPLETED' });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+        const getJobResponse = await requestSender.changeJobStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: httpStatusCodes.NOT_FOUND,
+          body: { message: 'JOB_NOT_FOUND' },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database is down on updating status', async function () {
+        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.changeJobStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });

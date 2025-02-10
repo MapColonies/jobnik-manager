@@ -1,8 +1,9 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, Priority, OperationStatus } from '@prisma/client';
 import { IJobCreateModel, IJobCreateResponse, IJobModel, JobFindCriteriaArg } from './models';
+import { JobNotFoundError } from './errors';
 
 @injectable()
 export class JobManager {
@@ -35,15 +36,89 @@ export class JobManager {
   public async createJob(body: IJobCreateModel): Promise<IJobCreateResponse> {
     try {
       const input: Prisma.JobCreateInput = { data: body.data };
-
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
-      // todo - will added logic that extract stages on predefined and generated also stages + tasks
-      const { data, ...logData } = res;
-      this.logger.debug('Created new job successfully', logData);
+
+      this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
       this.logger.error(`Failed creating job with error: ${(error as Error).message}`);
       throw error;
+    }
+  }
+
+  public async getJobById(jobId: string): Promise<IJobModel> {
+    const queryBody = {
+      where: {
+        id: jobId,
+      },
+    };
+
+    const job = await this.prisma.job.findUnique(queryBody);
+
+    if (!job) {
+      throw new JobNotFoundError('JOB_NOT_FOUND');
+    }
+
+    return this.convertPrismaToJobResponse(job);
+  }
+
+  public async updateUserMetadata(jobId: string, userMetadata: Record<string, unknown>): Promise<void> {
+    const updateQueryBody = {
+      where: {
+        id: jobId,
+      },
+      data: {
+        userMetadata: userMetadata,
+      },
+    };
+
+    try {
+      await this.prisma.job.update(updateQueryBody);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+        throw new JobNotFoundError('JOB_NOT_FOUND');
+      }
+      throw err;
+    }
+  }
+
+  public async updatePriority(jobId: string, priority: Priority): Promise<void> {
+    const updateQueryBody = {
+      where: {
+        id: jobId,
+      },
+      data: {
+        priority,
+      },
+    };
+
+    try {
+      await this.prisma.job.update(updateQueryBody);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+        throw new JobNotFoundError('JOB_NOT_FOUND');
+      }
+      throw err;
+    }
+  }
+
+  public async updateStatus(jobId: string, status: OperationStatus): Promise<void> {
+    const updateQueryBody = {
+      where: {
+        id: jobId,
+      },
+      data: {
+        status,
+      },
+    };
+
+    try {
+      await this.prisma.job.update(updateQueryBody);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+        throw new JobNotFoundError('JOB_NOT_FOUND');
+      }
+      throw err;
     }
   }
 

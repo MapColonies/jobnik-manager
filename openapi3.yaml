@@ -71,18 +71,177 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
-
+  /jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    get:
+      operationId: getJob
+      summary: Get job by id
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Job data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobResponse'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/user-metadata:
+    patch:
+      operationId: updateUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      summary: update user metadata object
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: modify user metadata object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/priority:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    patch:
+      operationId: setPriority
+      summary: change priority
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priority:
+                  $ref: '#/components/schemas/priority'
+              required:
+                - priority
+      responses:
+        '200':
+          description: Change priority of job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_MODIFIED_SUCCESSFULLY
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/status:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    put:
+      operationId: changeJobStatus
+      summary: change job's status
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/status'
+              required:
+                - status
+      responses:
+        '200':
+          description: Change job and related stages + tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: STATUS_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:
   parameters:
-    # jobId:
-    #   in: path
-    #   name: jobId
-    #   description: ID of Job
-    #   required: true
-    #   schema:
-    #     $ref: '#/components/schemas/jobId'
+    jobId:
+      in: path
+      name: jobId
+      description: ID of Job
+      required: true
+      schema:
+        $ref: '#/components/schemas/jobId'
     # stageId:
     #   in: path
     #   name: stageId
@@ -270,6 +429,7 @@ components:
       example: DEFAULT
     userMetadata:
       type: object
+      additionalProperties: true
     summary:
       type: object
     createJobPayload:
@@ -444,24 +604,24 @@ components:
           type: string
       required:
         - message
-    # defaultOkMessage:
-    #   type: object
-    #   properties:
-    #     code:
-    #       type: string
-    #       enum:
-    #         - JOB_MODIFIED_SUCCESSFULLY
-    #         - TTL_MODIFIED_SUCCESSFULLY
-    #         - JOB_RESTARTED_SUCCESSFULLY
-    #         - STAGE_MODIFIED_SUCCESSFULLY
-    #         - STATUS_MODIFIED_SUCCESSFULLY
-    #         - USER_METADATA_MODIFIED_SUCCESSFULLY
-    #         - TASKS_ADDED_SUCCESSFULLY
-    #         - TASK_FAILED_SUCCESSFULLY
-    #         - TASK_COMPLETED_SUCCESSFULLY
-    #       example: JOB_MODIFIED_SUCCESSFULLY
-    #   required:
-    #     - code
+    defaultOkMessage:
+      type: object
+      properties:
+        code:
+          type: string
+          enum:
+            - JOB_MODIFIED_SUCCESSFULLY
+            # - TTL_MODIFIED_SUCCESSFULLY
+            # - JOB_RESTARTED_SUCCESSFULLY
+            # - STAGE_MODIFIED_SUCCESSFULLY
+            # - STATUS_MODIFIED_SUCCESSFULLY
+            # - USER_METADATA_MODIFIED_SUCCESSFULLY
+            # - TASKS_ADDED_SUCCESSFULLY
+            # - TASK_FAILED_SUCCESSFULLY
+            # - TASK_COMPLETED_SUCCESSFULLY
+          example: JOB_MODIFIED_SUCCESSFULLY
+      required:
+        - code
     error:
       type: object
       required:

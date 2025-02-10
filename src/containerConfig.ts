@@ -25,7 +25,13 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
   const dbConfig = configInstance.get('db') as commonDbFullV1Type;
   const loggerConfig = configInstance.get('telemetry.logger');
 
-  const logger = jsLogger({ ...loggerConfig, prettyPrint: loggerConfig.prettyPrint, mixin: getOtelMixin() });
+  const loggerRedactionSettings = { paths: ['data', 'response.data'], remove: true };
+  const logger = jsLogger({
+    ...loggerConfig,
+    prettyPrint: loggerConfig.prettyPrint,
+    mixin: getOtelMixin(),
+    redact: loggerRedactionSettings,
+  });
 
   const tracer = trace.getTracer(SERVICE_NAME);
   const metricsRegistry = new Registry();
