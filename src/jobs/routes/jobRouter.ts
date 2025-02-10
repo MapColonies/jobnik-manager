@@ -8,6 +8,10 @@ const jobRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
 
   router.get('/', controller.getJobs);
   router.post('/', controller.createJob);
+  router.get('/:jobId', controller.getJobById);
+  router.patch('/:jobId/user-metadata', controller.updateUserMetadata);
+  router.patch('/:jobId/priority', controller.updateJobPriority);
+  router.put('/:jobId/status', controller.updateStatus);
   return router;
 };
 
