@@ -86,6 +86,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/jobResponse'
+        '400':
+          description: Invalid request, could not get job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
         '404':
           description: Job not found
           content:
@@ -167,6 +173,14 @@ paths:
                 $ref: '#/components/schemas/defaultOkMessage'
               example:
                 code: JOB_MODIFIED_SUCCESSFULLY
+        '204':
+          description: reject priority change
+          headers:
+            X-Status-Reason:
+              description: Won't change priority if equal to current
+              schema:
+                type: string
+          content: {}
         '404':
           description: Job not found
           content:

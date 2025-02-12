@@ -375,6 +375,15 @@ export interface operations {
           'application/json': components['schemas']['jobResponse'];
         };
       };
+      /** @description Invalid request, could not get job */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
       /** @description Job not found */
       404: {
         headers: {
@@ -475,6 +484,15 @@ export interface operations {
         content: {
           'application/json': components['schemas']['defaultOkMessage'];
         };
+      };
+      /** @description reject priority change */
+      204: {
+        headers: {
+          /** @description Won't change priority if equal to current */
+          'X-Status-Reason'?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
       };
       /** @description Bad request */
       400: {

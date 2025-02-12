@@ -6,7 +6,7 @@ import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
 import { JobManager } from '../models/jobManager';
 import type { JobFindCriteriaArg } from '../models/models';
-import { JobNotFoundError } from '../models/errors';
+import { InvalidUpdateError, JobNotFoundError } from '../models/errors';
 
 @injectable()
 export class JobController {
@@ -69,6 +69,8 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidUpdateError) {
+        return res.status(httpStatus.NO_CONTENT).header('X-Status-Reason', err.message).end();
       }
 
       return next(err);

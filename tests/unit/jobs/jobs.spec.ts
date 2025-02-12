@@ -1,5 +1,4 @@
 import jsLogger from '@map-colonies/js-logger';
-import type { Creator, JobMode, JobName } from '@prisma/client';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/jobManager';
 import { components } from '@src/openapi';
@@ -171,17 +170,26 @@ describe('JobManager', () => {
         it("should update successfully job' priority by provided id", async function () {
           const jobEntity = createJobEntity({});
           const jobId = jobEntity.id;
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
           const prismaUpdateJobMock = jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntity);
 
           await jobManager.updatePriority(jobId, 'MEDIUM');
 
           expect(prismaUpdateJobMock).toHaveBeenCalledTimes(1);
         });
+
+        it('should not update priority of job, because already set to provided priority', async function () {
+          const jobEntity = createJobEntity({ priority: 'HIGH' });
+          const jobId = jobEntity.id;
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+
+          await expect(jobManager.updatePriority(jobId, 'HIGH')).rejects.toThrow('Cannot update priority that equals to the current priority');
+        });
       });
 
       describe('#BadPath', () => {
         it('should failed on for not exists job when update priority of desired job', async function () {
-          jest.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
           await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('JOB_NOT_FOUND');
         });
@@ -189,7 +197,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should failed on db error when update priority of desired job', async function () {
-          jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('db connection error'));
+          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('db connection error');
         });

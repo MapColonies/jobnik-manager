@@ -4,7 +4,7 @@ import { SERVICES } from '@common/constants';
 import type { PrismaClient, Priority, OperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-import { JobNotFoundError } from './errors';
+import { InvalidUpdateError, JobNotFoundError } from './errors';
 
 @injectable()
 export class JobManager {
@@ -85,6 +85,12 @@ export class JobManager {
   }
 
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
+    const job = await this.getJobById(jobId);
+
+    if (job.priority === priority) {
+      throw new InvalidUpdateError('Cannot update priority that equals to the current priority');
+    }
+
     const updateQueryBody = {
       where: {
         id: jobId,
@@ -94,14 +100,7 @@ export class JobManager {
       },
     };
 
-    try {
-      await this.prisma.job.update(updateQueryBody);
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
-        throw new JobNotFoundError('JOB_NOT_FOUND');
-      }
-      throw err;
-    }
+    await this.prisma.job.update(updateQueryBody);
   }
 
   public async updateStatus(jobId: string, status: OperationStatus): Promise<void> {

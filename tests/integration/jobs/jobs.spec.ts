@@ -190,6 +190,17 @@ describe('job', function () {
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
+
+      it('The system should return a pecific validation error message detailing the non exists job', async function () {
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: 'someInvalidJobId' } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: httpStatusCodes.BAD_REQUEST,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+        });
+      });
     });
 
     describe('Sad Path', function () {
@@ -293,6 +304,40 @@ describe('job', function () {
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
       });
+
+      it("should return 204 status code without modify job's priority", async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+          priority: 'VERY_LOW',
+        } satisfies components['schemas']['createJobPayload'];
+
+        const createJobResponse = await requestSender.createJob({
+          requestBody: requestBody,
+        });
+
+        if (createJobResponse.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        const createdJobId = createJobResponse.body.id;
+
+        const setPriorityResponse = await requestSender.updateJobPriority({
+          pathParams: { jobId: createdJobId },
+          requestBody: { priority: 'VERY_LOW' },
+        });
+
+        expect(setPriorityResponse).toSatisfyApiSpec();
+        expect(setPriorityResponse).toMatchObject({
+          status: httpStatusCodes.NO_CONTENT,
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          headers: { 'x-status-reason': 'Cannot update priority that equals to the current priority' },
+        });
+      });
     });
 
     describe('Bad Path', function () {
@@ -309,7 +354,7 @@ describe('job', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database is down on create job', async function () {
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
 
