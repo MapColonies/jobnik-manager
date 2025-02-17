@@ -166,7 +166,7 @@ paths:
                 - priority
       responses:
         '200':
-          description: Change priority of job
+          description: The job priority was changed successfully
           content:
             application/json:
               schema:
