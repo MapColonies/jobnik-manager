@@ -476,7 +476,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Change priority of job */
+      /** @description The job priority was changed successfully */
       200: {
         headers: {
           [name: string]: unknown;
@@ -489,7 +489,7 @@ export interface operations {
       204: {
         headers: {
           /** @description Won't change priority if equal to current */
-          'X-Status-Reason'?: string;
+          Reason?: string;
           [name: string]: unknown;
         };
         content?: never;

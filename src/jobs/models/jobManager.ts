@@ -88,7 +88,7 @@ export class JobManager {
     const job = await this.getJobById(jobId);
 
     if (job.priority === priority) {
-      throw new InvalidUpdateError('Cannot update priority that equals to the current priority');
+      throw new InvalidUpdateError('Priority cannot be updated to the same value.');
     }
 
     const updateQueryBody = {

@@ -176,7 +176,7 @@ paths:
         '204':
           description: reject priority change
           headers:
-            X-Status-Reason:
+            Reason:
               description: Won't change priority if equal to current
               schema:
                 type: string

@@ -335,7 +335,7 @@ describe('job', function () {
         expect(setPriorityResponse).toMatchObject({
           status: httpStatusCodes.NO_CONTENT,
           // eslint-disable-next-line @typescript-eslint/naming-convention
-          headers: { 'x-status-reason': 'Cannot update priority that equals to the current priority' },
+          headers: { reason: 'Priority cannot be updated to the same value.' },
         });
       });
     });

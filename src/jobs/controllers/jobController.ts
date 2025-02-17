@@ -70,7 +70,7 @@ export class JobController {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
-        return res.status(httpStatus.NO_CONTENT).header('X-Status-Reason', err.message).end();
+        return res.status(httpStatus.NO_CONTENT).header('Reason', err.message).end();
       }
 
       return next(err);
