@@ -174,7 +174,7 @@ paths:
               example:
                 code: JOB_MODIFIED_SUCCESSFULLY
         '204':
-          description: reject priority change
+          description: The priority was not changed, likely because the priority requested is equal to the current one.
           headers:
             Reason:
               description: Won't change priority if equal to current
