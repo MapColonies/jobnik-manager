@@ -124,23 +124,16 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
-    const jobObject: JobModel = {
-      type: prismaObjects.type,
-      creator: prismaObjects.creator,
-      data: prismaObjects.data as Record<string, never>,
-      id: prismaObjects.id,
-      creationTime: prismaObjects.creationTime.toISOString(),
-      userMetadata: prismaObjects.userMetadata as Record<string, never>,
-      expirationTime: prismaObjects.expirationTime ? prismaObjects.expirationTime.toISOString() : undefined,
-      name: prismaObjects.name,
-      notifications: prismaObjects.notifications as Record<string, never>,
-      percentage: prismaObjects.percentage,
-      updateTime: prismaObjects.updateTime.toISOString(),
-      priority: prismaObjects.priority,
-      status: prismaObjects.status,
-      ttl: prismaObjects.ttl ? prismaObjects.ttl.toISOString() : undefined,
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, ...rest } = prismaObjects;
+    const transformedFields = {
+      data: data as Record<string, never>,
+      creationTime: creationTime.toISOString(),
+      userMetadata: userMetadata as Record<string, never>,
+      expirationTime: expirationTime ? expirationTime.toISOString() : undefined,
+      notifications: notifications as Record<string, never>,
+      updateTime: updateTime.toISOString(),
+      ttl: ttl ? ttl.toISOString() : undefined,
     };
-
-    return jobObject;
+    return Object.assign(rest, transformedFields);
   }
 }
