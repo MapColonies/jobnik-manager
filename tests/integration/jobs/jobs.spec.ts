@@ -6,12 +6,14 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { Creator, JobMode, PrismaClient } from '@prisma/client';
+import type { Creator, JobMode, Prisma, PrismaClient } from '@prisma/client';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
   const jobId = 'bd314e87-4f4e-4fc7-84cb-d8bf10b0b0e7';
+  type JobPayload = components['schemas']['jobPayload'];
+  let createJobRecord: (body: JobPayload) => Promise<Prisma.JobGetPayload<Record<string, never>>>;
 
   beforeAll(async function () {
     await initConfig(true);
@@ -28,6 +30,11 @@ describe('job', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+
+    createJobRecord = async (body: JobPayload): Promise<Prisma.JobGetPayload<Record<string, never>>> => {
+      const res = await prisma.job.create({ data: body });
+      return res;
+    };
   });
 
   describe('#FindJobs', function () {
@@ -305,7 +312,7 @@ describe('job', function () {
         expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
       });
 
-      it("should return 204 status code without modify job's priority", async function () {
+      it("should return 204 status code without modifing job's priority", async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -316,15 +323,8 @@ describe('job', function () {
           priority: 'VERY_LOW',
         } satisfies components['schemas']['createJobPayload'];
 
-        const createJobResponse = await requestSender.createJob({
-          requestBody: requestBody,
-        });
-
-        if (createJobResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const createdJobId = createJobResponse.body.id;
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
@@ -375,17 +375,10 @@ describe('job', function () {
           notifications: {},
           userMetadata: {},
           priority: 'VERY_LOW',
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies JobPayload;
 
-        const createJobResponse = await requestSender.createJob({
-          requestBody: requestBody,
-        });
-
-        if (createJobResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const createdJobId = createJobResponse.body.id;
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
 
         const setStatusResponse = await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: 'COMPLETED' } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });

@@ -124,6 +124,11 @@ export type components = {
      * @enum {string}
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
+    /**
+     * @example JOB_MODIFIED_SUCCESSFULLY
+     * @enum {string}
+     */
+    successMessages: 'JOB_MODIFIED_SUCCESSFULLY';
     /** @enum {string} */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
@@ -220,11 +225,7 @@ export type components = {
       stacktrace?: string;
     };
     defaultOkMessage: {
-      /**
-       * @example JOB_MODIFIED_SUCCESSFULLY
-       * @enum {string}
-       */
-      code: 'JOB_MODIFIED_SUCCESSFULLY';
+      code: components['schemas']['successMessages'];
     };
     error: {
       message: string;
@@ -485,7 +486,7 @@ export interface operations {
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
-      /** @description reject priority change */
+      /** @description The priority was not changed, likely because the priority requested is equal to the current one. */
       204: {
         headers: {
           /** @description Won't change priority if equal to current */

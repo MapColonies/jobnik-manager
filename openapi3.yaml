@@ -411,6 +411,19 @@ components:
         - LOW
         - VERY_LOW
       example: LOW
+    successMessages:
+      type: string
+      enum:
+        - JOB_MODIFIED_SUCCESSFULLY
+        # - TTL_MODIFIED_SUCCESSFULLY
+        # - JOB_RESTARTED_SUCCESSFULLY
+        # - STAGE_MODIFIED_SUCCESSFULLY
+        # - STATUS_MODIFIED_SUCCESSFULLY
+        # - USER_METADATA_MODIFIED_SUCCESSFULLY
+        # - TASKS_ADDED_SUCCESSFULLY
+        # - TASK_FAILED_SUCCESSFULLY
+        # - TASK_COMPLETED_SUCCESSFULLY
+      example: JOB_MODIFIED_SUCCESSFULLY
     creator:
       type: string
       enum:
@@ -622,18 +635,7 @@ components:
       type: object
       properties:
         code:
-          type: string
-          enum:
-            - JOB_MODIFIED_SUCCESSFULLY
-            # - TTL_MODIFIED_SUCCESSFULLY
-            # - JOB_RESTARTED_SUCCESSFULLY
-            # - STAGE_MODIFIED_SUCCESSFULLY
-            # - STATUS_MODIFIED_SUCCESSFULLY
-            # - USER_METADATA_MODIFIED_SUCCESSFULLY
-            # - TASKS_ADDED_SUCCESSFULLY
-            # - TASK_FAILED_SUCCESSFULLY
-            # - TASK_COMPLETED_SUCCESSFULLY
-          example: JOB_MODIFIED_SUCCESSFULLY
+          $ref: '#/components/schemas/successMessages'
       required:
         - code
     error:

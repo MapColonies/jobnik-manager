@@ -4,8 +4,8 @@ import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
-import { JobManager } from '../models/jobManager';
-import type { JobFindCriteriaArg } from '../models/models';
+import { JobManager } from '../models/manager';
+import { type JobFindCriteriaArg, successMessages } from '../models/models';
 import { InvalidUpdateError, JobNotFoundError } from '../models/errors';
 
 @injectable()
@@ -52,7 +52,7 @@ export class JobController {
   public updateUserMetadata: TypedRequestHandlers['PATCH /jobs/{jobId}/user-metadata'] = async (req, res, next) => {
     try {
       await this.manager.updateUserMetadata(req.params.jobId, req.body);
-      return res.status(httpStatus.OK).json({ code: 'JOB_MODIFIED_SUCCESSFULLY' });
+      return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
@@ -65,7 +65,7 @@ export class JobController {
   public updateJobPriority: TypedRequestHandlers['PATCH /jobs/{jobId}/priority'] = async (req, res, next) => {
     try {
       await this.manager.updatePriority(req.params.jobId, req.body.priority);
-      return res.status(httpStatus.OK).json({ code: 'JOB_MODIFIED_SUCCESSFULLY' });
+      return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
@@ -80,7 +80,7 @@ export class JobController {
   public updateStatus: TypedRequestHandlers['PUT /jobs/{jobId}/status'] = async (req, res, next) => {
     try {
       await this.manager.updateStatus(req.params.jobId, req.body.status);
-      return res.status(httpStatus.OK).json({ code: 'JOB_MODIFIED_SUCCESSFULLY' });
+      return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
