@@ -188,7 +188,7 @@ describe('job', function () {
     });
 
     describe('Bad Path', function () {
-      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+      it('should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: jobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -198,7 +198,7 @@ describe('job', function () {
         });
       });
 
-      it('The system should return a pecific validation error message detailing the non exists job', async function () {
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: 'someInvalidJobId' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -211,7 +211,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on create job', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.getJobById({ pathParams: { jobId: jobId } });
