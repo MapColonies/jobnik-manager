@@ -305,7 +305,7 @@ describe('job', function () {
         expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
       });
 
-      it("should return 204 status code without modify job's priority", async function () {
+      it("should return 204 status code without modifing job's priority", async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
