@@ -249,7 +249,7 @@ describe('job', function () {
     });
 
     describe('Bad Path', function () {
-      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+      it('should return a 404 status code along with a message that specifies that a job with the given id was not found', async function () {
         const getJobResponse = await requestSender.updateUserMetadata({ pathParams: { jobId: jobId }, requestBody: { avi: 'avi' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
