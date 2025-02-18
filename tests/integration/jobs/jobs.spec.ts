@@ -211,7 +211,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on create job', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.getJobById({ pathParams: { jobId: jobId } });
