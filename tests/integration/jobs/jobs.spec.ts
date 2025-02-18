@@ -198,7 +198,7 @@ describe('job', function () {
         });
       });
 
-      it('The system should return a pecific validation error message detailing the non exists job', async function () {
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: 'someInvalidJobId' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
