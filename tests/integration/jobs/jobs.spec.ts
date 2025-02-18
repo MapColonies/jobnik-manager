@@ -1,6 +1,6 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
-import httpStatusCodes, { StatusCodes } from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
@@ -55,12 +55,12 @@ describe('job', function () {
 
         const response = await requestSender.findJobs({ queryParams: { creator: 'UNKNOWN' as Creator } });
 
-        if (response.status !== httpStatusCodes.OK) {
+        if (response.status !== StatusCodes.OK) {
           throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.OK, body: [requestBody] });
+        expect(response).toMatchObject({ status: StatusCodes.OK, body: [requestBody] });
       });
     });
 
@@ -69,13 +69,13 @@ describe('job', function () {
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const response = await requestSender.findJobs({ queryParams: { job_mode: 'WRONG_VALUE' as JobMode } });
 
-        if (response.status !== httpStatusCodes.BAD_REQUEST) {
+        if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
-          status: httpStatusCodes.BAD_REQUEST,
+          status: StatusCodes.BAD_REQUEST,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) },
         });
@@ -88,7 +88,7 @@ describe('job', function () {
         const response = await requestSender.findJobs({});
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
@@ -110,7 +110,7 @@ describe('job', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.CREATED, body: { status: 'PENDING', ...requestBody } });
+        expect(response).toMatchObject({ status: StatusCodes.CREATED, body: { status: 'PENDING', ...requestBody } });
       });
     });
 
@@ -124,13 +124,13 @@ describe('job', function () {
           requestBody: badRequestBody,
         });
 
-        if (response.status !== httpStatusCodes.BAD_REQUEST) {
+        if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
-          status: httpStatusCodes.BAD_REQUEST,
+          status: StatusCodes.BAD_REQUEST,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           body: { message: expect.stringMatching(/request\/body must have required property/) },
         });
@@ -154,7 +154,7 @@ describe('job', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
@@ -183,7 +183,7 @@ describe('job', function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: httpStatusCodes.OK, body: { status: 'PENDING', ...requestBody } });
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: 'PENDING', ...requestBody } });
       });
     });
 
@@ -193,7 +193,7 @@ describe('job', function () {
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
-          status: httpStatusCodes.NOT_FOUND,
+          status: StatusCodes.NOT_FOUND,
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
@@ -203,7 +203,7 @@ describe('job', function () {
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
-          status: httpStatusCodes.BAD_REQUEST,
+          status: StatusCodes.BAD_REQUEST,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
         });
@@ -217,7 +217,7 @@ describe('job', function () {
         const response = await requestSender.getJobById({ pathParams: { jobId: jobId } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
@@ -261,7 +261,7 @@ describe('job', function () {
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
-          status: httpStatusCodes.NOT_FOUND,
+          status: StatusCodes.NOT_FOUND,
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
@@ -274,7 +274,7 @@ describe('job', function () {
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
@@ -333,7 +333,7 @@ describe('job', function () {
 
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(setPriorityResponse).toMatchObject({
-          status: httpStatusCodes.NO_CONTENT,
+          status: StatusCodes.NO_CONTENT,
           // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { reason: 'Priority cannot be updated to the same value.' },
         });
@@ -346,7 +346,7 @@ describe('job', function () {
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
-          status: httpStatusCodes.NOT_FOUND,
+          status: StatusCodes.NOT_FOUND,
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
@@ -359,7 +359,7 @@ describe('job', function () {
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
@@ -394,7 +394,7 @@ describe('job', function () {
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
-          status: httpStatusCodes.NOT_FOUND,
+          status: StatusCodes.NOT_FOUND,
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
@@ -407,7 +407,7 @@ describe('job', function () {
         const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: httpStatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
