@@ -4,7 +4,7 @@ import { SERVICES } from '@common/constants';
 import type { PrismaClient, Priority, OperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-import { InvalidUpdateError, JobNotFoundError } from './errors';
+import { InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
 
 @injectable()
 export class JobManager {
@@ -77,7 +77,7 @@ export class JobManager {
     try {
       await this.prisma.job.update(updateQueryBody);
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
         throw new JobNotFoundError('JOB_NOT_FOUND');
       }
       throw err;
@@ -116,7 +116,7 @@ export class JobManager {
     try {
       await this.prisma.job.update(updateQueryBody);
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2025') {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
         throw new JobNotFoundError('JOB_NOT_FOUND');
       }
       throw err;
