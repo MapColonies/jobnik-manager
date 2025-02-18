@@ -6,7 +6,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { Creator, JobMode, Prisma, PrismaClient } from '@prisma/client';
+import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -83,7 +83,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on getting jobs', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('Database error'));
         const response = await requestSender.findJobs({});
 
@@ -138,7 +138,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on create job', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('Database error'));
         const requestBody = {
           name: 'DEFAULT',
@@ -171,15 +171,9 @@ describe('job', function () {
           userMetadata: {},
         } satisfies components['schemas']['createJobPayload'];
 
-        const createJobResponse = await requestSender.createJob({
-          requestBody: requestBody,
-        });
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
 
-        if (createJobResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const createdJobId = createJobResponse.body.id;
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -235,19 +229,14 @@ describe('job', function () {
         } satisfies components['schemas']['createJobPayload'];
         const userMetadataInput = { someTestKey: 'someTestData' };
 
-        const createJobResponse = await requestSender.createJob({
-          requestBody: requestBody,
-        });
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
 
-        if (createJobResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const createdJobId = createJobResponse.body.id;
         const updateUserMetadataResponse = await requestSender.updateUserMetadata({
           pathParams: { jobId: createdJobId },
           requestBody: userMetadataInput,
         });
+
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(updateUserMetadataResponse).toSatisfyApiSpec();
@@ -268,7 +257,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on create job', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId }, requestBody: {} });
@@ -292,15 +281,8 @@ describe('job', function () {
           priority: 'VERY_LOW',
         } satisfies components['schemas']['createJobPayload'];
 
-        const createJobResponse = await requestSender.createJob({
-          requestBody: requestBody,
-        });
-
-        if (createJobResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const createdJobId = createJobResponse.body.id;
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
@@ -312,7 +294,7 @@ describe('job', function () {
         expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
       });
 
-      it("should return 204 status code without modifing job's priority", async function () {
+      it("should return 204 status code without modifying job's priority", async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -341,7 +323,7 @@ describe('job', function () {
     });
 
     describe('Bad Path', function () {
-      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+      it('should return 404 with specific error message for non-existent job', async function () {
         const getJobResponse = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -350,10 +332,24 @@ describe('job', function () {
           body: { message: 'JOB_NOT_FOUND' },
         });
       });
+
+      it('should return 400 with specific error message for non-existent priority', async function () {
+        const getJobResponse = await requestSender.updateJobPriority({
+          pathParams: { jobId: jobId },
+          requestBody: { priority: 'MEGA_HIGH' as unknown as Priority },
+        });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          body: { message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) },
+        });
+      });
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on create job', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: jobId }, requestBody: { priority: 'VERY_HIGH' } });
@@ -381,15 +377,17 @@ describe('job', function () {
         const createdJobId = job.id;
 
         const setStatusResponse = await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: 'COMPLETED' } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(setStatusResponse).toSatisfyApiSpec();
-        expect(getJobResponse.body).toMatchObject({ status: 'COMPLETED' });
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        expect(getJobResponse).toHaveProperty('body.status', 'COMPLETED');
       });
     });
 
     describe('Bad Path', function () {
-      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+      it('should return 404 with specific error message for non-existent job', async function () {
         const getJobResponse = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -401,7 +399,7 @@ describe('job', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database is down on updating status', async function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
