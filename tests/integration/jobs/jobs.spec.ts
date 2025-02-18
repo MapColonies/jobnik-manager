@@ -188,7 +188,7 @@ describe('job', function () {
     });
 
     describe('Bad Path', function () {
-      it('The system should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
+      it('should return a 404 status code along with a specific validation error message detailing the non exists job', async function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: jobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
