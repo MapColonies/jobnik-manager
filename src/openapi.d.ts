@@ -19,6 +19,83 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/jobs/{jobId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    /** Get job by id */
+    get: operations['getJobById'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/jobs/{jobId}/user-metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** update user metadata object */
+    patch: operations['updateUserMetadata'];
+    trace?: never;
+  };
+  '/jobs/{jobId}/priority': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** change priority */
+    patch: operations['updateJobPriority'];
+    trace?: never;
+  };
+  '/jobs/{jobId}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** change job's status */
+    put: operations['updateStatus'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -47,6 +124,11 @@ export type components = {
      * @enum {string}
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
+    /**
+     * @example JOB_MODIFIED_SUCCESSFULLY
+     * @enum {string}
+     */
+    successMessages: 'JOB_MODIFIED_SUCCESSFULLY';
     /** @enum {string} */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
@@ -64,7 +146,9 @@ export type components = {
      * @enum {string}
      */
     jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
-    userMetadata: Record<string, never>;
+    userMetadata: {
+      [key: string]: unknown;
+    };
     summary: Record<string, never>;
     createJobPayload: {
       type: components['schemas']['jobMode'];
@@ -140,12 +224,17 @@ export type components = {
       'message:'?: string;
       stacktrace?: string;
     };
+    defaultOkMessage: {
+      code: components['schemas']['successMessages'];
+    };
     error: {
       message: string;
     };
   };
   responses: never;
   parameters: {
+    /** @description ID of Job */
+    jobId: components['schemas']['jobId'];
     /** @description The mode of the job.
      *      */
     jmode: components['schemas']['jobMode'];
@@ -248,6 +337,231 @@ export interface operations {
       };
       /** @description Invalid request, could not create job */
       400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  getJobById: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Job data */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['jobResponse'];
+        };
+      };
+      /** @description Invalid request, could not get job */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Job not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateUserMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['userMetadata'];
+      };
+    };
+    responses: {
+      /** @description modify user metadata object */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage on database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateJobPriority: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          priority: components['schemas']['priority'];
+        };
+      };
+    };
+    responses: {
+      /** @description The job priority was changed successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description The priority was not changed, likely because the priority requested is equal to the current one. */
+      204: {
+        headers: {
+          /** @description Won't change priority if equal to current */
+          Reason?: string;
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Bad request */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Job not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          status: components['schemas']['status'];
+        };
+      };
+    };
+    responses: {
+      /** @description Change job and related stages + tasks */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Job not found */
+      404: {
         headers: {
           [name: string]: unknown;
         };

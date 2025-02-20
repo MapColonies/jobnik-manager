@@ -19,6 +19,7 @@ module.exports = {
     '!**/routes/**',
     '!<rootDir>/src/*',
     '!<rootDir>/src/db/createConnection.ts',
+    '!<rootDir>/src/jobs/models/models.ts',
   ],
 
   setupFilesAfterEnv: ['jest-extended/all'],

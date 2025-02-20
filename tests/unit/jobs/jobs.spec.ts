@@ -1,7 +1,7 @@
 import jsLogger from '@map-colonies/js-logger';
-import type { Creator, JobMode, JobName, Prisma } from '@prisma/client';
-import { PrismaClient } from '@prisma/client';
-import { JobManager } from '@src/jobs/models/jobManager';
+import { PrismaClient, Prisma } from '@prisma/client';
+import { JobManager } from '@src/jobs/models/manager';
+import { components } from '@src/openapi';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -26,6 +26,8 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
   return { ...jobEntity, ...override };
 }
 
+const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
+
 describe('JobManager', () => {
   beforeEach(function () {
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma);
@@ -41,13 +43,13 @@ describe('JobManager', () => {
           const jobEntity = createJobEntity({ data: { stages: [] } });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntity);
           const createJobParams = {
-            name: 'DEFAULT' as JobName,
-            creator: 'UNKNOWN' as Creator,
+            name: 'DEFAULT',
+            creator: 'UNKNOWN',
             data: { stages: [] },
-            type: 'PRE_DEFINED' as JobMode,
+            type: 'PRE_DEFINED',
             notifications: {},
             userMetadata: {},
-          };
+          } satisfies components['schemas']['createJobPayload'];
 
           const job = await jobManager.createJob(createJobParams);
 
@@ -61,13 +63,13 @@ describe('JobManager', () => {
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('db connection error'));
 
           const createJobParams = {
-            name: 'DEFAULT' as JobName,
-            creator: 'UNKNOWN' as Creator,
+            name: 'DEFAULT',
+            creator: 'UNKNOWN',
             data: { stages: [] },
-            type: 'PRE_DEFINED' as JobMode,
+            type: 'PRE_DEFINED',
             notifications: {},
             userMetadata: {},
-          };
+          } satisfies components['schemas']['createJobPayload'];
 
           await expect(jobManager.createJob(createJobParams)).rejects.toThrow('db connection error');
 
@@ -97,6 +99,137 @@ describe('JobManager', () => {
           await expect(jobManager.getJobs({ creator: 'UNKNOWN' })).rejects.toThrow('db connection error');
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
+        });
+      });
+    });
+
+    describe('#getJobById', () => {
+      describe('#HappyPath', () => {
+        it('should return job object by provided id', async function () {
+          const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
+          const jobId = jobEntity.id;
+          const prismaFindUniqueJobMock = jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+
+          const jobs = await jobManager.getJobById(jobId);
+          const expectedJob = { ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() };
+
+          expect(prismaFindUniqueJobMock).toHaveBeenCalledTimes(1);
+          expect(jobs).toMatchObject(expectedJob);
+        });
+      });
+
+      describe('#BadPath', () => {
+        it('should failed on not founded job when getting desired job', async function () {
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+
+          await expect(jobManager.getJobById('some_id')).rejects.toThrow('JOB_NOT_FOUND');
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should failed on db error when getting desired job', async function () {
+          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(jobManager.getJobById('some_id')).rejects.toThrow('db connection error');
+        });
+      });
+    });
+
+    describe('#updateUserMetadata', () => {
+      describe('#HappyPath', () => {
+        it("should update successfully job' metadata object by provided id", async function () {
+          const jobEntity = createJobEntity({});
+          const jobId = jobEntity.id;
+          const prismaUpdateJobMock = jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntity);
+
+          await jobManager.updateUserMetadata(jobId, { newData: 'test' });
+
+          expect(prismaUpdateJobMock).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('#BadPath', () => {
+        it('should failed on for not exists job when update user metadata of desired job', async function () {
+          jest.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
+
+          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('JOB_NOT_FOUND');
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should failed on db error when update user metadata of desired job', async function () {
+          jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('db connection error');
+        });
+      });
+    });
+
+    describe('#updatePriority', () => {
+      describe('#HappyPath', () => {
+        it("should update successfully job' priority by provided id", async function () {
+          const jobEntity = createJobEntity({});
+          const jobId = jobEntity.id;
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          const prismaUpdateJobMock = jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntity);
+
+          await jobManager.updatePriority(jobId, 'MEDIUM');
+
+          expect(prismaUpdateJobMock).toHaveBeenCalledTimes(1);
+        });
+
+        it('should not update priority of job, because already set to provided priority', async function () {
+          const jobEntity = createJobEntity({ priority: 'HIGH' });
+          const jobId = jobEntity.id;
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+
+          await expect(jobManager.updatePriority(jobId, 'HIGH')).rejects.toThrow('Priority cannot be updated to the same value.');
+        });
+      });
+
+      describe('#BadPath', () => {
+        it('should failed on for not exists job when update priority of desired job', async function () {
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('JOB_NOT_FOUND');
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should failed on db error when update priority of desired job', async function () {
+          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('db connection error');
+        });
+      });
+    });
+
+    describe('#updateStatus', () => {
+      describe('#HappyPath', () => {
+        it("should update successfully job' status by provided id", async function () {
+          const jobEntity = createJobEntity({});
+          const jobId = jobEntity.id;
+          const prismaUpdateJobMock = jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntity);
+
+          await jobManager.updateStatus(jobId, 'COMPLETED');
+
+          expect(prismaUpdateJobMock).toHaveBeenCalledTimes(1);
+        });
+      });
+
+      describe('#BadPath', () => {
+        it('should failed on for not exists job when update status of desired job', async function () {
+          jest.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
+
+          await expect(jobManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow('JOB_NOT_FOUND');
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should failed on db error when update status of desired job', async function () {
+          jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(jobManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow('db connection error');
         });
       });
     });
