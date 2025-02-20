@@ -84,6 +84,8 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
       return next(err);

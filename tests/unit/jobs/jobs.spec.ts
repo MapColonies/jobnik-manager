@@ -1,7 +1,9 @@
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/manager';
+import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
 import { components } from '@src/openapi';
+import { createActor } from 'xstate';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -22,7 +24,7 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
     type: 'PRE_DEFINED',
     updateTime: new Date(),
     userMetadata: {},
-    xstate: {},
+    xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
   } satisfies Prisma.JobGetPayload<Record<string, never>>;
   return { ...jobEntity, ...override };
 }

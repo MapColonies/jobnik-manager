@@ -164,7 +164,6 @@ export type components = {
       type: components['schemas']['jobMode'];
       name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
-      jobOperationStatus?: components['schemas']['jobOperationStatus'];
       priority?: components['schemas']['priority'];
       expirationTime?: components['schemas']['expirationTime'];
       ttl?: components['schemas']['ttl'];

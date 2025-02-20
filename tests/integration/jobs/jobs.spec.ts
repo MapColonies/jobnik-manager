@@ -7,6 +7,8 @@ import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
 import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
+import { createActor } from 'xstate';
+import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -32,7 +34,7 @@ describe('job', function () {
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
 
     createJobRecord = async (body: JobPayload): Promise<Prisma.JobGetPayload<Record<string, never>>> => {
-      const res = await prisma.job.create({ data: body });
+      const res = await prisma.job.create({ data: { ...body, xstate: createActor(jobStateMachine).start().getPersistedSnapshot() } });
       return res;
     };
   });
@@ -100,9 +102,10 @@ describe('job', function () {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
           data: { stages: [] },
-          type: 'PRE_DEFINED',
+          type: 'DYNAMIC',
           notifications: {},
           userMetadata: {},
+          priority: 'VERY_HIGH',
         } satisfies components['schemas']['createJobPayload'];
 
         const response = await requestSender.createJob({
@@ -110,7 +113,7 @@ describe('job', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.CREATED, body: { jobOperationStatus: 'PENDING', ...requestBody } });
+        expect(response).toMatchObject({ status: StatusCodes.CREATED, body: { jobOperationStatus: 'CREATED', ...requestBody } });
       });
     });
 
@@ -177,7 +180,7 @@ describe('job', function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { jobOperationStatus: 'PENDING', ...requestBody } });
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { jobOperationStatus: 'CREATED', ...requestBody } });
       });
     });
 

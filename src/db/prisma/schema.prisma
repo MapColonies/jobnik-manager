@@ -17,8 +17,9 @@ model Job {
   /// [JobData]
   data Json   @default("{}")
 
-  status         JobOperationStatus @default(PENDING)
-  xstate         Json?
+  status         JobOperationStatus @default(CREATED)
+  /// [PersistenceSnapshot]
+  xstate         Json
   percentage     Int             @default(0)
   creationTime   DateTime        @default(now()) @map("creation_time")
   updateTime     DateTime        @updatedAt @map("update_time")

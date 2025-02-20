@@ -3,8 +3,10 @@ import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { createActor } from 'xstate';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
+import { jobStateMachine, OperationStatusMapper } from './statusStateMachine';
 
 @injectable()
 export class JobManager {
@@ -36,7 +38,10 @@ export class JobManager {
 
   public async createJob(body: JobCreateModel): Promise<JobCreateResponse> {
     try {
-      const input: Prisma.JobCreateInput = { data: body.data };
+      const createJobActor = createActor(jobStateMachine).start();
+      const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
@@ -104,23 +109,37 @@ export class JobManager {
   }
 
   public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
+    const job = await this.prisma.job.findUnique({
+      where: {
+        id: jobId,
+      },
+    });
+
+    if (!job) {
+      throw new JobNotFoundError('JOB_NOT_FOUND');
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new InvalidUpdateError('Invalid status change');
+    }
+
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
     const updateQueryBody = {
       where: {
         id: jobId,
       },
       data: {
         status,
+        xstate: newPersistedSnapshot,
       },
     };
 
-    try {
-      await this.prisma.job.update(updateQueryBody);
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError('JOB_NOT_FOUND');
-      }
-      throw err;
-    }
+    await this.prisma.job.update(updateQueryBody);
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
