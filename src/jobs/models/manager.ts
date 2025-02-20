@@ -1,7 +1,7 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
-import type { PrismaClient, Priority, OperationStatus } from '@prisma/client';
+import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
@@ -103,7 +103,7 @@ export class JobManager {
     await this.prisma.job.update(updateQueryBody);
   }
 
-  public async updateStatus(jobId: string, status: OperationStatus): Promise<void> {
+  public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
     const updateQueryBody = {
       where: {
         id: jobId,
@@ -124,7 +124,7 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, status, xstate, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
@@ -133,6 +133,7 @@ export class JobManager {
       notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
+      jobOperationStatus: status,
     };
     return Object.assign(rest, transformedFields);
   }

@@ -6,17 +6,19 @@ generator client {
 generator json {
   provider = "prisma-json-types-generator"
 }
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
 model Job {
-  id             String          @id @default(uuid()) @db.Uuid
+  id   String @id @default(uuid()) @db.Uuid
   /// [JobData]
-  data           Json            @default("{}")
+  data Json   @default("{}")
 
-  status         OperationStatus @default(PENDING)
+  status         JobOperationStatus @default(PENDING)
+  xstate         Json?
   percentage     Int             @default(0)
   creationTime   DateTime        @default(now()) @map("creation_time")
   updateTime     DateTime        @updatedAt @map("update_time")
@@ -32,15 +34,15 @@ model Job {
   @@map("job")
 }
 
-enum OperationStatus {
-  PENDING              @map("Pending")
-  IN_PROGRESS          @map("In-Progress")
-  COMPLETED            @map("Completed")
-  FAILED               @map("Failed")
-  ABORTED              @map("Aborted")
-  WAITING              @map("Waiting")
-  WAITING_FOR_APPROVAL @map("Waiting-For-Approval")
-  PAUSED               @map("Paused")
+enum JobOperationStatus {
+  PENDING     @map("Pending")
+  IN_PROGRESS @map("In-Progress")
+  COMPLETED   @map("Completed")
+  FAILED      @map("Failed")
+  ABORTED     @map("Aborted")
+  WAITING     @map("Waiting")
+  CREATED     @map("Created")
+  PAUSED      @map("Paused")
 
   @@map("operation_status_enum")
 }

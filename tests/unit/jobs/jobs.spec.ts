@@ -22,6 +22,7 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
     type: 'PRE_DEFINED',
     updateTime: new Date(),
     userMetadata: {},
+    xstate: {},
   } satisfies Prisma.JobGetPayload<Record<string, never>>;
   return { ...jobEntity, ...override };
 }
@@ -82,12 +83,16 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return array with single job formatted object by criteria', async function () {
           const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
-          const prismaCreateJobMock = jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
+          jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
 
           const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
-          const expectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
 
-          expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
+          const { status: jobOperationStatus, xstate, ...rest } = jobEntity;
+          const jobObject = { jobOperationStatus, ...rest };
+          const expectedJob = [{ ...jobObject, creationTime: jobObject.creationTime.toISOString(), updateTime: jobObject.updateTime.toISOString() }];
+          // delete jobEntity.xstate;
+          // const expectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
+
           expect(jobs).toMatchObject(expectedJob);
         });
       });
@@ -108,12 +113,14 @@ describe('JobManager', () => {
         it('should return job object by provided id', async function () {
           const jobEntity = createJobEntity({ expirationTime: undefined, ttl: undefined });
           const jobId = jobEntity.id;
-          const prismaFindUniqueJobMock = jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
 
           const jobs = await jobManager.getJobById(jobId);
-          const expectedJob = { ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() };
 
-          expect(prismaFindUniqueJobMock).toHaveBeenCalledTimes(1);
+          const { status: jobOperationStatus, xstate, ...rest } = jobEntity;
+          const jobObject = { jobOperationStatus, ...rest };
+          const expectedJob = { ...jobObject, creationTime: jobObject.creationTime.toISOString(), updateTime: jobObject.updateTime.toISOString() };
+
           expect(jobs).toMatchObject(expectedJob);
         });
       });

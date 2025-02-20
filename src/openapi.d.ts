@@ -132,10 +132,20 @@ export type components = {
     /** @enum {string} */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
-     * @example PENDING
+     * @example CREATED
      * @enum {string}
      */
-    status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING_FOR_APPROVAL' | 'PAUSED' | 'WAITING';
+    jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
+    /**
+     * @example CREATED
+     * @enum {string}
+     */
+    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED' | 'RETRIED';
+    /**
+     * @example CREATED
+     * @enum {string}
+     */
+    taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED' | 'RETRIED';
     /**
      * @example PRE_DEFINED
      * @enum {string}
@@ -154,7 +164,7 @@ export type components = {
       type: components['schemas']['jobMode'];
       name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
-      status?: components['schemas']['status'];
+      jobOperationStatus?: components['schemas']['jobOperationStatus'];
       priority?: components['schemas']['priority'];
       expirationTime?: components['schemas']['expirationTime'];
       ttl?: components['schemas']['ttl'];
@@ -173,7 +183,7 @@ export type components = {
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
-      status?: components['schemas']['status'];
+      stageOperationStatus?: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
       userMetadata?: components['schemas']['userMetadata'];
     };
@@ -193,21 +203,21 @@ export type components = {
     createTaskPayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
-      status?: components['schemas']['status'];
+      taskOperationStatus?: components['schemas']['taskOperationStatus'];
       stageId: components['schemas']['stageId'];
     };
     taskResponse: {
       id: components['schemas']['taskId'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      status: components['schemas']['status'];
+      taskOperationStatus: components['schemas']['taskOperationStatus'];
       attempts?: components['schemas']['attempts'];
       priority?: components['schemas']['priority'];
-    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId' | 'status'>;
+    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId' | 'taskOperationStatus'>;
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
-      status?: components['schemas']['status'];
+      jobOperationStatus?: components['schemas']['jobOperationStatus'];
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
@@ -537,7 +547,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          status: components['schemas']['status'];
+          jobOperationStatus: components['schemas']['jobOperationStatus'];
         };
       };
     };
