@@ -70,7 +70,7 @@ export class JobManager {
         id: jobId,
       },
       data: {
-        userMetadata: userMetadata,
+        userMetadata,
       },
     };
 
