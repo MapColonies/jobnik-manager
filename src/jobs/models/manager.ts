@@ -5,7 +5,7 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client'
 import { Prisma } from '@prisma/client';
 import { createActor } from 'xstate';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-import { InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
+import { BAD_STATUS_CHANGE, InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
 import { jobStateMachine, OperationStatusMapper } from './statusStateMachine';
 
 @injectable()
@@ -124,7 +124,7 @@ export class JobManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new InvalidUpdateError('Invalid status change');
+      throw new InvalidUpdateError(BAD_STATUS_CHANGE);
     }
 
     updateActor.send({ type: nextStatusChange });

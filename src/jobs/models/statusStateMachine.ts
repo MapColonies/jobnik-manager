@@ -15,11 +15,6 @@ const OperationStatusMapper: { [key in JobOperationStatus]: changeStatusOperatio
   [JobOperationStatus.PAUSED]: 'pause',
 };
 
-// function validateNextState(currentState: JobOperationStatus, nextState: JobOperationStatus): boolean {
-//   const validNextStates = jobStateMachine.states[currentState].on;
-//   const isValid = OperationStatusVerb[nextState] in validNextStates;
-//   return isValid;
-// }
 const jobStateMachine = setup({
   types: {
     events: {} as
@@ -33,7 +28,7 @@ const jobStateMachine = setup({
       | { type: 'create' },
   },
 }).createMachine({
-  /** @xstate-layout N4IgpgJg5mDOIC5QCsD2AjAygFwIbYFdYA6AYQCUBRAQQBVKARAYglQDsxjY9tO0seRMlTqMA2gAYAuolAAHVLACW2Je1kgAHogCMATgDsxAMx6JANgBMADmvnz14wBYD5gDQgAnoid6ArMQGvobGEn4SOtY2AL7RHvw4+EIUNPTMcmBsEJIySCAKyqrqedoI+kamFjZ2Ds6uHt5lxjrEem16dsbm-hEGsfEYiYQkKaLMAO64KjkaBSpqbBql5SZmVrb2ji7uXojWLcFtvpYG1n56-SAJgiMiaUxyuERgM3lzRYsluoarVRu12waiCsElaOnsxi6BgMhj0lku1ySt1SjCYuHQqAATthXvJFPNiqBlj9Kusalt6rsyuZmq02o5rBJrNCdH5jAjBjdiAAFSgAOQYAEk+QBxJiTabSWb4j5LXTGc7ESIGPys6x6GnmPx+IEIJys4hWXwGHSmSzGVxODkCJE8-lC0UPTGoADGcFguPyMoWcrKEj0LUsGvVEiZlqcTl1p3MxEswT85n1fksqp01qGQl5AuFYvRWJxUre3sJWnliuVqr86s12t1Oks3UCvjO-pTKbTcSunNtWYdYsez097x9XzKOjCxCc1gjoZsEZVurbTfpln9EmM5okVs7iOGxGFAH1ueQAPIiqiYTBMF2oAC2cgANmBeEPi58iYhodZY1rzJELWYUS6n+Th0m03RtqcJrplyh7HmeF5Xpiz6Yp4r6FCOH4IF+P4Jv+MJMpYwFapO7TmBYegRkG1gwbacGnuelCXkwABmUwPuhBLvqW2GnLhf6OARQFUmYRhBG0Egwr4ThBuYtF7vRCFMVeebYpxsqjjhDZ4YJgFEVSppmKRHROPYpmSZY8I7t2Cl8keDGIQ8TywC8hZ4hhJalKZoFsvWxxhJCbTAZYLTGIycKhuufiuFZAw2rZ9lKcxEoFrk7lcb6Wm-vhel1hINixs25xTl0TLbnFGYkNy1AAKqYKiGRZOpmE8U44QmE4FqVEy4SUcYupdcZhinDoo0RuVXbxZmtX1RMUypdKHncV57XOF1Zg9f6nV1joU5gWcyZbjJhjydNdUNc6bqwB6blektvptaCa0GN1LZ9cBJrELY-pjW1IXqqdVUzaiqkLUW92jo9HXraGb3bQZqaFSZ5qbHoFqA8QADq1CCrQOYPJk2S3cOnnyuRX2dSqHQBm2kZUl0AR+bCPQvej1lTSQ2O4-joPNaTZRVkYZxowGrKqiqdONPq35MyaZoWomGNULQ5CCg1hN88tug-bGwYbcyiYRsRASHOR3RUR0sSdmwqAQHAGi7kQi0ZaOAC0OyNK7ATtD7vttOy7OVcIKIMM7GlYTJuqUV9kIbn4ThlRY0UY72OZhy1yyWS004KzYCo0uuA0vWBw37L9E2OyQimMZe6f89FoIhn+Ogqom-j6Y0Vh6K0ibtgGYTgnJgdctV52h+DLtYaE3do+Jv7+OUwUHIPkLmNCsKxZNQdc3jop11rZSmd3DgquOtSJsyurS4acaGIZ5rhkrlAq2r4-peHPFozGpyiQnoZBBEY2JczaUWOjRYetpSAngALLcgADLP0YPvX0oklQpn-oYCICtdThBaIPGk0IDCST-H0CBe4ABiOMEFvzupPT+kk0HhEkpg00lJGhrBLsmU05EDBxgxtQAAQiecgaRkGjnBB0Ew5wwrFTjFWD28p1TLhDI4E4u1wGxCAA */
+  /** @xstate-layout N4IgpgJg5mDOIC5QCsD2AjAygFwIbYFdYA6AYQCUBRAQQBVKARAYgAcwA7CAbQAYBdRKBapYAS2yjU7QSAAeiAIwBOAOzEAzEp4A2AEwAOfdu371AFhXaANCACei9QuJKXSo+u1KArDwUqAvv42aFh4hCQUNPTMAO644rwCSCDCYhJSMvIIymqaOgZGJuaWNvYI+k5mrkpVuir6XkqBwRg4+ERkVHSMrLhEYIkyqeKS0slZORpaeobGphbWdoh6PM4KxuoeKiqqSrrNICFt4Z1RPbjoqABO2IPJw+ljoBOqU-mzRQulitqOzi6mfQ8fTbBRedQHI5hDoABUoADkGABJeEAcSYcQS-CGIhGGXGDkaxAUIK8YP0Sl+2i8Xm+CDMYOIeiqKgUml06ksZkhrWhJDhiJR6JYV1QAGM4LA7kJcY9MooeEonLpKRSeMCuWYzHT6tpiLoqt5tAyvLoyQoeaF2vyEci0UwLtdbtj7rLRvLsuoiSSVGSvBSqTS6QpdJ5iCoqg1FWazRagodedbiAK7cK+rABi6ZWl3QTsgoeF5iGZ9Fr1QYtb66THw4b9LpFTx1ByeNz41CkyiAPow8gAeVRVEwmCYYtQAFsWAAbMDYTNJbN4p5yRDbfT66naEmcrT1ulbsz-FyeGP1VmW44dbu9gdDkcAM3iU+lKTd+Oeq-qG68W9MO2Buh0loagRi4PA7FUZgqtoF58sQ179oOlDDg6lw3C+Dy5h+CBrt+v47gBwZ5MWAJmMYZHgbo+ztomJwIbeyEjiw6bzjiObviu9LGsQ4IhrUhabC4+66E46hAns6pNl4ljUS0Vp0fCPaIXeGLxM6C6vuxy5ZLhoY-tu-57ks2Q8AY+qRo0JYeMCbZyZe-LUAAqpgPRsJwGFvtpiBmD4GhmJyeTAj4NTqHSAUkS4a4KNFWq2Qm8mwk5LmxGpHlaR6PmrOYAVaEFir+cGCglkeDSmq2UGqLBSYwklrmihKsBSlmmlLhlvnZSogVRiF+6ssQhiKjFPkiRSVUnDVznnGh6lsa1eaZX5OXqt1BXGWC0XmW4UEeCYSicmNHQAOrUEitBCqwHDcM1mEcRM1n9f5vpuEqMbasZHhFnxuzeOBmwBDRCUkMdp3nY66HXZ5HrkmoDR7UqYJkr6b1lAy65fay7KcsagTxuwqAQHAMgduEs1ynmAC0ixlJTxCSeqqr+TtW4HREXTRKTWGcVBQGHqYmxmmYNk6NJLPJraQoc7dihUU4pZYwYXq-E2YWdUeqj1NFRVaqL9FIcOkteQg0mrGqW5+D+VSmsJSjOMasZKoW6wwQD9nJrVDAGx66iKs4nJVJu3g5MJlRO5s2jbLssnxa7wNnWint5kVYYmL6BZFMaIJ0qjTIGqobJ7Fj2su3BpB9gAsjCAAylDs666V5sBxJmuqOwqL4WN0j4ThO782xt5YfiiwAYid1ce3Xc3YY3IY+OBqjtyUxnTGrppstolFxcTHTUAAQn25C14uZPYesbgaI0YmWQa-pUw4FK1s9wLNqyJY4-4QA */
   id: 'jobStatus',
   initial: 'CREATED',
   states: {
@@ -88,25 +83,4 @@ const jobStateMachine = setup({
   },
 });
 
-// const jobStatusActor = createActor(jobStateMachine).start();
-
-// jobStatusActor.send({ type: 'pend' });
-
-// const snap = jobStatusActor.getPersistedSnapshot();
-// const snap2 = jobStatusActor.getSnapshot();
-
-// console.log(snap2.can({ type: 'complete' }), 'cannnnnnnnn?');
-// console.log(snap2.can({ type: 'abort' }), 'cannnnnnnnn?');
-
-// console.log(snap, '000000000000000');
-// const nextReqActor = createActor(jobStateMachine, { snapshot: snap }).start();
-
-// const jobStatusActor = createActor(jobStateMachine).start();
-// jobStatusActor.send({ type: 'pend' });
-// const snap = jobStatusActor.getPersistedSnapshot();
-// const snap2 = jobStatusActor.getSnapshot();
-// console.log(snap2.can({ type: 'complete' }), 'cannnnnnnnn?');
-// console.log(snap2.can({ type: 'abort' }), 'cannnnnnnnn?');
-// console.log(snap, '000000000000000');
-// const nextReqActor = createActor(jobStateMachine, { snapshot: snap }).start();
-export { jobStateMachine /*, validateNextState*/, OperationStatusMapper };
+export { jobStateMachine, OperationStatusMapper };

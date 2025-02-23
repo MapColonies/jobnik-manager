@@ -9,6 +9,7 @@ import { initConfig } from '@src/common/config';
 import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
+import { BAD_STATUS_CHANGE } from '@src/jobs/models/errors';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -381,18 +382,41 @@ describe('job', function () {
 
         const setStatusResponse = await requestSender.updateStatus({
           pathParams: { jobId: createdJobId },
-          requestBody: { jobOperationStatus: 'COMPLETED' },
+          requestBody: { jobOperationStatus: 'PENDING' },
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
-        expect(getJobResponse).toHaveProperty('body.jobOperationStatus', 'COMPLETED');
+        expect(getJobResponse).toHaveProperty('body.jobOperationStatus', 'PENDING');
       });
     });
 
     describe('Bad Path', function () {
+      it('should return 400 with detailed error for invalid status transition', async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+          priority: 'VERY_LOW',
+        } satisfies JobPayload;
+
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
+
+        const setStatusResponse = await requestSender.updateStatus({
+          pathParams: { jobId: createdJobId },
+          requestBody: { jobOperationStatus: 'COMPLETED' },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: BAD_STATUS_CHANGE } });
+      });
+
       it('should return 404 with specific error message for non-existent job', async function () {
         const getJobResponse = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { jobOperationStatus: 'COMPLETED' } });
 
@@ -406,9 +430,9 @@ describe('job', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('Database error'));
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { jobOperationStatus: 'COMPLETED' } });
+        const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { jobOperationStatus: 'PENDING' } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
