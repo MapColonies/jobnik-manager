@@ -146,7 +146,7 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, status, xstate, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, ...rest } = prismaObjects;
 
     const transformedFields = {
       data: data as Record<string, never>,
@@ -156,7 +156,6 @@ export class JobManager {
       notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
-      jobOperationStatus: status,
     };
 
     return Object.assign(rest, transformedFields);

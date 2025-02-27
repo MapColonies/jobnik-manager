@@ -5,6 +5,7 @@ import { JobManager } from '@src/jobs/models/manager';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { components } from '@src/openapi';
 import { createActor } from 'xstate';
+import { jobNotFoundMsg } from '@src/jobs/models/errors';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -91,9 +92,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
 
-          const { status: jobOperationStatus, xstate, ...rest } = jobEntity;
-          const jobObject = { jobOperationStatus, ...rest };
-          const expectedJob = [{ ...jobObject, creationTime: jobObject.creationTime.toISOString(), updateTime: jobObject.updateTime.toISOString() }];
+          const { xstate, ...rest } = jobEntity;
+          const expectedJob = [{ ...rest, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -119,9 +119,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobById(jobId);
 
-          const { status: jobOperationStatus, xstate, ...rest } = jobEntity;
-          const jobObject = { jobOperationStatus, ...rest };
-          const expectedJob = { ...jobObject, creationTime: jobObject.creationTime.toISOString(), updateTime: jobObject.updateTime.toISOString() };
+          const { xstate, ...rest } = jobEntity;
+          const expectedJob = { ...rest, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -131,7 +130,7 @@ describe('JobManager', () => {
         it('should failed on not founded job when getting desired job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.getJobById('some_id')).rejects.toThrow('JOB_NOT_FOUND');
+          await expect(jobManager.getJobById('some_id')).rejects.toThrow(jobNotFoundMsg);
         });
       });
 
@@ -161,7 +160,7 @@ describe('JobManager', () => {
         it('should failed on for not exists job when update user metadata of desired job', async function () {
           jest.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
 
-          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('JOB_NOT_FOUND');
+          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(jobNotFoundMsg);
         });
       });
 
@@ -200,7 +199,7 @@ describe('JobManager', () => {
         it('should failed on for not exists job when update priority of desired job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('JOB_NOT_FOUND');
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow(jobNotFoundMsg);
         });
       });
 
@@ -230,7 +229,7 @@ describe('JobManager', () => {
         it('should failed on for not exists job when update status of desired job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updateStatus('someId', 'PENDING')).rejects.toThrow('JOB_NOT_FOUND');
+          await expect(jobManager.updateStatus('someId', 'PENDING')).rejects.toThrow(jobNotFoundMsg);
         });
 
         it('should failed on invalid status change during update', async function () {

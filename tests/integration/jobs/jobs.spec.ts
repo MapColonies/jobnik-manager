@@ -11,6 +11,7 @@ import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/c
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
+import { jobNotFoundMsg } from '@src/jobs/models/errors';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -115,7 +116,7 @@ describe('job', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.CREATED, body: { jobOperationStatus: 'CREATED', ...requestBody } });
+        expect(response).toMatchObject({ status: StatusCodes.CREATED, body: { status: 'CREATED', ...requestBody } });
       });
     });
 
@@ -182,7 +183,7 @@ describe('job', function () {
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { jobOperationStatus: 'CREATED', ...requestBody } });
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: 'CREATED', ...requestBody } });
       });
     });
 
@@ -193,7 +194,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'JOB_NOT_FOUND' },
+          body: { message: jobNotFoundMsg },
         });
       });
 
@@ -256,7 +257,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'JOB_NOT_FOUND' },
+          body: { message: jobNotFoundMsg },
         });
       });
     });
@@ -334,7 +335,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'JOB_NOT_FOUND' },
+          body: { message: jobNotFoundMsg },
         });
       });
 
@@ -383,7 +384,7 @@ describe('job', function () {
 
         const setStatusResponse = await requestSender.updateStatus({
           pathParams: { jobId: createdJobId },
-          requestBody: { jobOperationStatus: 'PENDING' },
+          requestBody: { status: 'PENDING' },
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
@@ -391,7 +392,7 @@ describe('job', function () {
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
-        expect(getJobResponse).toHaveProperty('body.jobOperationStatus', 'PENDING');
+        expect(getJobResponse).toHaveProperty('body.status', 'PENDING');
       });
     });
 
@@ -412,7 +413,7 @@ describe('job', function () {
 
         const setStatusResponse = await requestSender.updateStatus({
           pathParams: { jobId: createdJobId },
-          requestBody: { jobOperationStatus: 'COMPLETED' },
+          requestBody: { status: 'COMPLETED' },
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
@@ -420,12 +421,12 @@ describe('job', function () {
       });
 
       it('should return 404 with specific error message for non-existent job', async function () {
-        const getJobResponse = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { jobOperationStatus: 'COMPLETED' } });
+        const getJobResponse = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'COMPLETED' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'JOB_NOT_FOUND' },
+          body: { message: jobNotFoundMsg },
         });
       });
     });
@@ -434,7 +435,7 @@ describe('job', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { jobOperationStatus: 'PENDING' } });
+        const response = await requestSender.updateStatus({ pathParams: { jobId: jobId }, requestBody: { status: 'PENDING' } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });

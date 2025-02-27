@@ -214,10 +214,10 @@ paths:
             schema:
               type: object
               properties:
-                jobOperationStatus:
+                status:
                   $ref: '#/components/schemas/jobOperationStatus'
               required:
-                - jobOperationStatus
+                - status
       responses:
         '200':
           description: Change job and related stages + tasks
@@ -618,7 +618,7 @@ components:
           $ref: '#/components/schemas/jobId'
         data:
           $ref: '#/components/schemas/jobPayload'
-        jobOperationStatus:
+        status:
           $ref: '#/components/schemas/jobOperationStatus'
         percentage:
           $ref: '#/components/schemas/percentage'

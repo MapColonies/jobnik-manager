@@ -216,7 +216,7 @@ export type components = {
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
-      jobOperationStatus?: components['schemas']['jobOperationStatus'];
+      status?: components['schemas']['jobOperationStatus'];
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
@@ -546,7 +546,7 @@ export interface operations {
     requestBody: {
       content: {
         'application/json': {
-          jobOperationStatus: components['schemas']['jobOperationStatus'];
+          status: components['schemas']['jobOperationStatus'];
         };
       };
     };

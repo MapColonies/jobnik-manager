@@ -89,7 +89,7 @@ export class JobController {
 
   public updateStatus: TypedRequestHandlers['PUT /jobs/{jobId}/status'] = async (req, res, next) => {
     try {
-      await this.manager.updateStatus(req.params.jobId, req.body.jobOperationStatus);
+      await this.manager.updateStatus(req.params.jobId, req.body.status);
 
       return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
