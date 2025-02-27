@@ -4,3 +4,5 @@ export class JobNotFoundError extends Error {
     Object.setPrototypeOf(this, JobNotFoundError.prototype);
   }
 }
+
+export const jobNotFoundMsg = 'JOB_NOT_FOUND';
