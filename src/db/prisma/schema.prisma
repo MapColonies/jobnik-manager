@@ -25,7 +25,7 @@ model Job {
   updateTime     DateTime        @updatedAt @map("update_time")
   expirationTime DateTime?       @map("expiration_time")
   type           JobMode         @default(PRE_DEFINED)
-  userMetadata   Json            @default("{}")
+  userMetadata   Json            @default("{}") @map("user_metadata")
   priority       Priority        @default(VERY_LOW)
   creator        Creator         @default(UNKNOWN)
   ttl            DateTime?
