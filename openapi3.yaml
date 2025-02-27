@@ -245,6 +245,229 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /stages:
+    get:
+      operationId: getStages
+      parameters:
+        - $ref: '#/components/parameters/jId'
+        - $ref: '#/components/parameters/sType'
+        - $ref: '#/components/parameters/stageStatus'
+      summary: find stages by criteria
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Array of jobs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/stageResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}:
+    get:
+      operationId: getStageById
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: find stage by id
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Return specific stage by its id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stageResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/job/{jobId}:
+    get:
+      operationId: getStageByJobId
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      summary: find stages by job id
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Return stage array releated to job id
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/stageResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/summary:
+    get:
+      operationId: getStageSummary
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: Get stages summary by id
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Return summary of stage by its id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/summary'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/user-metadata:
+    patch:
+      operationId: updateStageUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: update user metadata object
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: modify user metadata object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: USER_METADATA_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/status:
+    put:
+      operationId: changeStageStatus
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: change stage's status
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/stageOperationStatus'
+      responses:
+        '200':
+          description: Stage and tasks will move to wait status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: STATUS_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:
@@ -256,13 +479,13 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/jobId'
-    # stageId:
-    #   in: path
-    #   name: stageId
-    #   description: ID of Stage
-    #   required: true
-    #   schema:
-    #     $ref: '#/components/schemas/stageId'
+    stageId:
+      in: path
+      name: stageId
+      description: ID of Stage
+      required: true
+      schema:
+        $ref: '#/components/schemas/stageId'
     # taskId:
     #   in: path
     #   name: taskId
@@ -340,20 +563,28 @@ components:
     #   required: false
     #   schema:
     #     $ref: '#/components/schemas/stageId'
-    # jId:
-    #   in: query
-    #   name: job_id
-    #   description: unique job identifier
-    #   required: false
-    #   schema:
-    #     $ref: '#/components/schemas/jobId'
-    # sType:
-    #   in: query
-    #   name: stage_type
-    #   description: stage's type
-    #   required: false
-    #   schema:
-    #     $ref: '#/components/schemas/taskType'
+    jId:
+      in: query
+      name: job_id
+      description: unique job identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobId'
+    sType:
+      in: query
+      name: stage_type
+      description: stage's type
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
+    stageStatus:
+      in: query
+      name: stage_operation_status
+      description: |
+        The status of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/stageOperationStatus'
     # tType:
     #   in: query
     #   name: task_type
@@ -400,6 +631,7 @@ components:
       format: uuid
     stagePayload:
       type: object
+      additionalProperties: true
     notifications:
       type: object
     priority:
@@ -415,9 +647,9 @@ components:
       type: string
       enum:
         - JOB_MODIFIED_SUCCESSFULLY
+        - STAGE_MODIFIED_SUCCESSFULLY
         # - TTL_MODIFIED_SUCCESSFULLY
         # - JOB_RESTARTED_SUCCESSFULLY
-        # - STAGE_MODIFIED_SUCCESSFULLY
         # - STATUS_MODIFIED_SUCCESSFULLY
         # - USER_METADATA_MODIFIED_SUCCESSFULLY
         # - TASKS_ADDED_SUCCESSFULLY
@@ -452,7 +684,6 @@ components:
         - PAUSED
         - WAITING
         - CREATED
-        - RETRIED
       example: CREATED
     taskOperationStatus:
       type: string
@@ -485,6 +716,7 @@ components:
       additionalProperties: true
     summary:
       type: object
+      additionalProperties: true
     createJobPayload:
       type: object
       properties:
@@ -547,7 +779,7 @@ components:
         - data
         - type
         - jobId
-      additionalProperties: false
+        - userMetadata
     stageResponse:
       allOf:
         - $ref: '#/components/schemas/createStagePayload'
@@ -567,11 +799,13 @@ components:
     taskType:
       type: string
       enum:
-        - Tile-Merging
-        - Tile-Seeding
-        - Tile-Exporting
+        - TILE_SEEDING
+        - TILE_RENDERING
+        - PUBLISH_CATALOG
+        - PUBLISH_LAYER
+        - DEFAULT
       maxLength: 255
-      example: Tile-Merging
+      example: DEFAULT
     taskPayload:
       type: object
     createTaskPayload:

@@ -14,6 +14,7 @@ import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
 import { promiseTimeout } from './common/utils/promiseTimeout';
+import { stageRouterFactory, STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -73,6 +74,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       },
     },
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
+    { token: STAGE_ROUTER_SYMBOL, provider: { useFactory: stageRouterFactory } },
     {
       token: 'onSignal',
       provider: {

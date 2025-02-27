@@ -11,10 +11,8 @@ const successMessages: SuccessMessagesObj = {
   stageModifiedSuccessfully: 'STAGE_MODIFIED_SUCCESSFULLY',
 };
 
-type JobModel = components['schemas']['jobResponse'];
-type JobCreateModel = components['schemas']['createJobPayload'];
-type JobCreateResponse = components['schemas']['createJobResponse'];
-type JobGetParams = components['parameters'];
-type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
+type StageModel = components['schemas']['stageResponse'];
+type StageSummary = components['schemas']['summary'];
+type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
 
-export { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, successMessages };
+export { StageSummary, StageModel, StageFindCriteriaArg, successMessages };

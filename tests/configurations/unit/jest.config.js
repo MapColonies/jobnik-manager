@@ -20,6 +20,7 @@ module.exports = {
     '!<rootDir>/src/*',
     '!<rootDir>/src/db/createConnection.ts',
     '!<rootDir>/src/jobs/models/models.ts',
+    '!<rootDir>/src/stages/models/models.ts',
   ],
 
   setupFilesAfterEnv: ['jest-extended/all'],

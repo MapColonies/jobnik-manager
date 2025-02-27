@@ -13,6 +13,7 @@ import { Registry } from 'prom-client';
 import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
 import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
+import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 
 @injectable()
 export class ServerBuilder {
@@ -22,7 +23,8 @@ export class ServerBuilder {
     @inject(SERVICES.CONFIG) private readonly config: ConfigType,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
-    @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router
+    @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
+    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -46,6 +48,7 @@ export class ServerBuilder {
 
   private buildRoutes(): void {
     this.serverInstance.use('/jobs', this.jobRouter);
+    this.serverInstance.use('/stages', this.stageRouter);
     this.buildDocsRoutes();
   }
 

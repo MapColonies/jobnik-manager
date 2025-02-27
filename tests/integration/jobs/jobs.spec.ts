@@ -7,7 +7,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
+import type { JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
@@ -42,6 +42,16 @@ describe('job', function () {
     };
   });
 
+  afterEach(async () => {
+    // Close any open resources
+    await prisma.$disconnect();
+  });
+
+  afterAll(async () => {
+    // Additional cleanup if needed
+    await prisma.$disconnect();
+  });
+
   describe('#FindJobs', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching job', async function () {
@@ -49,7 +59,7 @@ describe('job', function () {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
           data: { stages: [] },
-          type: 'PRE_DEFINED',
+          type: 'DYNAMIC',
           notifications: {},
           userMetadata: {},
         } satisfies components['schemas']['createJobPayload'];
@@ -58,7 +68,7 @@ describe('job', function () {
           requestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { creator: 'UNKNOWN' as Creator } });
+        const response = await requestSender.findJobs({ queryParams: { job_mode: 'DYNAMIC' as JobMode } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
