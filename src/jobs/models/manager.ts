@@ -5,7 +5,7 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client'
 import { Prisma } from '@prisma/client';
 import { createActor } from 'xstate';
 import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
-import { jobNotFoundMsg, JobNotFoundError } from './errors';
+import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
@@ -65,7 +65,7 @@ export class JobManager {
     const job = await this.prisma.job.findUnique(queryBody);
 
     if (!job) {
-      throw new JobNotFoundError(jobNotFoundMsg);
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
     }
 
     return this.convertPrismaToJobResponse(job);
@@ -85,7 +85,7 @@ export class JobManager {
       await this.prisma.job.update(updateQueryBody);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError(jobNotFoundMsg);
+        throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
       }
       throw err;
     }
@@ -118,7 +118,7 @@ export class JobManager {
     });
 
     if (!job) {
-      throw new JobNotFoundError(jobNotFoundMsg);
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
     }
 
     const nextStatusChange = OperationStatusMapper[status];

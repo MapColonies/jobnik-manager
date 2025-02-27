@@ -11,7 +11,7 @@ import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/c
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
-import { jobNotFoundMsg } from '@src/jobs/models/errors';
+import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -194,7 +194,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobNotFoundMsg },
+          body: { message: JOB_NOT_FOUND_MSG },
         });
       });
 
@@ -257,7 +257,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobNotFoundMsg },
+          body: { message: JOB_NOT_FOUND_MSG },
         });
       });
     });
@@ -335,7 +335,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobNotFoundMsg },
+          body: { message: JOB_NOT_FOUND_MSG },
         });
       });
 
@@ -426,7 +426,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobNotFoundMsg },
+          body: { message: JOB_NOT_FOUND_MSG },
         });
       });
     });

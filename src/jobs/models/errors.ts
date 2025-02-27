@@ -5,4 +5,4 @@ export class JobNotFoundError extends Error {
   }
 }
 
-export const jobNotFoundMsg = 'JOB_NOT_FOUND';
+export const JOB_NOT_FOUND_MSG = 'JOB_NOT_FOUND';
