@@ -7,7 +7,6 @@ import { createActor } from 'xstate';
 import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
 import { JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
