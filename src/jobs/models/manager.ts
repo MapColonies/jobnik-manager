@@ -8,7 +8,7 @@ import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../
 import { JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 
-import { jobStateMachine, OperationStatusMapper } from './statusStateMachine';
+import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
 export class JobManager {

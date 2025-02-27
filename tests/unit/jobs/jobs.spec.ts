@@ -2,7 +2,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma } from '@prisma/client';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
-import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
+import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { components } from '@src/openapi';
 import { createActor } from 'xstate';
 
