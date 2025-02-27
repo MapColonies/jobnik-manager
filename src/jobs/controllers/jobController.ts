@@ -95,7 +95,6 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-        this.logger.error(`Job status update request failed: job with provided ID not found`, err);
       } else if (err instanceof InvalidUpdateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error(`Job status update failed: invalid status transition`, err);
