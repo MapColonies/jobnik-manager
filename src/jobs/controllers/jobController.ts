@@ -6,7 +6,8 @@ import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg, successMessages } from '../models/models';
-import { InvalidUpdateError, JobNotFoundError } from '../models/errors';
+import { JobNotFoundError } from '../models/errors';
+import { InvalidUpdateError } from '../../common/errors';
 
 @injectable()
 export class JobController {
@@ -19,9 +20,11 @@ export class JobController {
     const params: JobFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getJobs(params);
+
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       this.logger.error(`Error occurred on getting job with error`, err);
+
       next(err);
     }
   };
@@ -29,9 +32,11 @@ export class JobController {
   public createJob: TypedRequestHandlers['POST /jobs'] = async (req, res, next) => {
     try {
       const response = await this.manager.createJob(req.body);
+
       return res.status(httpStatus.CREATED).json(response);
     } catch (err) {
       this.logger.error(`Error occurred on creating new job with error`, err);
+
       return next(err);
     }
   };
@@ -39,10 +44,12 @@ export class JobController {
   public getJobById: TypedRequestHandlers['GET /jobs/{jobId}'] = async (req, res, next) => {
     try {
       const response = await this.manager.getJobById(req.params.jobId);
+
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+        this.logger.error(`Current job not found`, err);
       }
 
       return next(err);
@@ -52,10 +59,12 @@ export class JobController {
   public updateUserMetadata: TypedRequestHandlers['PATCH /jobs/{jobId}/user-metadata'] = async (req, res, next) => {
     try {
       await this.manager.updateUserMetadata(req.params.jobId, req.body);
+
       return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+        this.logger.error(`Job metadata update request failed: job with provided ID not found`, err);
       }
 
       return next(err);
@@ -70,6 +79,7 @@ export class JobController {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
+        this.logger.error(`Job priority update failed: the priority you entered is already assigned to this job.`, err);
         return res.status(httpStatus.NO_CONTENT).header('Reason', err.message).end();
       }
 
@@ -80,12 +90,15 @@ export class JobController {
   public updateStatus: TypedRequestHandlers['PUT /jobs/{jobId}/status'] = async (req, res, next) => {
     try {
       await this.manager.updateStatus(req.params.jobId, req.body.jobOperationStatus);
+
       return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+        this.logger.error(`Job status update request failed: job with provided ID not found`, err);
       } else if (err instanceof InvalidUpdateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
+        this.logger.error(`Job status update failed: invalid status transition`, err);
       }
 
       return next(err);

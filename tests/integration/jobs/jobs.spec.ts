@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
@@ -9,7 +10,7 @@ import { initConfig } from '@src/common/config';
 import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
-import { BAD_STATUS_CHANGE } from '@src/jobs/models/errors';
+import { BAD_STATUS_CHANGE } from '@src/common/errors';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -69,7 +70,6 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('Expected 400 status code and a relevant validation error message when the job mode is incorrect', async function () {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         const response = await requestSender.findJobs({ queryParams: { job_mode: 'WRONG_VALUE' as JobMode } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
@@ -88,6 +88,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('Database error'));
+
         const response = await requestSender.findJobs({});
 
         expect(response).toSatisfyApiSpec();
@@ -231,8 +232,8 @@ describe('job', function () {
           notifications: {},
           userMetadata: {},
         } satisfies components['schemas']['createJobPayload'];
-        const userMetadataInput = { someTestKey: 'someTestData' };
 
+        const userMetadataInput = { someTestKey: 'someTestData' };
         const job = await createJobRecord(requestBody);
         const createdJobId = job.id;
 
@@ -292,6 +293,7 @@ describe('job', function () {
           pathParams: { jobId: createdJobId },
           requestBody: { priority: 'VERY_HIGH' },
         });
+
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
@@ -320,7 +322,6 @@ describe('job', function () {
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(setPriorityResponse).toMatchObject({
           status: StatusCodes.NO_CONTENT,
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           headers: { reason: 'Priority cannot be updated to the same value.' },
         });
       });
@@ -389,6 +390,7 @@ describe('job', function () {
         expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+
         expect(getJobResponse).toHaveProperty('body.jobOperationStatus', 'PENDING');
       });
     });

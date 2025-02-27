@@ -4,8 +4,10 @@ import { SERVICES } from '@common/constants';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { createActor } from 'xstate';
+import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
+import { JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-import { BAD_STATUS_CHANGE, InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
+
 import { jobStateMachine, OperationStatusMapper } from './statusStateMachine';
 
 @injectable()
@@ -32,6 +34,7 @@ export class JobManager {
     }
 
     const jobs = await this.prisma.job.findMany(queryBody);
+
     const result = jobs.map((job) => this.convertPrismaToJobResponse(job));
     return result;
   }
@@ -129,6 +132,7 @@ export class JobManager {
 
     updateActor.send({ type: nextStatusChange });
     const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
     const updateQueryBody = {
       where: {
         id: jobId,
@@ -144,6 +148,7 @@ export class JobManager {
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
     const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, status, xstate, ...rest } = prismaObjects;
+
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
@@ -154,6 +159,7 @@ export class JobManager {
       ttl: ttl ? ttl.toISOString() : undefined,
       jobOperationStatus: status,
     };
+
     return Object.assign(rest, transformedFields);
   }
 }

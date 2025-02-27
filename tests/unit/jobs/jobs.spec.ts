@@ -1,6 +1,6 @@
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma } from '@prisma/client';
-import { BAD_STATUS_CHANGE } from '@src/jobs/models/errors';
+import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { jobStateMachine } from '@src/jobs/models/statusStateMachine';
 import { components } from '@src/openapi';
@@ -46,6 +46,7 @@ describe('JobManager', () => {
         it('should return created job formatted', async function () {
           const jobEntity = createJobEntity({ data: { stages: [] } });
           const prismaCreateJobMock = jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntity);
+
           const createJobParams = {
             name: 'DEFAULT',
             creator: 'UNKNOWN',
@@ -93,8 +94,6 @@ describe('JobManager', () => {
           const { status: jobOperationStatus, xstate, ...rest } = jobEntity;
           const jobObject = { jobOperationStatus, ...rest };
           const expectedJob = [{ ...jobObject, creationTime: jobObject.creationTime.toISOString(), updateTime: jobObject.updateTime.toISOString() }];
-          // delete jobEntity.xstate;
-          // const expectedJob = [{ ...jobEntity, creationTime: jobEntity.creationTime.toISOString(), updateTime: jobEntity.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
         });
