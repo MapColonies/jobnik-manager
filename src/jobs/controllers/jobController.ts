@@ -64,7 +64,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-        this.logger.error(`Job metadata update request failed: job with provided ID not found`, err);
+        this.logger.error(`Job metadata update request failed: job with provided ID not found`, jobId: req.params.jobId, err);
       }
 
       return next(err);
