@@ -452,7 +452,6 @@ components:
         - PAUSED
         - WAITING
         - CREATED
-        - RETRIED
       example: CREATED
     taskOperationStatus:
       type: string
@@ -537,8 +536,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/stagePayload'
-        stageOperationStatus:
-          $ref: '#/components/schemas/stageOperationStatus'
         jobId:
           $ref: '#/components/schemas/jobId'
         userMetadata:

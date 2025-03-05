@@ -140,7 +140,7 @@ export type components = {
      * @example CREATED
      * @enum {string}
      */
-    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED' | 'RETRIED';
+    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
     /**
      * @example CREATED
      * @enum {string}
@@ -182,7 +182,6 @@ export type components = {
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
-      stageOperationStatus?: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
       userMetadata?: components['schemas']['userMetadata'];
     };
