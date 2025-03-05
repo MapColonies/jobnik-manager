@@ -97,7 +97,7 @@ export class JobController {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
-        this.logger.error(`Job status update failed: invalid status transition`, err);
+        this.logger.error(`Job status update failed: invalid status transition`, status: req.body.status, err);
       }
 
       return next(err);
