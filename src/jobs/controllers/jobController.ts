@@ -49,7 +49,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-        this.logger.error(`Current job not found`, err);
+        this.logger.error(`Current job not found`, jobId: req.params.jobId, err);
       }
 
       return next(err);
