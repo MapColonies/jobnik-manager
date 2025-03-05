@@ -2,9 +2,9 @@
 import { setup } from 'xstate';
 import { JobOperationStatus } from '@prisma/client';
 
-type changeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
+type ChangeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
 
-const OperationStatusMapper: { [key in JobOperationStatus]: changeStatusOperations } = {
+const OperationStatusMapper: { [key in JobOperationStatus]: ChangeStatusOperations } = {
   [JobOperationStatus.PENDING]: 'pend',
   [JobOperationStatus.IN_PROGRESS]: 'process',
   [JobOperationStatus.COMPLETED]: 'complete',
