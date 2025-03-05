@@ -79,7 +79,7 @@ export class JobController {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
-        this.logger.error(`Job priority update failed: the priority entered is already assigned to the job.`, err);
+        this.logger.error(`Job priority update failed: the priority entered is already assigned to the job.`, priority: req.body.priority, err);
         return res.status(httpStatus.NO_CONTENT).header('Reason', err.message).end();
       }
 
