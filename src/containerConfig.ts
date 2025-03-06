@@ -8,8 +8,9 @@ import { InjectionObject, registerDependencies } from '@common/dependencyRegistr
 import { DB_CONNECTION_TIMEOUT, SERVICES, SERVICE_NAME } from '@common/constants';
 import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getTracing } from '@common/tracing';
-import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
+import { instanceCachingFactory } from 'tsyringe';
 import { HealthCheck } from '@godaddy/terminus';
+import { PrismaClient } from '@prisma/client';
 import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient, initPoolConnection } from './db/createConnection';
@@ -33,8 +34,11 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
   configInstance.initializeMetrics(metricsRegistry);
 
   let pool: Pool;
+  let prisma: PrismaClient;
+
   try {
     pool = await initPoolConnection(createConnectionOptions(dbConfig));
+    prisma = await createPrismaClient(pool, dbConfig.schema);
   } catch (error) {
     const errMsg = (error as Error).message;
     throw new Error(`Failed to connect to the database with error: ${errMsg}`);
@@ -66,11 +70,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     },
     {
       token: SERVICES.PRISMA,
-      provider: {
-        useFactory: instancePerContainerCachingFactory((container) => {
-          return createPrismaClient(container.resolve(SERVICES.PG_POOL), dbConfig.schema);
-        }),
-      },
+      provider: { useValue: prisma },
     },
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     {
