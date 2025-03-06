@@ -592,7 +592,7 @@ components:
       required:
         - id
         - stageId
-        - taskOperationStatus
+        - status
       properties:
         id:
           $ref: '#/components/schemas/taskId'
@@ -600,7 +600,7 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
-        taskOperationStatus:
+        status:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'
