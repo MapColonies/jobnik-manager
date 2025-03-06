@@ -578,8 +578,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/taskPayload'
-        taskOperationStatus:
-          $ref: '#/components/schemas/taskOperationStatus'
         stageId:
           $ref: '#/components/schemas/stageId'
       required:

@@ -196,7 +196,6 @@ export type components = {
     createTaskPayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
-      taskOperationStatus?: components['schemas']['taskOperationStatus'];
       stageId: components['schemas']['stageId'];
     };
     taskResponse: {
@@ -206,7 +205,7 @@ export type components = {
       taskOperationStatus: components['schemas']['taskOperationStatus'];
       attempts?: components['schemas']['attempts'];
       priority?: components['schemas']['priority'];
-    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId' | 'taskOperationStatus'>;
+    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId'>;
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
