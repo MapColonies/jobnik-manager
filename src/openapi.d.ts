@@ -140,11 +140,6 @@ export type components = {
      * @example CREATED
      * @enum {string}
      */
-    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
-    /**
-     * @example CREATED
-     * @enum {string}
-     */
     taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED' | 'RETRIED';
     /**
      * @example PRE_DEFINED

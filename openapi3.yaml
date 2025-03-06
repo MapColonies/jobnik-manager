@@ -441,18 +441,18 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-    stageOperationStatus:
-      type: string
-      enum:
-        - PENDING
-        - IN_PROGRESS
-        - COMPLETED
-        - FAILED
-        - ABORTED
-        - PAUSED
-        - WAITING
-        - CREATED
-      example: CREATED
+    # stageOperationStatus:
+    #   type: string
+    #   enum:
+    #     - PENDING
+    #     - IN_PROGRESS
+    #     - COMPLETED
+    #     - FAILED
+    #     - ABORTED
+    #     - PAUSED
+    #     - WAITING
+    #     - CREATED
+    #   example: CREATED
     taskOperationStatus:
       type: string
       enum:
