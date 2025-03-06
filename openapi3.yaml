@@ -215,7 +215,7 @@ paths:
               type: object
               properties:
                 status:
-                  $ref: '#/components/schemas/status'
+                  $ref: '#/components/schemas/jobOperationStatus'
               required:
                 - status
       responses:
@@ -429,7 +429,7 @@ components:
       enum:
         - MAP_COLONIES
         - UNKNOWN
-    status:
+    jobOperationStatus:
       type: string
       enum:
         - PENDING
@@ -437,10 +437,35 @@ components:
         - COMPLETED
         - FAILED
         - ABORTED
-        - WAITING_FOR_APPROVAL
         - PAUSED
         - WAITING
-      example: PENDING
+        - CREATED
+      example: CREATED
+    # stageOperationStatus:
+    #   type: string
+    #   enum:
+    #     - PENDING
+    #     - IN_PROGRESS
+    #     - COMPLETED
+    #     - FAILED
+    #     - ABORTED
+    #     - PAUSED
+    #     - WAITING
+    #     - CREATED
+    #   example: CREATED
+    taskOperationStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - PAUSED
+        - WAITING
+        - CREATED
+        - RETRIED
+      example: CREATED
     jobMode:
       type: string
       enum:
@@ -468,8 +493,6 @@ components:
           $ref: '#/components/schemas/jobName'
         data:
           $ref: '#/components/schemas/jobPayload'
-        status:
-          $ref: '#/components/schemas/status'
         priority:
           $ref: '#/components/schemas/priority'
         expirationTime:
@@ -513,8 +536,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/stagePayload'
-        status:
-          $ref: '#/components/schemas/status'
         jobId:
           $ref: '#/components/schemas/jobId'
         userMetadata:
@@ -557,8 +578,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/taskPayload'
-        status:
-          $ref: '#/components/schemas/status'
         stageId:
           $ref: '#/components/schemas/stageId'
       required:
@@ -582,7 +601,7 @@ components:
         updateTime:
           $ref: '#/components/schemas/updateTime'
         status:
-          $ref: '#/components/schemas/status'
+          $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'
         priority:
@@ -595,7 +614,7 @@ components:
         data:
           $ref: '#/components/schemas/jobPayload'
         status:
-          $ref: '#/components/schemas/status'
+          $ref: '#/components/schemas/jobOperationStatus'
         percentage:
           $ref: '#/components/schemas/percentage'
         creationTime:

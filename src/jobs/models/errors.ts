@@ -5,14 +5,4 @@ export class JobNotFoundError extends Error {
   }
 }
 
-export class InvalidUpdateError extends Error {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, InvalidUpdateError.prototype);
-  }
-}
-
-export const prismaKnownErrors = {
-  /**An operation failed because it depends on one or more records that were required but not found. {cause} */
-  recordNotFound: 'P2025',
-} as const;
+export const JOB_NOT_FOUND_MSG = 'JOB_NOT_FOUND';

@@ -1,10 +1,13 @@
 import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
-import type { PrismaClient, Priority, OperationStatus } from '@prisma/client';
+import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
 import { Prisma } from '@prisma/client';
+import { createActor } from 'xstate';
+import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
+import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
-import { InvalidUpdateError, JobNotFoundError, prismaKnownErrors } from './errors';
+import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
 export class JobManager {
@@ -30,13 +33,17 @@ export class JobManager {
     }
 
     const jobs = await this.prisma.job.findMany(queryBody);
+
     const result = jobs.map((job) => this.convertPrismaToJobResponse(job));
     return result;
   }
 
   public async createJob(body: JobCreateModel): Promise<JobCreateResponse> {
     try {
-      const input: Prisma.JobCreateInput = { data: body.data };
+      const createJobActor = createActor(jobStateMachine).start();
+      const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
@@ -58,7 +65,7 @@ export class JobManager {
     const job = await this.prisma.job.findUnique(queryBody);
 
     if (!job) {
-      throw new JobNotFoundError('JOB_NOT_FOUND');
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
     }
 
     return this.convertPrismaToJobResponse(job);
@@ -78,7 +85,7 @@ export class JobManager {
       await this.prisma.job.update(updateQueryBody);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError('JOB_NOT_FOUND');
+        throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
       }
       throw err;
     }
@@ -103,28 +110,44 @@ export class JobManager {
     await this.prisma.job.update(updateQueryBody);
   }
 
-  public async updateStatus(jobId: string, status: OperationStatus): Promise<void> {
+  public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
+    const job = await this.prisma.job.findUnique({
+      where: {
+        id: jobId,
+      },
+    });
+
+    if (!job) {
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new InvalidUpdateError(BAD_STATUS_CHANGE);
+    }
+
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
     const updateQueryBody = {
       where: {
         id: jobId,
       },
       data: {
         status,
+        xstate: newPersistedSnapshot,
       },
     };
 
-    try {
-      await this.prisma.job.update(updateQueryBody);
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError('JOB_NOT_FOUND');
-      }
-      throw err;
-    }
+    await this.prisma.job.update(updateQueryBody);
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, ...rest } = prismaObjects;
+
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
@@ -134,6 +157,7 @@ export class JobManager {
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
     };
+
     return Object.assign(rest, transformedFields);
   }
 }
