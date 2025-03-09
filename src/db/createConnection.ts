@@ -5,6 +5,10 @@ import { Pool, type PoolConfig } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 
+interface SchemaExistsResult {
+  exists: boolean;
+}
+
 export type DbConfig = {
   enableSslAuth: boolean;
   sslPaths: { ca: string; cert: string; key: string };
@@ -39,4 +43,25 @@ export function createPrismaClient(pool: Pool, schema: string): PrismaClient {
   const adapter = new PrismaPg(pool, { schema });
   const prisma = new PrismaClient({ adapter });
   return prisma;
+}
+
+export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promise<void> {
+  try {
+    const checkSchemaExists = await prisma.$queryRaw<SchemaExistsResult[]>`
+    SELECT EXISTS (
+      SELECT 1
+      FROM information_schema.schemata
+      WHERE schema_name = ${schema}
+    )
+  `;
+    if (!checkSchemaExists[0].exists) {
+      throw new Error(`Schema: ${schema} doesn't exists`);
+    }
+
+    await prisma.job.count(); // validate migration deployed job table
+    // TODO - AFTER IMPLEMENTATION - await prisma.stage.count(); // validate migration deployed stage table
+    // TODO - AFTER IMPLEMENTATION - await prisma.task.count(); // validate migration deployed task table
+  } catch (error) {
+    throw new Error(`Error on db connection: ${(error as Error).message}`);
+  }
 }
