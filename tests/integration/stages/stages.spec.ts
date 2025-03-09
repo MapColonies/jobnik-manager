@@ -9,6 +9,7 @@ import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
 import type { Prisma, PrismaClient, StageName } from '@prisma/client';
 import { Snapshot } from 'xstate';
+import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -270,8 +271,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          // body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: JOB_NOT_FOUND_MSG },
         });
       });
     });
