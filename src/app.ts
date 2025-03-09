@@ -1,10 +1,21 @@
 import { Application } from 'express';
 import { DependencyContainer } from 'tsyringe';
+import { ConfigType } from '@common/config';
+import { PrismaClient } from '@prisma/client';
+import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { registerExternalValues, RegisterOptions } from './containerConfig';
 import { ServerBuilder } from './serverBuilder';
+import { SERVICES } from './common/constants';
+import { validatePrismaMigration } from './db/createConnection';
 
 async function getApp(registerOptions?: RegisterOptions): Promise<[Application, DependencyContainer]> {
   const container = await registerExternalValues(registerOptions);
+  const prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+  const config = container.resolve<ConfigType>(SERVICES.CONFIG);
+  const dbConfig = config.get('db') as commonDbFullV1Type;
+
+  await validatePrismaMigration(prisma, dbConfig.schema);
+
   const app = container.resolve(ServerBuilder).build();
   return [app, container];
 }

@@ -39,11 +39,14 @@ export async function initPoolConnection(dbConfig: PoolConfig): Promise<Pool> {
   return pool;
 }
 
-export async function createPrismaClient(pool: Pool, schema: string): Promise<PrismaClient> {
-  try {
-    const adapter = new PrismaPg(pool, { schema });
-    const prisma = new PrismaClient({ adapter });
+export function createPrismaClient(pool: Pool, schema: string): PrismaClient {
+  const adapter = new PrismaPg(pool, { schema });
+  const prisma = new PrismaClient({ adapter });
+  return prisma;
+}
 
+export async function validatePrismaMigration(prisma: PrismaClient, schema: string): Promise<void> {
+  try {
     const checkSchemaExists = await prisma.$queryRaw<SchemaExistsResult[]>`
     SELECT EXISTS (
       SELECT 1
@@ -58,8 +61,6 @@ export async function createPrismaClient(pool: Pool, schema: string): Promise<Pr
     await prisma.job.count(); // validate migration deployed job table
     // TODO - AFTER IMPLEMENTATION - await prisma.stage.count(); // validate migration deployed stage table
     // TODO - AFTER IMPLEMENTATION - await prisma.task.count(); // validate migration deployed task table
-
-    return prisma;
   } catch (error) {
     throw new Error(`Error on db connection: ${(error as Error).message}`);
   }
