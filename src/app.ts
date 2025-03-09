@@ -6,7 +6,7 @@ import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { registerExternalValues, RegisterOptions } from './containerConfig';
 import { ServerBuilder } from './serverBuilder';
 import { SERVICES } from './common/constants';
-import { validatePrismaMigration } from './db/createConnection';
+import { verifyDbSetup } from './db/createConnection';
 
 async function getApp(registerOptions?: RegisterOptions): Promise<[Application, DependencyContainer]> {
   const container = await registerExternalValues(registerOptions);
@@ -14,7 +14,7 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
   const config = container.resolve<ConfigType>(SERVICES.CONFIG);
   const dbConfig = config.get('db') as commonDbFullV1Type;
 
-  await validatePrismaMigration(prisma, dbConfig.schema);
+  await verifyDbSetup(prisma, dbConfig.schema);
 
   const app = container.resolve(ServerBuilder).build();
   return [app, container];

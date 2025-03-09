@@ -45,7 +45,7 @@ export function createPrismaClient(pool: Pool, schema: string): PrismaClient {
   return prisma;
 }
 
-export async function validatePrismaMigration(prisma: PrismaClient, schema: string): Promise<void> {
+export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promise<void> {
   try {
     const checkSchemaExists = await prisma.$queryRaw<SchemaExistsResult[]>`
     SELECT EXISTS (
