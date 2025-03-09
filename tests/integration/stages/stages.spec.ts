@@ -168,7 +168,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { stageOperationStatus: 'CREATED', type: 'DEFAULT' } });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: 'CREATED', type: 'DEFAULT' } });
       });
     });
 
@@ -226,7 +226,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ stageOperationStatus: 'CREATED', id: stage.id }] });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: 'CREATED', id: stage.id }] });
       });
 
       it('should return a 200 status code with empty array object', async function () {

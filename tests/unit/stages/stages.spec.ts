@@ -66,8 +66,8 @@ describe('JobManager', () => {
 
           const stages = await stageManager.getStages({ stage_type: 'DEFAULT' });
 
-          const { status: stageOperationStatus, job_id: jobId, name: type, xstate, ...rest } = stageEntity;
-          const expectedStage = [{ stageOperationStatus, ...rest }];
+          const { job_id: jobId, name: type, xstate, ...rest } = stageEntity;
+          const expectedStage = [rest];
 
           expect(stages).toMatchObject(expectedStage);
         });
@@ -93,8 +93,8 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStageById(stageId);
 
-          const { status: stageOperationStatus, job_id: jobId, name: type, xstate, ...rest } = stageEntity;
-          const expectedStage = { stageOperationStatus, jobId, ...rest };
+          const { job_id: jobId, name: type, xstate, ...rest } = stageEntity;
+          const expectedStage = { jobId, ...rest };
 
           expect(stage).toMatchObject(expectedStage);
         });
@@ -127,8 +127,8 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStagesByJobId(stageId);
 
-          const { status: stageOperationStatus, job_id: jobId, name: type, xstate, ...rest } = stageEntity;
-          const expectedStage = [{ stageOperationStatus, jobId, ...rest }];
+          const { job_id: jobId, name: type, xstate, ...rest } = stageEntity;
+          const expectedStage = [{ jobId, ...rest }];
 
           expect(stage).toMatchObject(expectedStage);
         });
