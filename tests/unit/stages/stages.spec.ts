@@ -47,7 +47,7 @@ function createStageEntity(override: Partial<Prisma.StageGetPayload<Record<strin
 }
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
-// const stageNotFoundError = = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
+
 describe('JobManager', () => {
   beforeEach(function () {
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma);
