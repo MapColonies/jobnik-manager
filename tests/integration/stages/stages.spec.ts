@@ -7,7 +7,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { Prisma, PrismaClient, StageName } from '@prisma/client';
+import { JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
 import { Snapshot } from 'xstate';
 import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
 
@@ -169,7 +169,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: 'CREATED', type: 'DEFAULT' } });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, type: 'DEFAULT' } });
       });
     });
 
@@ -227,7 +227,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: 'CREATED', id: stage.id }] });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: JobOperationStatus.CREATED, id: stage.id }] });
       });
 
       it('should return a 200 status code with empty array object', async function () {

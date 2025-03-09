@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageManager } from '@src/stages/models/manager';
 import { createActor, Snapshot } from 'xstate';
@@ -20,7 +20,7 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
     notifications: {},
     percentage: 0,
     priority: 'HIGH',
-    status: 'PENDING',
+    status: JobOperationStatus.PENDING,
     ttl: new Date(),
     type: 'PRE_DEFINED',
     updateTime: new Date(),
@@ -38,7 +38,7 @@ function createStageEntity(override: Partial<Prisma.StageGetPayload<Record<strin
     id: 'SOME_ID',
     name: 'DEFAULT',
     percentage: 0,
-    status: 'PENDING',
+    status: JobOperationStatus.PENDING,
     userMetadata: {},
     summary: {},
     xstate: { status: 'active', error: undefined, output: undefined } as Snapshot<unknown>,
