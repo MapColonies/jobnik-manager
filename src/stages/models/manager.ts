@@ -113,12 +113,11 @@ export class StageManager {
 
   private convertPrismaToStageResponse(prismaObjects: Prisma.StageGetPayload<Record<string, never>>): StageModel {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { data, job_id, userMetadata, summary, status, xstate, name, ...rest } = prismaObjects;
+    const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, unknown>,
       userMetadata: userMetadata as Record<string, never>,
       summary: summary as Record<string, never>,
-      stageOperationStatus: status,
       type: name,
       jobId: job_id,
     };
