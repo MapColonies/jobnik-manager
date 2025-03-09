@@ -49,7 +49,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-        this.logger.error(`Current job not found`, err);
+        this.logger.error({ msg: `Current job not found`, jobId: req.params.jobId, err });
       }
 
       return next(err);
@@ -64,7 +64,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-        this.logger.error(`Job metadata update request failed: job with provided ID not found`, err);
+        this.logger.error({ msg: `Job metadata update request failed: job with provided ID not found`, jobId: req.params.jobId, err });
       }
 
       return next(err);
@@ -79,7 +79,11 @@ export class JobController {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
-        this.logger.error(`Job priority update failed: the priority entered is already assigned to the job.`, err);
+        this.logger.error({
+          msg: `Job priority update failed: the priority entered is already assigned to the job`,
+          priority: req.body.priority,
+          err,
+        });
         return res.status(httpStatus.NO_CONTENT).header('Reason', err.message).end();
       }
 
@@ -97,7 +101,7 @@ export class JobController {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       } else if (err instanceof InvalidUpdateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
-        this.logger.error(`Job status update failed: invalid status transition`, err);
+        this.logger.error({ msg: `Job status update failed: invalid status transition`, status: req.body.status, err });
       }
 
       return next(err);

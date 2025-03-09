@@ -7,7 +7,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations, components } from '@openapi';
 import { initConfig } from '@src/common/config';
-import type { JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
+import type { Creator, JobMode, Priority, Prisma, PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';

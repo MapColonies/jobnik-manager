@@ -424,50 +424,50 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
-  /stages/{stageId}/status:
-    put:
-      operationId: changeStageStatus
-      parameters:
-        - $ref: '#/components/parameters/stageId'
-      summary: change stage's status
-      tags:
-        - stages
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                status:
-                  $ref: '#/components/schemas/stageOperationStatus'
-      responses:
-        '200':
-          description: Stage and tasks will move to wait status
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/defaultOkMessage'
-              example:
-                code: STATUS_MODIFIED_SUCCESSFULLY
-        '400':
-          description: Bad parameters input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
-        '404':
-          description: No such stage on database
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
-        '500':
-          description: Internal server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
+  # /stages/{stageId}/status:
+  # put:
+  #   operationId: changeStageStatus
+  #   parameters:
+  #     - $ref: '#/components/parameters/stageId'
+  #   summary: change stage's status
+  #   tags:
+  #     - stages
+  #   requestBody:
+  #     required: true
+  #     content:
+  #       application/json:
+  #         schema:
+  #           type: object
+  #           properties:
+  #             status:
+  #               $ref: '#/components/schemas/stageOperationStatus'
+  #   responses:
+  #     '200':
+  #       description: Stage and tasks will move to wait status
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: '#/components/schemas/defaultOkMessage'
+  #           example:
+  #             code: STATUS_MODIFIED_SUCCESSFULLY
+  #     '400':
+  #       description: Bad parameters input
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: '#/components/schemas/errorMessage'
+  #     '404':
+  #       description: No such stage on database
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: '#/components/schemas/errorMessage'
+  #     '500':
+  #       description: Internal server error
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:
@@ -685,6 +685,7 @@ components:
         - WAITING
         - CREATED
       example: CREATED
+
     taskOperationStatus:
       type: string
       enum:
@@ -769,8 +770,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/stagePayload'
-        stageOperationStatus:
-          $ref: '#/components/schemas/stageOperationStatus'
         jobId:
           $ref: '#/components/schemas/jobId'
         userMetadata:
@@ -815,8 +814,6 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/taskPayload'
-        taskOperationStatus:
-          $ref: '#/components/schemas/taskOperationStatus'
         stageId:
           $ref: '#/components/schemas/stageId'
       required:
@@ -839,7 +836,7 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
-        taskOperationStatus:
+        status:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'

@@ -181,23 +181,6 @@ export type paths = {
     patch: operations['updateStageUserMetadata'];
     trace?: never;
   };
-  '/stages/{stageId}/status': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    get?: never;
-    /** change stage's status */
-    put: operations['changeStageStatus'];
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -288,7 +271,6 @@ export type components = {
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
-      stageOperationStatus?: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
       userMetadata: components['schemas']['userMetadata'];
     };
@@ -308,17 +290,16 @@ export type components = {
     createTaskPayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
-      taskOperationStatus?: components['schemas']['taskOperationStatus'];
       stageId: components['schemas']['stageId'];
     };
     taskResponse: {
       id: components['schemas']['taskId'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      taskOperationStatus: components['schemas']['taskOperationStatus'];
+      status?: components['schemas']['taskOperationStatus'];
       attempts?: components['schemas']['attempts'];
       priority?: components['schemas']['priority'];
-    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId' | 'taskOperationStatus'>;
+    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId'>;
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
@@ -926,62 +907,6 @@ export interface operations {
     };
     responses: {
       /** @description modify user metadata object */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['defaultOkMessage'];
-        };
-      };
-      /** @description Bad parameters input */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description No such stage on database */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-    };
-  };
-  changeStageStatus: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of Stage */
-        stageId: components['parameters']['stageId'];
-      };
-      cookie?: never;
-    };
-    requestBody: {
-      content: {
-        'application/json': {
-          status?: components['schemas']['stageOperationStatus'];
-        };
-      };
-    };
-    responses: {
-      /** @description Stage and tasks will move to wait status */
       200: {
         headers: {
           [name: string]: unknown;

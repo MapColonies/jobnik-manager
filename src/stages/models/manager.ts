@@ -30,6 +30,7 @@ export class StageManager {
     }
 
     const stages = await this.prisma.stage.findMany(queryBody);
+
     const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
     return result;
   }
