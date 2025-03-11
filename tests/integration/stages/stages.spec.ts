@@ -93,7 +93,7 @@ describe('stage', function () {
         });
       });
 
-      it('should return 200 status code and all the matching stages for empty query params', async function () {
+      it('should return 200 status code and all the stages if no query params were defined', async function () {
         const jobRequestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -119,7 +119,7 @@ describe('stage', function () {
       });
 
       describe('Bad Path', function () {
-        it('Expected 400 status code and a relevant validation error message when the stage type is incorrect', async function () {
+        it('should return 400 status code and a relevant validation error message when the stage type is incorrect', async function () {
           const response = await requestSender.getStages({ queryParams: { stage_type: 'NOT_VALID_TYPE' as StageName } });
 
           if (response.status !== StatusCodes.BAD_REQUEST) {
@@ -171,7 +171,7 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return a 404 status code along with a specific validation error message detailing the non exists stage', async function () {
+      it('It should return a 404 status code with a validation error message if the requested stage does not exist', async function () {
         const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
         expect(getJobResponse).toSatisfyApiSpec();
