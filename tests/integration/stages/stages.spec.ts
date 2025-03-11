@@ -86,6 +86,7 @@ describe('stage', function () {
       it('should return 200 status code and empty array', async function () {
         const response = await requestSender.getStages({ queryParams: { job_id: dumpUuid } });
 
+        expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
           body: [],
@@ -112,6 +113,7 @@ describe('stage', function () {
           throw new Error('Wrong value returned');
         }
 
+        expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
         expect(response.body.length).toBeGreaterThan(0);
       });
