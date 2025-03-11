@@ -230,7 +230,7 @@ describe('stage', function () {
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: JobOperationStatus.CREATED, id: stage.id }] });
       });
 
-      it('should return a 200 status code with empty array object', async function () {
+      it('should return a 200 status code with empty array object if no stages exists for the requested job', async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -265,7 +265,7 @@ describe('stage', function () {
         });
       });
 
-      it("should return status code 404 when supplying not exists job's uuid", async function () {
+      it("should return status code 404 when a job with the given uuid does not exists", async function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: '54314600-c247-441b-b7ef-3066c57f0988' } });
 
         expect(getStageResponse).toSatisfyApiSpec();
