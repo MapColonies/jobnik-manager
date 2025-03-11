@@ -109,7 +109,7 @@ describe('JobManager', () => {
       });
 
       describe('#SadPath', () => {
-        it('should failed on db error when getting desired STAGE', async function () {
+        it('should fail and throw an error if prisma throws an error', async function () {
           jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.getStageById('some_id')).rejects.toThrow('db connection error');
