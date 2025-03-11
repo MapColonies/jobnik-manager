@@ -92,7 +92,7 @@ describe('stage', function () {
         });
       });
 
-      it('should return 200 status code and all the matching stages for empty query params', async function () {
+      it('should return 200 status code and all the stages if no query params were defined', async function () {
         const jobRequestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
