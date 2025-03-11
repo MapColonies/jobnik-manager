@@ -40,7 +40,7 @@ export class StageController {
     }
   };
 
-  public getStagesByJobId: TypedRequestHandlers['GET /stages/job/{jobId}'] = async (req, res, next) => {
+  public getStagesByJobId: TypedRequestHandlers['GET /jobs/{jobId}/stages'] = async (req, res, next) => {
     try {
       const response = await this.manager.getStagesByJobId(req.params.jobId);
       return res.status(httpStatus.OK).json(response);

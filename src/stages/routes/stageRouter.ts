@@ -9,7 +9,6 @@ const stageRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.get('/', controller.getStages);
   router.get('/:stageId', controller.getStageById);
   router.get('/:stageId/summary', controller.getSummaryByStageId);
-  router.get('/job/:jobId', controller.getStagesByJobId);
   router.patch('/:stageId/user-metadata', controller.updateUserMetadata);
 
   return router;

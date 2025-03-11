@@ -96,6 +96,23 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/jobs/{jobId}/stages': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** find stages by job id */
+    get: operations['getStageByJobId'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/stages': {
     parameters: {
       query?: never;
@@ -122,23 +139,6 @@ export type paths = {
     };
     /** find stage by id */
     get: operations['getStageById'];
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  '/stages/job/{jobId}': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /** find stages by job id */
-    get: operations['getStageByJobId'];
     put?: never;
     post?: never;
     delete?: never;
@@ -350,7 +350,7 @@ export type components = {
     /** @description results end update date */
     tillDate: string;
     /** @description unique job identifier */
-    jId: components['schemas']['jobId'];
+    paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
     sType: components['schemas']['taskType'];
     /** @description The status of the job.
@@ -685,11 +685,61 @@ export interface operations {
       };
     };
   };
+  getStageByJobId: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Return stage array releated to job id */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['stageResponse'][];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
   getStages: {
     parameters: {
       query?: {
         /** @description unique job identifier */
-        job_id?: components['parameters']['jId'];
+        job_id?: components['parameters']['paramJobId'];
         /** @description stage's type */
         stage_type?: components['parameters']['sType'];
         /** @description The status of the job.
@@ -713,15 +763,6 @@ export interface operations {
       };
       /** @description Bad parameters input */
       400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description No such stage on database */
-      404: {
         headers: {
           [name: string]: unknown;
         };
@@ -771,56 +812,6 @@ export interface operations {
         };
       };
       /** @description No such stage on database */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-    };
-  };
-  getStageByJobId: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description ID of Job */
-        jobId: components['parameters']['jobId'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Return stage array releated to job id */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['stageResponse'][];
-        };
-      };
-      /** @description Bad parameters input */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description No such stage in the database */
       404: {
         headers: {
           [name: string]: unknown;

@@ -18,7 +18,7 @@ describe('stage', function () {
 
   let createJobRecord: (body: JobPayload) => Promise<Prisma.JobGetPayload<Record<string, never>>>;
   let createStageRecord: (jobId: string) => Promise<Prisma.StageGetPayload<Record<string, never>>>;
-  const dumpUuidId = '54314600-c247-441b-b7ef-3066c57f0989';
+  const dumpUuid = '54314600-c247-441b-b7ef-3066c57f0989';
   beforeAll(async function () {
     await initConfig(true);
   });
@@ -89,7 +89,7 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and empty array', async function () {
-        const response = await requestSender.getStages({ queryParams: { job_id: dumpUuidId } });
+        const response = await requestSender.getStages({ queryParams: { job_id: dumpUuid } });
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
@@ -175,7 +175,7 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return a 404 status code along with a specific validation error message detailing the non exists stage', async function () {
-        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuidId } });
+        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -200,7 +200,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuidId } });
+        const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -280,7 +280,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.getStageByJobId({ pathParams: { jobId: dumpUuidId } });
+        const response = await requestSender.getStageByJobId({ pathParams: { jobId: dumpUuid } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -313,7 +313,7 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return a 404 status code along with a specific validation error message detailing the non exists stage', async function () {
-        const getJobResponse = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuidId } });
+        const getJobResponse = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -338,7 +338,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuidId } });
+        const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -377,7 +377,7 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return a 404 status code along with a message that specifies that a stage with the given id was not found', async function () {
-        const getStageResponse = await requestSender.updateStageUserMetadata({ pathParams: { stageId: dumpUuidId }, requestBody: { avi: 'avi' } });
+        const getStageResponse = await requestSender.updateStageUserMetadata({ pathParams: { stageId: dumpUuid }, requestBody: { avi: 'avi' } });
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
@@ -391,7 +391,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: dumpUuidId }, requestBody: {} });
+        const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: dumpUuid }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });

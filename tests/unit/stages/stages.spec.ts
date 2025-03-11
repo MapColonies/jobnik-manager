@@ -7,7 +7,7 @@ import { createActor, Snapshot } from 'xstate';
 
 let stageManager: StageManager;
 const prisma = new PrismaClient();
-const dumpUuidId = '54314600-c247-441b-b7ef-3066c57f0989';
+const dumpUuid = '54314600-c247-441b-b7ef-3066c57f0989';
 
 function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, never>>>) {
   const jobEntity = {
@@ -34,7 +34,7 @@ function createStageEntity(override: Partial<Prisma.StageGetPayload<Record<strin
   const jobEntity = {
     data: {},
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    job_id: dumpUuidId,
+    job_id: dumpUuid,
     id: 'SOME_ID',
     name: 'DEFAULT',
     percentage: 0,
