@@ -230,7 +230,7 @@ describe('stage', function () {
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: JobOperationStatus.CREATED, id: stage.id }] });
       });
 
-      it('should return a 200 status code with empty array object', async function () {
+      it('should return a 200 status code with empty array object if no stages exists for the requested job', async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
