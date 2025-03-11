@@ -4,6 +4,7 @@ import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
 import { JobNotFoundError } from '@src/jobs/models/errors';
+import { findJobById } from '@src/jobs/models/helpers';
 import type { StageFindCriteriaArg, StageModel, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError } from './errors';
 
@@ -52,6 +53,12 @@ export class StageManager {
   }
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
+    const job = await findJobById(jobId, this.prisma);
+
+    if (!job) {
+      throw new JobNotFoundError('JOB_NOT_FOUND');
+    }
+
     const queryBody = {
       where: {
         // eslint-disable-next-line @typescript-eslint/naming-convention
@@ -59,35 +66,16 @@ export class StageManager {
       },
     };
 
-    const job = await this.prisma.job.findUnique({
-      where: {
-        id: jobId,
-      },
-    });
-
-    if (!job) {
-      throw new JobNotFoundError('JOB_NOT_FOUND');
-    }
-
     const stages = await this.prisma.stage.findMany(queryBody);
     const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
     return result;
   }
 
   public async getSummaryByStageId(stageId: string): Promise<StageSummary> {
-    const queryBody = {
-      where: {
-        id: stageId,
-      },
-    };
-
-    const stage = await this.prisma.stage.findUnique(queryBody);
-
-    if (!stage) {
-      throw new StageNotFoundError('STAGE_NOT_FOUND');
-    }
+    const stage = await this.getStageById(stageId);
 
     const summary = stage.summary;
+
     return summary;
   }
 

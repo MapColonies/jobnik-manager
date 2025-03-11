@@ -8,6 +8,7 @@ import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../
 import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
+import { findJobById } from './helpers';
 
 @injectable()
 export class JobManager {
@@ -56,13 +57,7 @@ export class JobManager {
   }
 
   public async getJobById(jobId: string): Promise<JobModel> {
-    const queryBody = {
-      where: {
-        id: jobId,
-      },
-    };
-
-    const job = await this.prisma.job.findUnique(queryBody);
+    const job = await findJobById(jobId, this.prisma);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -92,8 +87,11 @@ export class JobManager {
   }
 
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
-    const job = await this.getJobById(jobId);
+    const job = await findJobById(jobId, this.prisma);
 
+    if (!job) {
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+    }
     if (job.priority === priority) {
       throw new InvalidUpdateError('Priority cannot be updated to the same value.');
     }
@@ -111,11 +109,7 @@ export class JobManager {
   }
 
   public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
-    const job = await this.prisma.job.findUnique({
-      where: {
-        id: jobId,
-      },
-    });
+    const job = await findJobById(jobId, this.prisma);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);

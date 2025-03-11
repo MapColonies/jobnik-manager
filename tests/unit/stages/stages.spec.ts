@@ -101,7 +101,7 @@ describe('JobManager', () => {
       });
 
       describe('#BadPath', () => {
-        it('should failed on not founded stage when getting desired job', async function () {
+        it('should result in failure when attempting to retrieve a job with a non-existent stage', async function () {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
 
           await expect(stageManager.getStageById('some_id')).rejects.toThrow('STAGE_NOT_FOUND');

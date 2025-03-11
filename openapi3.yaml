@@ -350,6 +350,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Get stages summary by stage id
+      description: Offers an aggregated object that summarizes the progress of related tasks
       tags:
         - stages
       responses:
@@ -779,6 +780,7 @@ components:
         - type: object
           required:
             - id
+            - summary
           properties:
             id:
               $ref: '#/components/schemas/stageId'

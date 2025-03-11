@@ -154,7 +154,10 @@ export type paths = {
       path?: never;
       cookie?: never;
     };
-    /** Get stages summary by id */
+    /**
+     * Get stages summary by stage id
+     * @description Offers an aggregated object that summarizes the progress of related tasks
+     */
     get: operations['getStageSummary'];
     put?: never;
     post?: never;
@@ -276,7 +279,7 @@ export type components = {
     };
     stageResponse: components['schemas']['createStagePayload'] & {
       id: components['schemas']['stageId'];
-      summary?: components['schemas']['summary'];
+      summary: components['schemas']['summary'];
       percentage?: components['schemas']['percentage'];
     };
     /** Format: uuid */
@@ -697,7 +700,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Return stage array releated to job id */
+      /** @description Return stage array related to job id */
       200: {
         headers: {
           [name: string]: unknown;
@@ -715,7 +718,7 @@ export interface operations {
           'application/json': components['schemas']['errorMessage'];
         };
       };
-      /** @description No such stage in the database */
+      /** @description No such job in the database */
       404: {
         headers: {
           [name: string]: unknown;
