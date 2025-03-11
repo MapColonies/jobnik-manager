@@ -4,10 +4,11 @@ import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageManager } from '@src/stages/models/manager';
 import { createActor, Snapshot } from 'xstate';
+import { faker } from '@faker-js/faker';
 
 let stageManager: StageManager;
 const prisma = new PrismaClient();
-const dumpUuid = '54314600-c247-441b-b7ef-3066c57f0989';
+const dumpUuid = faker.string.uuid();
 
 function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, never>>>) {
   const jobEntity = {

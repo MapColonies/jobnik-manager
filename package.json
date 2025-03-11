@@ -60,6 +60,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
+    "@faker-js/faker": "^9.6.0",
     "@map-colonies/eslint-config": "^4.0.0",
     "@map-colonies/openapi-helpers": "^1.2.0",
     "@map-colonies/prettier-config": "0.0.1",
@@ -82,7 +83,7 @@
     "jest-create-mock-instance": "^2.0.0",
     "jest-extended": "^3.2.4",
     "jest-html-reporters": "^3.1.4",
-    "jest-openapi": "^0.14.2",
+    "jest-openapi": "^0.14.1",
     "prettier": "^3.3.3",
     "pretty-quick": "^4.0.0",
     "prisma": "^6.2.1",
