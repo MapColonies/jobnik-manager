@@ -575,7 +575,7 @@ components:
       in: query
       name: stage_operation_status
       description: |
-        The status of the job.
+        The status of the stage.
       required: false
       schema:
         $ref: '#/components/schemas/stageOperationStatus'
