@@ -349,7 +349,7 @@ paths:
       operationId: getStageSummary
       parameters:
         - $ref: '#/components/parameters/stageId'
-      summary: Get stages summary by id
+      summary: Get stages summary by stage id
       tags:
         - stages
       responses:
