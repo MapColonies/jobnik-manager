@@ -265,7 +265,7 @@ describe('stage', function () {
         });
       });
 
-      it("should return status code 404 when supplying not exists job's uuid", async function () {
+      it("should return status code 404 when a job with the given uuid does not exists", async function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: '54314600-c247-441b-b7ef-3066c57f0988' } });
 
         expect(getStageResponse).toSatisfyApiSpec();
