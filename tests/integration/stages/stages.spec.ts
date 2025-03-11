@@ -15,6 +15,7 @@ describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
   type JobPayload = components['schemas']['jobPayload'];
+  type CreateJobPayload = components['schemas']['createJobPayload'];
 
   let createJobRecord: (body: JobPayload) => Promise<Prisma.JobGetPayload<Record<string, never>>>;
   let createStageRecord: (jobId: string) => Promise<Prisma.StageGetPayload<Record<string, never>>>;
@@ -74,7 +75,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(jobRequestBody);
         const createdJobId = job.id;
@@ -105,7 +106,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(jobRequestBody);
         const createdJobId = job.id;
@@ -152,7 +153,7 @@ describe('stage', function () {
 
   describe('#getStageById', function () {
     describe('Happy Path', function () {
-      it('should return 201 status code and return the stage', async function () {
+      it('should return 200 status code and return the stage', async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -160,7 +161,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(requestBody);
         const createdJobId = job.id;
@@ -210,7 +211,7 @@ describe('stage', function () {
 
   describe('#getStageByJobId', function () {
     describe('Happy Path', function () {
-      it('should return 201 status code and return the job', async function () {
+      it('should return 200 status code and return the stages', async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -218,7 +219,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(requestBody);
         const createdJobId = job.id;
@@ -238,7 +239,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(requestBody);
         const createdJobId = job.id;
@@ -265,7 +266,7 @@ describe('stage', function () {
         });
       });
 
-      it("should return status code 404 when a job with the given uuid does not exists", async function () {
+      it('should return status code 404 when a job with the given uuid does not exists', async function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: '54314600-c247-441b-b7ef-3066c57f0988' } });
 
         expect(getStageResponse).toSatisfyApiSpec();
@@ -290,7 +291,7 @@ describe('stage', function () {
 
   describe('#getSummary', function () {
     describe('Happy Path', function () {
-      it("should return 201 status code and return the stage's summary", async function () {
+      it("should return 200 status code and return the stage's summary", async function () {
         const requestBody = {
           name: 'DEFAULT',
           creator: 'UNKNOWN',
@@ -298,7 +299,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
 
         const job = await createJobRecord(requestBody);
         const createdJobId = job.id;
@@ -312,7 +313,7 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return a 404 status code along with a specific validation error message detailing the non exists stage', async function () {
+      it("should return a 404 status code and a validation error indicating the stage's non-existence should be returned", async function () {
         const getJobResponse = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -356,7 +357,7 @@ describe('stage', function () {
           type: 'PRE_DEFINED',
           notifications: {},
           userMetadata: {},
-        } satisfies components['schemas']['createJobPayload'];
+        } satisfies CreateJobPayload;
         const userMetadataInput = { someTestKey: 'someTestData' };
 
         const job = await createJobRecord(requestBody);
@@ -384,6 +385,30 @@ describe('stage', function () {
           status: StatusCodes.NOT_FOUND,
           body: { message: 'STAGE_NOT_FOUND' },
         });
+      });
+
+      it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
+        const requestBody = {
+          name: 'DEFAULT',
+          creator: 'UNKNOWN',
+          data: { stages: [] },
+          type: 'PRE_DEFINED',
+          notifications: {},
+          userMetadata: {},
+        } satisfies CreateJobPayload;
+
+        const job = await createJobRecord(requestBody);
+        const createdJobId = job.id;
+        const stage = await createStageRecord(createdJobId);
+
+        const response = await requestSender.updateStageUserMetadata({
+          pathParams: { stageId: stage.id },
+          requestBody: 'badInputString' as unknown as { [key: string]: string },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        expect(response).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: expect.stringMatching('is not valid JSON') } });
       });
     });
 
