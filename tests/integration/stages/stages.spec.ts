@@ -109,8 +109,8 @@ describe('stage', function () {
 
         const response = await requestSender.getStages();
 
-        if (!Array.isArray(response.body)) {
-          throw new Error('Wrong value returned');
+        if (response.status !== StatusCodes.OK) {
+          throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
