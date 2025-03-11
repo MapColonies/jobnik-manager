@@ -117,7 +117,7 @@ describe('stage', function () {
       });
 
       describe('Bad Path', function () {
-        it('Expected 400 status code and a relevant validation error message when the stage type is incorrect', async function () {
+        it('should return 400 status code and a relevant validation error message when the stage type is incorrect', async function () {
           const response = await requestSender.getStages({ queryParams: { stage_type: 'NOT_VALID_TYPE' as StageName } });
 
           if (response.status !== StatusCodes.BAD_REQUEST) {
