@@ -169,7 +169,7 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return a 404 status code along with a specific validation error message detailing the non exists stage', async function () {
+      it('It should return a 404 status code with a validation error message if the requested stage does not exist', async function () {
         const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
         expect(getJobResponse).toSatisfyApiSpec();
