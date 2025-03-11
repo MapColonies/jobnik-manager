@@ -55,13 +55,7 @@ describe('stage', function () {
     };
   });
 
-  afterEach(async () => {
-    // Close any open resources
-    await prisma.$disconnect();
-  });
-
   afterAll(async () => {
-    // Additional cleanup if needed
     await prisma.$disconnect();
   });
 
