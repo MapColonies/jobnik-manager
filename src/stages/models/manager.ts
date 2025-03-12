@@ -3,8 +3,7 @@ import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
 import { Prisma } from '@prisma/client';
-import { JobNotFoundError } from '@src/jobs/models/errors';
-import { findJobById } from '@src/jobs/models/helpers';
+import { JobManager } from '@src/jobs/models/manager';
 import type { StageFindCriteriaArg, StageModel, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError } from './errors';
 
@@ -12,7 +11,8 @@ import { prismaKnownErrors, StageNotFoundError } from './errors';
 export class StageManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient
+    @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
+    @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
   public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
@@ -53,11 +53,8 @@ export class StageManager {
   }
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
-    const job = await findJobById(jobId, this.prisma);
-
-    if (!job) {
-      throw new JobNotFoundError('JOB_NOT_FOUND');
-    }
+    // To validate existence of job, if not will throw JobNotFoundError
+    await this.jobManager.getJobById(jobId);
 
     const queryBody = {
       where: {

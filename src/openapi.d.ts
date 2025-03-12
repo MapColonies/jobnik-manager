@@ -355,8 +355,8 @@ export type components = {
     /** @description unique job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
-    sType: components['schemas']['taskType'];
-    /** @description The status of the job.
+    paramStageType: components['schemas']['taskType'];
+    /** @description The status of the stage.
      *      */
     stageStatus: components['schemas']['stageOperationStatus'];
   };
@@ -744,8 +744,8 @@ export interface operations {
         /** @description unique job identifier */
         job_id?: components['parameters']['paramJobId'];
         /** @description stage's type */
-        stage_type?: components['parameters']['sType'];
-        /** @description The status of the job.
+        stage_type?: components['parameters']['paramStageType'];
+        /** @description The status of the stage.
          *      */
         stage_operation_status?: components['parameters']['stageStatus'];
       };

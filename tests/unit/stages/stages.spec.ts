@@ -5,7 +5,9 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageManager } from '@src/stages/models/manager';
 import { createActor, Snapshot } from 'xstate';
 import { faker } from '@faker-js/faker';
+import { JobManager } from '@src/jobs/models/manager';
 
+let jobManager: JobManager;
 let stageManager: StageManager;
 const prisma = new PrismaClient();
 const dumpUuid = faker.string.uuid();
@@ -51,7 +53,8 @@ const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND
 
 describe('JobManager', () => {
   beforeEach(function () {
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, jobManager);
   });
 
   afterEach(() => {

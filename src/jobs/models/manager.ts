@@ -8,7 +8,6 @@ import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../
 import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
-import { findJobById } from './helpers';
 
 @injectable()
 export class JobManager {
@@ -57,7 +56,7 @@ export class JobManager {
   }
 
   public async getJobById(jobId: string): Promise<JobModel> {
-    const job = await findJobById(jobId, this.prisma);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -87,7 +86,7 @@ export class JobManager {
   }
 
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
-    const job = await findJobById(jobId, this.prisma);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -109,7 +108,7 @@ export class JobManager {
   }
 
   public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
-    const job = await findJobById(jobId, this.prisma);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -137,6 +136,23 @@ export class JobManager {
     };
 
     await this.prisma.job.update(updateQueryBody);
+  }
+
+  /**
+   * This method is used to get a job entity by its id from the database.
+   * @param jobId unique identifier of the job.
+   * @returns The job entity if found, otherwise null.
+   */
+  public async getJobEntityById(jobId: string): Promise<Prisma.JobGetPayload<Record<string, never>> | null> {
+    const queryBody = {
+      where: {
+        id: jobId,
+      },
+    };
+
+    const job = await this.prisma.job.findUnique(queryBody);
+
+    return job;
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {

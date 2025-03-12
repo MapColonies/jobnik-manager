@@ -285,7 +285,7 @@ paths:
       operationId: getStages
       parameters:
         - $ref: '#/components/parameters/paramJobId'
-        - $ref: '#/components/parameters/sType'
+        - $ref: '#/components/parameters/paramStageType'
         - $ref: '#/components/parameters/stageStatus'
       summary: find stages by criteria
       tags:
@@ -565,7 +565,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/jobId'
-    sType:
+    paramStageType:
       in: query
       name: stage_type
       description: stage's type
