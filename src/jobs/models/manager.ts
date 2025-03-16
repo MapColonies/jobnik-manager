@@ -56,13 +56,7 @@ export class JobManager {
   }
 
   public async getJobById(jobId: string): Promise<JobModel> {
-    const queryBody = {
-      where: {
-        id: jobId,
-      },
-    };
-
-    const job = await this.prisma.job.findUnique(queryBody);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -92,8 +86,11 @@ export class JobManager {
   }
 
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
-    const job = await this.getJobById(jobId);
+    const job = await this.getJobEntityById(jobId);
 
+    if (!job) {
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+    }
     if (job.priority === priority) {
       throw new InvalidUpdateError('Priority cannot be updated to the same value.');
     }
@@ -111,11 +108,7 @@ export class JobManager {
   }
 
   public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
-    const job = await this.prisma.job.findUnique({
-      where: {
-        id: jobId,
-      },
-    });
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
@@ -143,6 +136,23 @@ export class JobManager {
     };
 
     await this.prisma.job.update(updateQueryBody);
+  }
+
+  /**
+   * This method is used to get a job entity by its id from the database.
+   * @param jobId unique identifier of the job.
+   * @returns The job entity if found, otherwise null.
+   */
+  public async getJobEntityById(jobId: string): Promise<Prisma.JobGetPayload<Record<string, never>> | null> {
+    const queryBody = {
+      where: {
+        id: jobId,
+      },
+    };
+
+    const job = await this.prisma.job.findUnique(queryBody);
+
+    return job;
   }
 
   private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {

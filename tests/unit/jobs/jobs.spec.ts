@@ -1,5 +1,5 @@
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
@@ -21,7 +21,7 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
     notifications: {},
     percentage: 0,
     priority: 'HIGH',
-    status: 'PENDING',
+    status: JobOperationStatus.PENDING,
     ttl: new Date(),
     type: 'PRE_DEFINED',
     updateTime: new Date(),
@@ -219,7 +219,7 @@ describe('JobManager', () => {
           const jobId = jobEntity.id;
           const prismaUpdateJobMock = jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
 
-          await jobManager.updateStatus(jobId, 'PENDING');
+          await jobManager.updateStatus(jobId, JobOperationStatus.PENDING);
 
           expect(prismaUpdateJobMock).toHaveBeenCalledTimes(1);
         });
@@ -229,7 +229,7 @@ describe('JobManager', () => {
         it('should failed on for not exists job when update status of desired job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updateStatus('someId', 'PENDING')).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.updateStatus('someId', JobOperationStatus.PENDING)).rejects.toThrow(JOB_NOT_FOUND_MSG);
         });
 
         it('should failed on invalid status change during update', async function () {
@@ -237,7 +237,7 @@ describe('JobManager', () => {
           const jobId = jobEntity.id;
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
 
-          await expect(jobManager.updateStatus(jobId, 'COMPLETED')).rejects.toThrow(BAD_STATUS_CHANGE);
+          await expect(jobManager.updateStatus(jobId, JobOperationStatus.COMPLETED)).rejects.toThrow(BAD_STATUS_CHANGE);
         });
       });
 
@@ -245,7 +245,7 @@ describe('JobManager', () => {
         it('should failed on db error when update status of desired job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow('db connection error');
+          await expect(jobManager.updateStatus('someId', JobOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
         });
       });
     });
