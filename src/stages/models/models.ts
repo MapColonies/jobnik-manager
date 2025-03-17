@@ -9,10 +9,12 @@ type SuccessMessagesObj = {
 const successMessages: SuccessMessagesObj = {
   jobModifiedSuccessfully: 'JOB_MODIFIED_SUCCESSFULLY',
   stageModifiedSuccessfully: 'STAGE_MODIFIED_SUCCESSFULLY',
+  jobDeletedSuccessfully: 'JOB_DELETED_SUCCESSFULLY',
 };
 
 type StageModel = components['schemas']['stageResponse'];
+type StageCreateModel = components['schemas']['createStagePayload'];
 type StageSummary = components['schemas']['summary'];
 type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
 
-export { StageSummary, StageModel, StageFindCriteriaArg, successMessages };
+export { StageSummary, StageModel, StageFindCriteriaArg, StageCreateModel, successMessages };

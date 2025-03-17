@@ -9,6 +9,7 @@ type SuccessMessagesObj = {
 const successMessages: SuccessMessagesObj = {
   jobModifiedSuccessfully: 'JOB_MODIFIED_SUCCESSFULLY',
   stageModifiedSuccessfully: 'STAGE_MODIFIED_SUCCESSFULLY',
+  jobDeletedSuccessfully: 'JOB_DELETED_SUCCESSFULLY',
 };
 
 type JobModel = components['schemas']['jobResponse'];

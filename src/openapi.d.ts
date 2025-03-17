@@ -33,7 +33,8 @@ export type paths = {
     get: operations['getJobById'];
     put?: never;
     post?: never;
-    delete?: never;
+    /** Delete job by id (cascades with stages) */
+    delete: operations['deleteJob'];
     options?: never;
     head?: never;
     patch?: never;
@@ -106,7 +107,8 @@ export type paths = {
     /** find stages by job id */
     get: operations['getStageByJobId'];
     put?: never;
-    post?: never;
+    /** Creates a new stages for dynamic job only */
+    post: operations['addStages'];
     delete?: never;
     options?: never;
     head?: never;
@@ -199,6 +201,8 @@ export type components = {
     /** Format: uuid */
     jobId: string;
     jobPayload: {
+      stages?: components['schemas']['createStagePayload'][];
+    } & {
       [key: string]: unknown;
     };
     percentage: number;
@@ -218,7 +222,7 @@ export type components = {
      * @example JOB_MODIFIED_SUCCESSFULLY
      * @enum {string}
      */
-    successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY';
+    successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
     /** @enum {string} */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
@@ -267,20 +271,22 @@ export type components = {
     };
     jobResponse: components['schemas']['createJobPayload'] & {
       id: components['schemas']['jobId'];
+      status?: components['schemas']['jobOperationStatus'];
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
+      stages?: components['schemas']['stageResponse'][];
     };
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
-      jobId: components['schemas']['jobId'];
       userMetadata: components['schemas']['userMetadata'];
     };
     stageResponse: components['schemas']['createStagePayload'] & {
       id: components['schemas']['stageId'];
       summary: components['schemas']['summary'];
       percentage?: components['schemas']['percentage'];
+      status?: components['schemas']['stageOperationStatus'];
     };
     /** Format: uuid */
     taskId: string;
@@ -318,6 +324,7 @@ export type components = {
       ttl?: components['schemas']['ttl'];
       notifications?: components['schemas']['notifications'];
       name?: components['schemas']['jobName'];
+      stages?: components['schemas']['stageResponse'][];
     };
     errorMessage: {
       'message:'?: string;
@@ -485,6 +492,56 @@ export interface operations {
         };
       };
       /** @description Invalid request, could not get job */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Job not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  deleteJob: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Job deleted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
       400: {
         headers: {
           [name: string]: unknown;
@@ -719,6 +776,60 @@ export interface operations {
         };
       };
       /** @description No such job in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  addStages: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['createStagePayload'][];
+      };
+    };
+    responses: {
+      /** @description Stages created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['createJobResponse'];
+        };
+      };
+      /** @description Invalid request, could not create stage */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage on database */
       404: {
         headers: {
           [name: string]: unknown;

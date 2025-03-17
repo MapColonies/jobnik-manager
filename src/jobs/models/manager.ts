@@ -2,8 +2,9 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
+import { StageCreateModel } from '@src/stages/models/models';
 import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
 import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
@@ -18,6 +19,7 @@ export class JobManager {
 
   public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
     let queryBody = undefined;
+
     if (params !== undefined) {
       queryBody = {
         where: {
@@ -29,6 +31,8 @@ export class JobManager {
             creationTime: { gte: params.from_date, lte: params.till_date },
           },
         },
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        include: { Stage: true },
       };
     }
 
@@ -42,9 +46,27 @@ export class JobManager {
     try {
       const createJobActor = createActor(jobStateMachine).start();
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
-      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
 
-      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input }));
+      let input = undefined;
+      let stagesInput = undefined;
+
+      if (body.data.stages !== undefined && body.data.stages.length > 0) {
+        const stages: StageCreateModel[] = body.data.stages;
+        stagesInput = stages.map((stage) => {
+          const { type, ...rest } = stage;
+          // eslint-disable-next-line @typescript-eslint/naming-convention
+          const stageFull = Object.assign(rest, { xstate: persistenceSnapshot, name: type, status: StageOperationStatus.CREATED });
+          return stageFull;
+        });
+
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        input = { ...body, xstate: persistenceSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
+      } else {
+        input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { Stage: true } }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
@@ -91,6 +113,7 @@ export class JobManager {
     if (!job) {
       throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
     }
+
     if (job.priority === priority) {
       throw new InvalidUpdateError('Priority cannot be updated to the same value.');
     }
@@ -138,16 +161,102 @@ export class JobManager {
     await this.prisma.job.update(updateQueryBody);
   }
 
+  public async deleteJob(jobId: string): Promise<void> {
+    const deleteStages = this.prisma.stage.deleteMany({
+      where: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        job_id: jobId,
+      },
+    });
+
+    const deleteJob = this.prisma.job.delete({
+      where: {
+        id: jobId,
+      },
+    });
+
+    try {
+      await this.prisma.$transaction([deleteStages, deleteJob]);
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
+        throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+      }
+
+      throw err;
+    }
+  }
+
+  public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<JobModel> {
+    // todo - use stages machine on next phase when will be implemented
+    const createJobActor = createActor(jobStateMachine).start();
+    const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+
+    const queryExistJobBody = {
+      where: {
+        id: jobId,
+      },
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      select: { data: true },
+    };
+
+    const jobBeforeUpdate = await this.prisma.job.findUnique(queryExistJobBody);
+
+    if (!jobBeforeUpdate) {
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+    }
+
+    const unifiedStagesInput = jobBeforeUpdate.data.stages ? jobBeforeUpdate.data.stages.concat(stagesPayload) : stagesPayload;
+
+    const queryBody = {
+      where: {
+        id: jobId,
+      },
+      data: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        Stage: {
+          create: stagesPayload.map((stageData) => ({
+            data: stageData.data,
+            name: stageData.type,
+            xstate: persistenceSnapshot,
+            userMetadata: stageData.userMetadata,
+            status: StageOperationStatus.CREATED,
+          })),
+        },
+        data: {
+          ...jobBeforeUpdate.data,
+          stages: unifiedStagesInput,
+        },
+      },
+
+      include: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        Stage: true, // Include the created stages in the return value
+      },
+    };
+    try {
+      const job = await this.prisma.job.update(queryBody);
+
+      return this.convertPrismaToJobResponse(job);
+    } catch (error) {
+      this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
+
+      throw error;
+    }
+  }
+
   /**
    * This method is used to get a job entity by its id from the database.
    * @param jobId unique identifier of the job.
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string): Promise<Prisma.JobGetPayload<Record<string, never>> | null> {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  public async getJobEntityById(jobId: string): Promise<Prisma.JobGetPayload<{ include: { Stage: true } }> | null> {
     const queryBody = {
       where: {
         id: jobId,
       },
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      include: { Stage: true },
     };
 
     const job = await this.prisma.job.findUnique(queryBody);
@@ -155,17 +264,26 @@ export class JobManager {
     return job;
   }
 
-  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<Record<string, never>>): JobModel {
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, ...rest } = prismaObjects;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<{ include: { Stage: true } }>): JobModel {
+    // eslint-disable-next-line @typescript-eslint/naming-convention
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, Stage, ...rest } = prismaObjects;
 
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
-      userMetadata: userMetadata as Record<string, never>,
+      userMetadata: userMetadata as { [key: string]: unknown },
       expirationTime: expirationTime ? expirationTime.toISOString() : undefined,
       notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
+      stages: Array.isArray(Stage)
+        ? Stage.map((stage) => {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
+            const { xstate, name, job_id, ...rest } = stage;
+            return Object.assign({ type: name, jobId: job_id }, rest);
+          })
+        : [],
     };
 
     return Object.assign(rest, transformedFields);

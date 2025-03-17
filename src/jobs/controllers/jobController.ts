@@ -107,4 +107,32 @@ export class JobController {
       return next(err);
     }
   };
+
+  public addStages: TypedRequestHandlers['POST /jobs/{jobId}/stages'] = async (req, res, next) => {
+    try {
+      const response = await this.manager.addStages(req.params.jobId, req.body);
+
+      return res.status(httpStatus.CREATED).json(response);
+    } catch (err) {
+      if (err instanceof JobNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      }
+
+      return next(err);
+    }
+  };
+
+  public deleteJob: TypedRequestHandlers['DELETE /jobs/{jobId}'] = async (req, res, next) => {
+    try {
+      await this.manager.deleteJob(req.params.jobId);
+
+      return res.status(httpStatus.OK).json({ code: successMessages.jobDeletedSuccessfully });
+    } catch (err) {
+      if (err instanceof JobNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      }
+
+      return next(err);
+    }
+  };
 }

@@ -25,7 +25,7 @@ model Job {
   updateTime     DateTime           @updatedAt @map("update_time")
   expirationTime DateTime?          @map("expiration_time")
   type           JobMode            @default(PRE_DEFINED)
-  userMetadata   Json            @default("{}") @map("user_metadata")
+  userMetadata   Json               @default("{}") @map("user_metadata")
   priority       Priority           @default(VERY_LOW)
   creator        Creator            @default(UNKNOWN)
   ttl            DateTime?
@@ -99,11 +99,12 @@ model Stage {
   /// [StageData]
   data Json   @default("{}")
 
-  job   Job    @relation(fields: [job_id], references: [id])
+  job    Job    @relation(fields: [job_id], references: [id])
   job_id String @db.Uuid
 
   percentage   Int                  @default(0)
-  userMetadata Json                 @default("{}")
+  /// [UserMetadata]
+  userMetadata Json                 @default("{}") @map("user_metadata")
   /// [StageSummary]
   summary      Json                 @default("{}")
   status       StageOperationStatus @default(CREATED)
