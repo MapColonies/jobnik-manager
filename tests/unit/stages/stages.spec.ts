@@ -36,7 +36,6 @@ function createJobEntity(override: Partial<Prisma.JobGetPayload<Record<string, n
 function createStageEntity(override: Partial<Prisma.StageGetPayload<Record<string, never>>>) {
   const jobEntity = {
     data: {},
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     job_id: dumpUuid,
     id: 'SOME_ID',
     name: 'DEFAULT',

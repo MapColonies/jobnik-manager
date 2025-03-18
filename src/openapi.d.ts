@@ -250,6 +250,7 @@ export type components = {
      * @enum {string}
      */
     jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
+    returnStage: boolean;
     userMetadata: {
       [key: string]: unknown;
     };
@@ -359,6 +360,8 @@ export type components = {
     fromDate: string;
     /** @description results end update date */
     tillDate: string;
+    /** @description indicated if response body should contain also stages array */
+    shouldReturnStages: components['schemas']['returnStage'];
     /** @description unique job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
@@ -392,6 +395,8 @@ export interface operations {
         /** @description Name of job creator
          *      */
         creator?: components['parameters']['creator'];
+        /** @description indicated if response body should contain also stages array */
+        should_return_stages?: components['parameters']['shouldReturnStages'];
       };
       header?: never;
       path?: never;
@@ -472,7 +477,10 @@ export interface operations {
   };
   getJobById: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description indicated if response body should contain also stages array */
+        should_return_stages?: components['parameters']['shouldReturnStages'];
+      };
       header?: never;
       path: {
         /** @description ID of Job */

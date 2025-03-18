@@ -99,7 +99,7 @@ model Stage {
   /// [StageData]
   data Json   @default("{}")
 
-  job    Job    @relation(fields: [job_id], references: [id])
+  job    Job    @relation(fields: [job_id], references: [id], onDelete: Cascade)
   job_id String @db.Uuid
 
   percentage   Int                  @default(0)

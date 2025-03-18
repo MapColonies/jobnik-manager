@@ -43,7 +43,13 @@ export class JobController {
 
   public getJobById: TypedRequestHandlers['GET /jobs/{jobId}'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getJobById(req.params.jobId);
+      let shouldReturnStages: boolean | undefined = false;
+
+      if (req.query) {
+        shouldReturnStages = req.query.should_return_stages;
+      }
+
+      const response = await this.manager.getJobById(req.params.jobId, shouldReturnStages);
 
       return res.status(httpStatus.OK).json(response);
     } catch (err) {

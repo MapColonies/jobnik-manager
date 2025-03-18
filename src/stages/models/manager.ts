@@ -21,7 +21,6 @@ export class StageManager {
       queryBody = {
         where: {
           AND: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             job_id: { equals: params.job_id },
             name: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
@@ -54,11 +53,10 @@ export class StageManager {
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
     // To validate existence of job, if not will throw JobNotFoundError
-    await this.jobManager.getJobById(jobId);
+    await this.jobManager.getJobById(jobId, false);
 
     const queryBody = {
       where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         job_id: jobId,
       },
     };

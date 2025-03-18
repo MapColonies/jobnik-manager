@@ -17,6 +17,7 @@ paths:
         - $ref: '#/components/parameters/tillDate'
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/creator'
+        - $ref: '#/components/parameters/shouldReturnStages'
       summary: find jobs by criteria
       tags:
         - jobs
@@ -76,6 +77,8 @@ paths:
       - $ref: '#/components/parameters/jobId'
     get:
       operationId: getJobById
+      parameters:
+        - $ref: '#/components/parameters/shouldReturnStages'
       summary: Get job by id
       tags:
         - jobs
@@ -623,6 +626,14 @@ components:
       schema:
         type: string
         format: date-time
+    shouldReturnStages:
+      in: query
+      name: should_return_stages
+      description: indicated if response body should contain also stages array
+      required: false
+      schema:
+        $ref: '#/components/schemas/returnStage'
+
     # sId:
     #   in: query
     #   name: stage_id
@@ -785,6 +796,8 @@ components:
         - EXPORT
         - DEFAULT
       example: DEFAULT
+    returnStage:
+      type: boolean
     userMetadata:
       type: object
       additionalProperties: true
@@ -956,7 +969,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/stageResponse'
-
       additionalProperties: false
       required:
         - id
