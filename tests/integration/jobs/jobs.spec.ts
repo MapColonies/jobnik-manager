@@ -9,7 +9,7 @@ import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
-import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
+import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
 import { StageCreateModel, successMessages } from '@src/stages/models/models';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
@@ -521,6 +521,7 @@ describe('job', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
+        await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
         const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
@@ -540,6 +541,7 @@ describe('job', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
+        await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
         const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
@@ -558,13 +560,26 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: 'someInvalidJobId' } });
+        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: 'someInvalidJobId' } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+        });
+      });
+
+      it('should return status code 400 when supplying job with not final state status', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: JOB_NOT_IN_FINAL_STATE },
         });
       });
 
@@ -581,7 +596,7 @@ describe('job', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.job, 'delete').mockRejectedValueOnce(new Error('Database error'));
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },

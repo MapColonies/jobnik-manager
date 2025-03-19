@@ -3,10 +3,10 @@ import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, StageName, JobOperationStatus } from '@prisma/client';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
-import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
+import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { createJobEntity, createStageEntity } from './helpers';
-import { anotherStageId, jobEntityWithoutStages, jobEntityWithStages, jobId, stageEntity, stageId } from './data';
+import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages, jobId, stageEntity, stageId } from './data';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -336,18 +336,22 @@ describe('JobManager', () => {
     describe('#deleteJob', () => {
       describe('#HappyPath', () => {
         it('should successfully delete a job and its associated stages', async function () {
-          const jobEntity = createJobEntity({});
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithAbortStatus);
+          jest.spyOn(prisma.job, 'delete').mockResolvedValue(jobEntityWithAbortStatus);
 
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          jest.spyOn(prisma.job, 'delete').mockResolvedValue(jobEntity);
-
-          await expect(jobManager.deleteJob(jobEntity.id)).toResolve();
+          await expect(jobManager.deleteJob(jobEntityWithAbortStatus.id)).toResolve();
         });
       });
 
       describe('#BadPath', () => {
+        it('should return an error for a request to delete non finalized-status job', async function () {
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
+
+          await expect(jobManager.deleteJob(jobEntityWithoutStages.id)).rejects.toThrow(JOB_NOT_IN_FINAL_STATE);
+        });
+
         it('should return an error for a request to delete a non-existent job', async function () {
-          jest.spyOn(prisma.job, 'delete').mockRejectedValue(jobNotFoundError);
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
           await expect(jobManager.deleteJob('someId')).rejects.toThrow(JOB_NOT_FOUND_MSG);
         });
@@ -355,7 +359,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when deleting a job', async function () {
-          jest.spyOn(prisma.job, 'delete').mockRejectedValueOnce(new Error('db connection error'));
+          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.deleteJob('someId')).rejects.toThrow('db connection error');
         });

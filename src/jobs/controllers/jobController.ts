@@ -7,7 +7,7 @@ import { HttpError } from '@map-colonies/error-express-handler';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg, successMessages } from '../models/models';
 import { JobNotFoundError } from '../models/errors';
-import { InvalidUpdateError } from '../../common/errors';
+import { InvalidDeletionError, InvalidUpdateError } from '../../common/errors';
 
 @injectable()
 export class JobController {
@@ -136,6 +136,8 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidDeletionError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
       return next(err);

@@ -5,4 +5,5 @@ export class JobNotFoundError extends Error {
   }
 }
 
+export const JOB_NOT_IN_FINAL_STATE = 'JOB NOT IN FINAL STATE';
 export const JOB_NOT_FOUND_MSG = 'JOB_NOT_FOUND';

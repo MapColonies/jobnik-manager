@@ -5,8 +5,8 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client'
 import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { StageCreateModel } from '@src/stages/models/models';
-import { BAD_STATUS_CHANGE, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
-import { JOB_NOT_FOUND_MSG, JobNotFoundError } from './errors';
+import { BAD_STATUS_CHANGE, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
+import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
@@ -157,21 +157,25 @@ export class JobManager {
   }
 
   public async deleteJob(jobId: string): Promise<void> {
+    const job = await this.getJobEntityById(jobId, false);
+
+    if (!job) {
+      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+    }
+
+    const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+
+    if (checkJobStatus.getSnapshot().status !== 'done') {
+      throw new InvalidDeletionError(JOB_NOT_IN_FINAL_STATE);
+    }
+
     const deleteQueryBody = {
       where: {
         id: jobId,
       },
     };
 
-    try {
-      await this.prisma.job.delete(deleteQueryBody);
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
-      }
-
-      throw err;
-    }
+    await this.prisma.job.delete(deleteQueryBody);
   }
 
   public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<JobModel> {
