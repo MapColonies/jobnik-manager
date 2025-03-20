@@ -6,6 +6,7 @@ import { Prisma } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/manager';
 import type { StageFindCriteriaArg, StageModel, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError } from './errors';
+import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 
 @injectable()
 export class StageManager {
@@ -31,7 +32,7 @@ export class StageManager {
 
     const stages = await this.prisma.stage.findMany(queryBody);
 
-    const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
+    const result = convertArrayPrismaStageToStageResponse(stages);
     return result;
   }
 
@@ -48,7 +49,7 @@ export class StageManager {
       throw new StageNotFoundError('STAGE_NOT_FOUND');
     }
 
-    return this.convertPrismaToStageResponse(stage);
+    return convertPrismaToStageResponse(stage);
   }
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
@@ -62,7 +63,7 @@ export class StageManager {
     };
 
     const stages = await this.prisma.stage.findMany(queryBody);
-    const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
+    const result = stages.map((stage) => convertPrismaToStageResponse(stage));
     return result;
   }
 
@@ -94,16 +95,16 @@ export class StageManager {
     }
   }
 
-  private convertPrismaToStageResponse(prismaObjects: Prisma.StageGetPayload<Record<string, never>>): StageModel {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
-    const transformedFields = {
-      data: data as Record<string, unknown>,
-      userMetadata: userMetadata as Record<string, never>,
-      summary: summary as Record<string, never>,
-      type: name,
-      jobId: job_id,
-    };
-    return Object.assign(rest, transformedFields);
-  }
+  // private convertPrismaToStageResponse(prismaObjects: Prisma.StageGetPayload<Record<string, never>>): StageModel {
+  //   // eslint-disable-next-line @typescript-eslint/naming-convention
+  //   const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
+  //   const transformedFields = {
+  //     data: data as Record<string, unknown>,
+  //     userMetadata: userMetadata as Record<string, never>,
+  //     summary: summary as Record<string, never>,
+  //     type: name,
+  //     jobId: job_id,
+  //   };
+  //   return Object.assign(rest, transformedFields);
+  // }
 }

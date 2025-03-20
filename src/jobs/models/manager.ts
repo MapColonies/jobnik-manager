@@ -5,6 +5,7 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client'
 import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { StageCreateModel } from '@src/stages/models/models';
+import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { BAD_STATUS_CHANGE, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
 import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE, JobNotFoundError } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
@@ -267,13 +268,7 @@ export class JobManager {
       notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
-      stages: Array.isArray(Stage)
-        ? Stage.map((stage) => {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            const { xstate, name, job_id, ...rest } = stage;
-            return Object.assign({ type: name, jobId: job_id }, rest);
-          })
-        : undefined,
+      stages: Array.isArray(Stage) ? convertArrayPrismaStageToStageResponse(Stage) : undefined,
     };
 
     return Object.assign(rest, transformedFields);
