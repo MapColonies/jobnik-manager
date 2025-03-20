@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, StageName, JobOperationStatus } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
-import { createJobEntity, createStageEntity } from './helpers';
-import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages, jobId, stageEntity, stageId } from './data';
+import { StageCreateModel } from '@src/stages/models/models';
+import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from './data';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -27,6 +27,7 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return a formatted job after creation', async function () {
           jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithStages);
+          const stagePayload = { data: stageEntity.data, type: stageEntity.name, userMetadata: stageEntity.userMetadata } satisfies StageCreateModel;
 
           const createJobParams = {
             name: jobEntityWithStages.name,
@@ -35,6 +36,7 @@ describe('JobManager', () => {
             type: jobEntityWithStages.type,
             notifications: jobEntityWithStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
+            stages: [stagePayload],
           } satisfies JobCreateModel;
 
           const job = await jobManager.createJob(createJobParams);
@@ -44,7 +46,7 @@ describe('JobManager', () => {
         });
 
         it('should return created job formatted with empty stage array', async function () {
-          jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithoutStages);
+          jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithEmptyStagesArr);
 
           const createJobParams = {
             name: jobEntityWithoutStages.name,
@@ -221,114 +223,6 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.updateStatus('someId', JobOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
-        });
-      });
-    });
-
-    describe('#addStages', () => {
-      describe('#HappyPath', () => {
-        it('should add new stages to existing job stages', async function () {
-          const stagePayload = {
-            data: { someData: { value: 'avi' } },
-            type: 'DEFAULT' as StageName,
-            userMetadata: {},
-          };
-
-          const anotherStagePayload = {
-            data: { someData: { value: 'happy avi' } },
-            type: 'DEFAULT' as StageName,
-            userMetadata: { someData: '123' },
-          };
-
-          const stageEntity = createStageEntity({ job_id: jobId, id: stageId });
-          const anotherStageEntity = createStageEntity({ job_id: jobId, id: anotherStageId });
-
-          const jobWithOneStageEntity = createJobEntity({
-            id: jobId,
-            data: { stages: [stagePayload] },
-            Stage: [stageEntity],
-          });
-
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
-
-          // combine updated Job data with the new stage data
-          const unifiedStageData = [stagePayload, anotherStagePayload];
-          const stagesArray = [stageEntity, anotherStageEntity];
-          const jobWithAddedStagesEntity = { ...jobWithOneStageEntity, Stage: stagesArray, data: { stages: unifiedStageData } };
-
-          jest.spyOn(prisma.job, 'update').mockResolvedValue(jobWithAddedStagesEntity);
-
-          const job = await jobManager.addStages(jobId, [anotherStagePayload]);
-
-          // Extract unnecessary fields from the job object and assemble the expected result
-          const { Stage, xstate, name, ttl, expirationTime, updateTime, creationTime, ...rest } = jobWithAddedStagesEntity;
-
-          const {
-            xstate: stagesXstate1,
-            name: stageName1,
-            percentage: stagePercentage1,
-            job_id: jobId1,
-            summary: stageSummary1,
-            id: stageId1,
-            ...dataStage1
-          } = Stage[0];
-
-          const {
-            xstate: stagesXstate2,
-            name: stageName2,
-            percentage: stagePercentage2,
-            job_id: jobId2,
-            summary: stageSummary2,
-            id: stageId2,
-            ...dataStage2
-          } = Stage[1];
-          const expectedJobResult = { ...rest, stages: [dataStage1, dataStage2] };
-
-          expect(job).toMatchObject(expectedJobResult);
-        });
-
-        it('should return the job with newly added stages and updated data, where the job initially had no stages', async function () {
-          const stagesPayload = [
-            {
-              data: {},
-              type: 'DEFAULT' as StageName,
-              userMetadata: {},
-            },
-          ];
-
-          const stageEntity = createStageEntity({ data: {}, job_id: jobId, id: stageId });
-          const jobWithoutStagesEntity = createJobEntity({ id: jobId });
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithoutStagesEntity);
-
-          const jobWithStagesEntity = { ...jobWithoutStagesEntity, Stage: [stageEntity], data: { stages: stagesPayload } };
-
-          jest.spyOn(prisma.job, 'update').mockResolvedValueOnce(jobWithStagesEntity);
-
-          const job = await jobManager.addStages(jobId, stagesPayload);
-
-          const { Stage, xstate, name, ttl, expirationTime, updateTime, creationTime, ...rest } = jobWithStagesEntity;
-          const { xstate: stagesXstate, name: stageName, percentage, job_id, summary, id, ...dataStage } = Stage[0];
-          const expectedJobResult = { ...rest, stages: [dataStage] };
-
-          expect(job).toMatchObject(expectedJobResult);
-        });
-      });
-
-      describe('#BadPath', () => {
-        it('should reject adding stages to a non-existent job', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
-
-          await expect(jobManager.addStages('someId', [])).rejects.toThrow(JOB_NOT_FOUND_MSG);
-        });
-      });
-
-      describe('#SadPath', () => {
-        it('should fail with a database error when adding stages', async function () {
-          const jobEntity = createJobEntity({});
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
-          jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('db connection error'));
-
-          await expect(jobManager.addStages(jobEntity.id, [])).rejects.toThrow('db connection error');
         });
       });
     });

@@ -11,7 +11,7 @@ import { JobOperationStatus, type Prisma, type PrismaClient, type StageName } fr
 import { Snapshot } from 'xstate';
 import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
 import { faker } from '@faker-js/faker';
-import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
+import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody } from '../jobs/helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -56,26 +56,13 @@ describe('stage', function () {
   describe('#getStages', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching stage', async function () {
-        const createJobRequestBodyWithStage = {
-          ...createJobRequestBody,
-          data: {
-            stages: [
-              {
-                type: 'DEFAULT' as StageName,
-                data: {},
-                userMetadata: {},
-              },
-            ],
-          },
-        };
-
-        await createJobRecord(createJobRequestBodyWithStage, prisma);
+        await createJobRecord(createJobRequestWithStagesBody, prisma);
 
         const response = await requestSender.getStages({ queryParams: { stage_type: 'DEFAULT' as StageName } });
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: createJobRequestBodyWithStage.data.stages,
+          body: createJobRequestWithStagesBody.stages,
         });
       });
 

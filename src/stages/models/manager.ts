@@ -2,9 +2,11 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { Prisma, StageOperationStatus } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/manager';
-import type { StageFindCriteriaArg, StageModel, StageSummary } from './models';
+import { createActor } from 'xstate';
+import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 
@@ -15,6 +17,40 @@ export class StageManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
+
+  public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<StageModel[]> {
+    // todo - use stages machine on next phase when will be implemented
+    const createJobActor = createActor(jobStateMachine).start();
+    const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+
+    await this.jobManager.getJobById(jobId, false);
+
+    const stageInput = stagesPayload.map(
+      (stageData) =>
+        ({
+          data: stageData.data,
+          name: stageData.type,
+          xstate: persistenceSnapshot,
+          userMetadata: stageData.userMetadata,
+          status: StageOperationStatus.CREATED,
+          job_id: jobId,
+        }) satisfies Prisma.StageCreateManyInput
+    );
+
+    const queryBody = {
+      data: stageInput,
+    };
+
+    try {
+      const stages = await this.prisma.stage.createManyAndReturn(queryBody);
+
+      return convertArrayPrismaStageToStageResponse(stages);
+    } catch (error) {
+      this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
+
+      throw error;
+    }
+  }
 
   public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
     let queryBody = undefined;
@@ -94,17 +130,4 @@ export class StageManager {
       throw err;
     }
   }
-
-  // private convertPrismaToStageResponse(prismaObjects: Prisma.StageGetPayload<Record<string, never>>): StageModel {
-  //   // eslint-disable-next-line @typescript-eslint/naming-convention
-  //   const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
-  //   const transformedFields = {
-  //     data: data as Record<string, unknown>,
-  //     userMetadata: userMetadata as Record<string, never>,
-  //     summary: summary as Record<string, never>,
-  //     type: name,
-  //     jobId: job_id,
-  //   };
-  //   return Object.assign(rest, transformedFields);
-  // }
 }

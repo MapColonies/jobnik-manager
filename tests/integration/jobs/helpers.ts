@@ -11,18 +11,19 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
 
   let input = undefined;
   let stagesInput = undefined;
+  const { stages: stagesReq, ...bodyInput } = body;
 
-  if (body.data.stages !== undefined && body.data.stages.length > 0) {
-    const stages: StageCreateModel[] = body.data.stages;
+  if (stagesReq !== undefined && stagesReq.length > 0) {
+    const stages: StageCreateModel[] = stagesReq;
     stagesInput = stages.map((stage) => {
       const { type, ...rest } = stage;
 
       const stageFull = Object.assign(rest, { xstate: persistedSnapshot, name: type, status: StageOperationStatus.CREATED });
       return stageFull;
     });
-    input = { ...body, xstate: persistedSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
+    input = { ...bodyInput, xstate: persistedSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
   } else {
-    input = { ...body, xstate: persistedSnapshot } satisfies Prisma.JobCreateInput;
+    input = { ...bodyInput, xstate: persistedSnapshot } satisfies Prisma.JobCreateInput;
   }
 
   const res = await prisma.job.create({ data: input, include: { Stage: true } });
@@ -32,10 +33,26 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
 export const createJobRequestBody = {
   name: 'DEFAULT',
   creator: 'UNKNOWN',
-  data: { stages: [] },
+  data: {},
   type: 'DYNAMIC',
   notifications: {},
   userMetadata: {},
+} satisfies JobCreateModel;
+
+export const createJobRequestWithStagesBody = {
+  name: 'DEFAULT',
+  creator: 'UNKNOWN',
+  data: {},
+  type: 'DYNAMIC',
+  notifications: {},
+  userMetadata: {},
+  stages: [
+    {
+      type: 'DEFAULT',
+      data: {},
+      userMetadata: {},
+    },
+  ],
 } satisfies JobCreateModel;
 
 export const testJobId = faker.string.uuid();

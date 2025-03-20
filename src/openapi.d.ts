@@ -201,8 +201,6 @@ export type components = {
     /** Format: uuid */
     jobId: string;
     jobPayload: {
-      stages?: components['schemas']['createStagePayload'][];
-    } & {
       [key: string]: unknown;
     };
     percentage: number;
@@ -267,6 +265,7 @@ export type components = {
       notifications: components['schemas']['notifications'];
       userMetadata: components['schemas']['userMetadata'];
       creator: components['schemas']['creator'];
+      stages?: components['schemas']['createStagePayload'][];
     } & {
       [key: string]: unknown;
     };
@@ -819,13 +818,13 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Stages created successfully */
+      /** @description Return new created stages related to job id */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['createJobResponse'];
+          'application/json': components['schemas']['stageResponse'][];
         };
       };
       /** @description Invalid request, could not create stage */

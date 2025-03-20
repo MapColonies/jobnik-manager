@@ -52,6 +52,20 @@ export class StageController {
     }
   };
 
+  public addStages: TypedRequestHandlers['POST /jobs/{jobId}/stages'] = async (req, res, next) => {
+    try {
+      const response = await this.manager.addStages(req.params.jobId, req.body);
+
+      return res.status(httpStatus.CREATED).json(response);
+    } catch (err) {
+      if (err instanceof JobNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      }
+
+      return next(err);
+    }
+  };
+
   public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
     try {
       const response = await this.manager.getSummaryByStageId(req.params.stageId);

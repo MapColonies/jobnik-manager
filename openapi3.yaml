@@ -332,11 +332,13 @@ paths:
                 $ref: '#/components/schemas/createStagePayload'
       responses:
         '201':
-          description: Stages created successfully
+          description: Return new created stages related to job id
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/createJobResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/stageResponse'
         '400':
           description: Invalid request, could not create stage
           content:
@@ -697,12 +699,6 @@ components:
       format: uuid
     jobPayload:
       type: object
-      properties:
-        stages:
-          type: array
-          items:
-            $ref: '#/components/schemas/createStagePayload'
-          additionalProperties: true
       additionalProperties: true
     percentage:
       type: integer
@@ -825,6 +821,10 @@ components:
           $ref: '#/components/schemas/userMetadata'
         creator:
           $ref: '#/components/schemas/creator'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/createStagePayload'
       required:
         - data
         - type

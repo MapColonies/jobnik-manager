@@ -49,19 +49,21 @@ export class JobManager {
 
       let input = undefined;
       let stagesInput = undefined;
+      const { stages: stagesReq, ...bodyInput } = body;
 
-      if (body.data.stages !== undefined && body.data.stages.length > 0) {
-        const stages: StageCreateModel[] = body.data.stages;
+      if (stagesReq !== undefined && stagesReq.length > 0) {
+        const stages: StageCreateModel[] = stagesReq;
         stagesInput = stages.map((stage) => {
           const { type, ...rest } = stage;
           const stageFull = Object.assign(rest, { xstate: persistenceSnapshot, name: type, status: StageOperationStatus.CREATED });
           return stageFull;
         });
 
-        input = { ...body, xstate: persistenceSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
+        input = { ...bodyInput, xstate: persistenceSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
       } else {
-        input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+        input = { ...bodyInput, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
       }
+
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { Stage: true } }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
@@ -177,61 +179,6 @@ export class JobManager {
     };
 
     await this.prisma.job.delete(deleteQueryBody);
-  }
-
-  public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<JobModel> {
-    // todo - use stages machine on next phase when will be implemented
-    const createJobActor = createActor(jobStateMachine).start();
-    const persistenceSnapshot = createJobActor.getPersistedSnapshot();
-
-    const queryExistJobBody = {
-      where: {
-        id: jobId,
-      },
-      select: { data: true },
-    };
-
-    const jobBeforeUpdate = await this.prisma.job.findUnique(queryExistJobBody);
-
-    if (!jobBeforeUpdate) {
-      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
-    }
-
-    const unifiedStagesInput = jobBeforeUpdate.data.stages ? jobBeforeUpdate.data.stages.concat(stagesPayload) : stagesPayload;
-
-    const queryBody = {
-      where: {
-        id: jobId,
-      },
-      data: {
-        Stage: {
-          create: stagesPayload.map((stageData) => ({
-            data: stageData.data,
-            name: stageData.type,
-            xstate: persistenceSnapshot,
-            userMetadata: stageData.userMetadata,
-            status: StageOperationStatus.CREATED,
-          })),
-        },
-        data: {
-          ...jobBeforeUpdate.data,
-          stages: unifiedStagesInput,
-        },
-      },
-
-      include: {
-        Stage: true, // Include the created stages in the return value
-      },
-    };
-    try {
-      const job = await this.prisma.job.update(queryBody);
-
-      return this.convertPrismaToJobResponse(job);
-    } catch (error) {
-      this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
-
-      throw error;
-    }
   }
 
   /**

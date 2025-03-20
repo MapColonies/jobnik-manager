@@ -16,7 +16,7 @@ const jobRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.patch('/:jobId/priority', controller.updateJobPriority);
   router.put('/:jobId/status', controller.updateStatus);
   router.get('/:jobId/stages', stageController.getStagesByJobId);
-  router.post('/:jobId/stages', controller.addStages);
+  router.post('/:jobId/stages', stageController.addStages);
   return router;
 };
 

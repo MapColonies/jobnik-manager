@@ -11,7 +11,7 @@ import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } fr
 import { BAD_STATUS_CHANGE } from '@src/common/errors';
 import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
 import { StageCreateModel, successMessages } from '@src/stages/models/models';
-import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
+import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -127,16 +127,14 @@ describe('job', function () {
   describe('#CreateJob', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and create the job', async function () {
-        const createJobWithStagesRequestBody = { ...createJobRequestBody, data: { stages: [{ data: {}, type: 'DEFAULT', userMetadata: {} }] } };
-
         const response = await requestSender.createJob({
-          requestBody: createJobWithStagesRequestBody,
+          requestBody: createJobRequestWithStagesBody,
         });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: JobOperationStatus.CREATED, stages: [{ data: {}, type: 'DEFAULT', userMetadata: {} }], ...createJobWithStagesRequestBody },
+          body: { status: JobOperationStatus.CREATED, ...createJobRequestWithStagesBody },
         });
       });
 
@@ -211,7 +209,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: 'CREATED', stages: [createStagesPayload], data: { stages: [createStagesPayload] } },
+          body: [createStagesPayload],
         });
       });
     });

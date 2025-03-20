@@ -37,7 +37,6 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
-    Stage: [],
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
