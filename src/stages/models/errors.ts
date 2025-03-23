@@ -11,5 +11,6 @@ export const prismaKnownErrors = {
 } as const;
 
 export const stagesErrorMessages = {
+  /**Signifies that the specified job could not be located*/
   stageNotFound: 'STAGE_NOT_FOUND',
 } as const;

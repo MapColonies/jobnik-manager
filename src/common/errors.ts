@@ -18,5 +18,6 @@ export const prismaKnownErrors = {
 } as const;
 
 export const commonErrorMessages = {
+  /**Status changes are limited by the state machine's allowed transitions*/
   invalidStatusChange: 'INVALID_STATUS_CHANGE',
 } as const;

@@ -348,7 +348,7 @@ export type components = {
     jobModeQueryParam: components['schemas']['jobMode'];
     /** @description The type name of the job.
      *      */
-    jname: components['schemas']['jobName'];
+    jobNameQueryParam: components['schemas']['jobName'];
     /** @description The type of the job.
      *      */
     priority: components['schemas']['priority'];
@@ -360,7 +360,7 @@ export type components = {
     /** @description results end update date */
     tillDate: string;
     /** @description indicated if response body should contain also stages array */
-    shouldIncludeStages: components['schemas']['returnStage'];
+    includeStages: components['schemas']['returnStage'];
     /** @description unique job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
@@ -383,7 +383,7 @@ export interface operations {
         job_mode?: components['parameters']['jobModeQueryParam'];
         /** @description The type name of the job.
          *      */
-        job_name?: components['parameters']['jname'];
+        job_name?: components['parameters']['jobNameQueryParam'];
         /** @description results start update date */
         from_date?: components['parameters']['fromDate'];
         /** @description results end update date */
@@ -395,7 +395,7 @@ export interface operations {
          *      */
         creator?: components['parameters']['creator'];
         /** @description indicated if response body should contain also stages array */
-        should_return_stages?: components['parameters']['shouldIncludeStages'];
+        should_return_stages?: components['parameters']['includeStages'];
       };
       header?: never;
       path?: never;
@@ -478,7 +478,7 @@ export interface operations {
     parameters: {
       query?: {
         /** @description indicated if response body should contain also stages array */
-        should_return_stages?: components['parameters']['shouldIncludeStages'];
+        should_return_stages?: components['parameters']['includeStages'];
       };
       header?: never;
       path: {

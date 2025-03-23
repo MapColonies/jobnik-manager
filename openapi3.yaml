@@ -12,12 +12,12 @@ paths:
       operationId: findJobs
       parameters:
         - $ref: '#/components/parameters/jobModeQueryParam'
-        - $ref: '#/components/parameters/jname'
+        - $ref: '#/components/parameters/jobNameQueryParam'
         - $ref: '#/components/parameters/fromDate'
         - $ref: '#/components/parameters/tillDate'
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/creator'
-        - $ref: '#/components/parameters/shouldIncludeStages'
+        - $ref: '#/components/parameters/includeStages'
       summary: find jobs by criteria
       tags:
         - jobs
@@ -78,7 +78,7 @@ paths:
     get:
       operationId: getJobById
       parameters:
-        - $ref: '#/components/parameters/shouldIncludeStages'
+        - $ref: '#/components/parameters/includeStages'
       summary: Get job by id
       tags:
         - jobs
@@ -588,7 +588,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/jobMode'
-    jname:
+    jobNameQueryParam:
       in: query
       name: job_name
       description: |
@@ -628,7 +628,7 @@ components:
       schema:
         type: string
         format: date-time
-    shouldIncludeStages:
+    includeStages:
       in: query
       name: should_return_stages
       description: indicated if response body should contain also stages array
