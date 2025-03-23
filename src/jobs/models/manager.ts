@@ -8,7 +8,7 @@ import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
 import { JobNotFoundError, jobsErrorMessages } from './errors';
-import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
+import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, jobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -75,8 +75,8 @@ export class JobManager {
     }
   }
 
-  public async getJobById(jobId: string, shouldReturnStages: boolean | undefined): Promise<JobModel> {
-    const job = await this.getJobEntityById(jobId, shouldReturnStages);
+  public async getJobById(jobId: string, shouldIncludeStages?: boolean): Promise<JobModel> {
+    const job = await this.getJobEntityById(jobId, shouldIncludeStages);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -106,7 +106,7 @@ export class JobManager {
   }
 
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
-    const job = await this.getJobEntityById(jobId, false);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -129,7 +129,7 @@ export class JobManager {
   }
 
   public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
-    const job = await this.getJobEntityById(jobId, false);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -160,7 +160,7 @@ export class JobManager {
   }
 
   public async deleteJob(jobId: string): Promise<void> {
-    const job = await this.getJobEntityById(jobId, false);
+    const job = await this.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -186,16 +186,12 @@ export class JobManager {
    * @param jobId unique identifier of the job.
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(
-    jobId: string,
-    shouldReturnStages: boolean | undefined
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-  ): Promise<Prisma.JobGetPayload<{ include: { Stage: boolean } }> | null> {
+  public async getJobEntityById(jobId: string, shouldIncludeStages?: boolean): Promise<jobPrismaObject | null> {
     const queryBody = {
       where: {
         id: jobId,
       },
-      include: { Stage: shouldReturnStages },
+      include: { Stage: shouldIncludeStages },
     };
 
     const job = await this.prisma.job.findUnique(queryBody);
@@ -203,8 +199,7 @@ export class JobManager {
     return job;
   }
 
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  private convertPrismaToJobResponse(prismaObjects: Prisma.JobGetPayload<{ include: { Stage: boolean } }>): JobModel {
+  private convertPrismaToJobResponse(prismaObjects: jobPrismaObject): JobModel {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, Stage, ...rest } = prismaObjects;
     const transformedFields = {

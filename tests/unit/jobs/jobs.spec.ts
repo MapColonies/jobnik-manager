@@ -110,7 +110,7 @@ describe('JobManager', () => {
         it('should return a job matching the provided id', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, ttl: null, expirationTime: null });
 
-          const jobs = await jobManager.getJobById(jobEntityWithoutStages.id, false);
+          const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
           const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
           const expectedJob = { ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
@@ -123,7 +123,7 @@ describe('JobManager', () => {
         it("should fail with a 'job not found' error when retrieving the job", async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.getJobById('some_id', false)).rejects.toThrow(jobsErrorMessages.jobNotFound);
+          await expect(jobManager.getJobById('some_id')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -131,7 +131,7 @@ describe('JobManager', () => {
         it('should fail with a database error when retrieving a job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.getJobById('some_id', false)).rejects.toThrow('db connection error');
+          await expect(jobManager.getJobById('some_id')).rejects.toThrow('db connection error');
         });
       });
     });

@@ -17,7 +17,7 @@ paths:
         - $ref: '#/components/parameters/tillDate'
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/creator'
-        - $ref: '#/components/parameters/shouldReturnStages'
+        - $ref: '#/components/parameters/shouldIncludeStages'
       summary: find jobs by criteria
       tags:
         - jobs
@@ -78,7 +78,7 @@ paths:
     get:
       operationId: getJobById
       parameters:
-        - $ref: '#/components/parameters/shouldReturnStages'
+        - $ref: '#/components/parameters/shouldIncludeStages'
       summary: Get job by id
       tags:
         - jobs
@@ -317,7 +317,7 @@ paths:
                 $ref: '#/components/schemas/errorMessage'
     post:
       operationId: addStages
-      summary: Creates a new stages for dynamic job only
+      summary: Adds stages to the end of a dynamic job's existing stages
       parameters:
         - $ref: '#/components/parameters/jobId'
       tags:
@@ -332,7 +332,7 @@ paths:
                 $ref: '#/components/schemas/createStagePayload'
       responses:
         '201':
-          description: Return new created stages related to job id
+          description: Returns the newly created stages associated with the job ID.
           content:
             application/json:
               schema:
@@ -628,7 +628,7 @@ components:
       schema:
         type: string
         format: date-time
-    shouldReturnStages:
+    shouldIncludeStages:
       in: query
       name: should_return_stages
       description: indicated if response body should contain also stages array

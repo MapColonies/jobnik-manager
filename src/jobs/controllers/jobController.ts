@@ -4,10 +4,10 @@ import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
+import { InvalidDeletionError, InvalidUpdateError } from '@common/errors';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg, successMessages } from '../models/models';
 import { JobNotFoundError } from '../models/errors';
-import { InvalidDeletionError, InvalidUpdateError } from '../../common/errors';
 
 @injectable()
 export class JobController {
@@ -43,13 +43,13 @@ export class JobController {
 
   public getJobById: TypedRequestHandlers['GET /jobs/{jobId}'] = async (req, res, next) => {
     try {
-      let shouldReturnStages: boolean | undefined = false;
+      let shouldIncludeStages: boolean | undefined = false;
 
       if (req.query) {
-        shouldReturnStages = req.query.should_return_stages;
+        shouldIncludeStages = req.query.should_return_stages;
       }
 
-      const response = await this.manager.getJobById(req.params.jobId, shouldReturnStages);
+      const response = await this.manager.getJobById(req.params.jobId, shouldIncludeStages);
 
       return res.status(httpStatus.OK).json(response);
     } catch (err) {

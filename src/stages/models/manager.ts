@@ -25,7 +25,7 @@ export class StageManager {
     const createJobActor = createActor(jobStateMachine).start();
     const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-    const job = await this.jobManager.getJobEntityById(jobId, false);
+    const job = await this.jobManager.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -108,7 +108,7 @@ export class StageManager {
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
     // To validate existence of job, if not will throw JobNotFoundError
-    await this.jobManager.getJobById(jobId, false);
+    await this.jobManager.getJobById(jobId);
 
     const queryBody = {
       where: {

@@ -107,7 +107,7 @@ export type paths = {
     /** find stages by job id */
     get: operations['getStageByJobId'];
     put?: never;
-    /** Creates a new stages for dynamic job only */
+    /** Adds stages to the end of a dynamic job's existing stages */
     post: operations['addStages'];
     delete?: never;
     options?: never;
@@ -360,7 +360,7 @@ export type components = {
     /** @description results end update date */
     tillDate: string;
     /** @description indicated if response body should contain also stages array */
-    shouldReturnStages: components['schemas']['returnStage'];
+    shouldIncludeStages: components['schemas']['returnStage'];
     /** @description unique job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
@@ -395,7 +395,7 @@ export interface operations {
          *      */
         creator?: components['parameters']['creator'];
         /** @description indicated if response body should contain also stages array */
-        should_return_stages?: components['parameters']['shouldReturnStages'];
+        should_return_stages?: components['parameters']['shouldIncludeStages'];
       };
       header?: never;
       path?: never;
@@ -478,7 +478,7 @@ export interface operations {
     parameters: {
       query?: {
         /** @description indicated if response body should contain also stages array */
-        should_return_stages?: components['parameters']['shouldReturnStages'];
+        should_return_stages?: components['parameters']['shouldIncludeStages'];
       };
       header?: never;
       path: {
@@ -818,7 +818,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Return new created stages related to job id */
+      /** @description Returns the newly created stages associated with the job ID. */
       201: {
         headers: {
           [name: string]: unknown;
