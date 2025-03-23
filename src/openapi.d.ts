@@ -256,7 +256,7 @@ export type components = {
       [key: string]: unknown;
     };
     createJobPayload: {
-      type: components['schemas']['jobMode'];
+      jobMode: components['schemas']['jobMode'];
       name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
@@ -317,7 +317,7 @@ export type components = {
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
       expirationTime?: components['schemas']['expirationTime'];
-      type?: components['schemas']['jobMode'];
+      jobMode?: components['schemas']['jobMode'];
       userMetadata?: components['schemas']['userMetadata'];
       priority?: components['schemas']['priority'];
       creator?: components['schemas']['creator'];
@@ -345,7 +345,7 @@ export type components = {
     stageId: components['schemas']['stageId'];
     /** @description The mode of the job.
      *      */
-    jmode: components['schemas']['jobMode'];
+    jobModeQueryParam: components['schemas']['jobMode'];
     /** @description The type name of the job.
      *      */
     jname: components['schemas']['jobName'];
@@ -380,7 +380,7 @@ export interface operations {
       query?: {
         /** @description The mode of the job.
          *      */
-        job_mode?: components['parameters']['jmode'];
+        job_mode?: components['parameters']['jobModeQueryParam'];
         /** @description The type name of the job.
          *      */
         job_name?: components['parameters']['jname'];

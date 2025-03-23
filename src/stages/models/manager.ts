@@ -32,7 +32,7 @@ export class StageManager {
     }
 
     // can add stages only on dynamic jobs
-    if (job.type !== JobMode.DYNAMIC) {
+    if (job.jobMode !== JobMode.DYNAMIC) {
       throw new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError);
     }
 

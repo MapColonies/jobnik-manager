@@ -178,7 +178,7 @@ describe('JobManager', () => {
     describe('#addStages', () => {
       describe('#HappyPath', () => {
         it('should add new stages to existing job stages', async function () {
-          const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, type: JobMode.DYNAMIC });
+          const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, jobMode: JobMode.DYNAMIC });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
@@ -210,7 +210,7 @@ describe('JobManager', () => {
       });
 
       it('should reject adding stages to a PRE-DEFINED type job', async function () {
-        const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, type: JobMode.PRE_DEFINED });
+        const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, jobMode: JobMode.PRE_DEFINED });
 
         jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
@@ -220,14 +220,14 @@ describe('JobManager', () => {
       });
 
       it('should reject adding stages to a finite job', async function () {
-        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, type: 'DYNAMIC' });
+        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, jobMode: 'DYNAMIC' });
 
         await expect(stageManager.addStages('someId', [])).rejects.toThrow(new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError));
       });
 
       describe('#SadPath', () => {
         it('should fail with a database error when adding stages', async function () {
-          const jobEntity = createJobEntity({ type: JobMode.DYNAMIC });
+          const jobEntity = createJobEntity({ jobMode: JobMode.DYNAMIC });
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
           jest.spyOn(prisma.stage, 'createManyAndReturn').mockRejectedValueOnce(new Error('db connection error'));
 

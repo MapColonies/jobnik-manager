@@ -33,7 +33,7 @@ describe('JobManager', () => {
             name: jobEntityWithStages.name,
             creator: jobEntityWithStages.creator,
             data: jobEntityWithStages.data,
-            type: jobEntityWithStages.type,
+            jobMode: jobEntityWithStages.jobMode,
             notifications: jobEntityWithStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
             stages: [stagePayload],
@@ -52,7 +52,7 @@ describe('JobManager', () => {
             name: jobEntityWithoutStages.name,
             creator: jobEntityWithoutStages.creator,
             data: jobEntityWithoutStages.data,
-            type: jobEntityWithoutStages.type,
+            jobMode: jobEntityWithoutStages.jobMode,
             notifications: jobEntityWithoutStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithoutStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;
@@ -72,7 +72,7 @@ describe('JobManager', () => {
             name: jobEntityWithStages.name,
             creator: jobEntityWithStages.creator,
             data: jobEntityWithStages.data,
-            type: jobEntityWithStages.type,
+            jobMode: jobEntityWithStages.jobMode,
             notifications: jobEntityWithStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;

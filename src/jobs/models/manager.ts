@@ -25,7 +25,7 @@ export class JobManager {
       queryBody = {
         where: {
           AND: {
-            type: { equals: params.job_mode },
+            jobMode: { equals: params.job_mode },
             name: { equals: params.job_name },
             priority: { equals: params.priority },
             creator: { equals: params.creator },

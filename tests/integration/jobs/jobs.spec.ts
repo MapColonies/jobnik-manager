@@ -41,7 +41,7 @@ describe('job', function () {
   describe('#FindJobs', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching job with stages when stages flag is true', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, type: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,
@@ -59,7 +59,7 @@ describe('job', function () {
       });
 
       it('should return 200 status code and the matching job with stages when stages flag is false', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, type: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,
@@ -77,7 +77,7 @@ describe('job', function () {
       });
 
       it('should return 200 status code and return the job without stages when stages flag is omitted', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, type: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,

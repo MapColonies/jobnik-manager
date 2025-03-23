@@ -11,7 +11,7 @@ paths:
     get:
       operationId: findJobs
       parameters:
-        - $ref: '#/components/parameters/jmode'
+        - $ref: '#/components/parameters/jobModeQueryParam'
         - $ref: '#/components/parameters/jname'
         - $ref: '#/components/parameters/fromDate'
         - $ref: '#/components/parameters/tillDate'
@@ -580,7 +580,7 @@ components:
     #   required: false
     #   schema:
     #     $ref: '#/components/schemas/status'
-    jmode:
+    jobModeQueryParam:
       in: query
       name: job_mode
       description: |
@@ -803,7 +803,7 @@ components:
     createJobPayload:
       type: object
       properties:
-        type:
+        jobMode:
           $ref: '#/components/schemas/jobMode'
         name:
           $ref: '#/components/schemas/jobName'
@@ -827,7 +827,7 @@ components:
             $ref: '#/components/schemas/createStagePayload'
       required:
         - data
-        - type
+        - jobMode
         - creator
         - userMetadata
         - notifications
@@ -951,7 +951,7 @@ components:
           $ref: '#/components/schemas/updateTime'
         expirationTime:
           $ref: '#/components/schemas/expirationTime'
-        type:
+        jobMode:
           $ref: '#/components/schemas/jobMode'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'

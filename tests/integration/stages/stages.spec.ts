@@ -381,7 +381,7 @@ describe('stage', function () {
       });
 
       it('should return 400 when adding stages to a pre-defined job', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, type: JobMode.PRE_DEFINED }, prisma);
+        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
         const createdJobId = job.id;
 
         const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: createdJobId } });

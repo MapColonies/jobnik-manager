@@ -34,7 +34,7 @@ export const createJobRequestBody = {
   name: 'DEFAULT',
   creator: 'UNKNOWN',
   data: {},
-  type: 'DYNAMIC',
+  jobMode: 'DYNAMIC',
   notifications: {},
   userMetadata: {},
 } satisfies JobCreateModel;
@@ -43,7 +43,7 @@ export const createJobRequestWithStagesBody = {
   name: 'DEFAULT',
   creator: 'UNKNOWN',
   data: {},
-  type: 'DYNAMIC',
+  jobMode: 'DYNAMIC',
   notifications: {},
   userMetadata: {},
   stages: [

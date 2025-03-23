@@ -15,7 +15,7 @@ export const createJobParams = {
   name: 'DEFAULT',
   creator: 'UNKNOWN',
   data: { stages: [] },
-  type: 'PRE_DEFINED',
+  jobMode: 'PRE_DEFINED',
   notifications: {},
   userMetadata: {},
 } satisfies JobCreateModel;
@@ -33,7 +33,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     priority: 'HIGH',
     status: JobOperationStatus.PENDING,
     ttl: new Date(),
-    type: 'DYNAMIC',
+    jobMode: 'DYNAMIC',
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
