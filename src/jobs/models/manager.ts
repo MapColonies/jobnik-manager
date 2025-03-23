@@ -6,8 +6,8 @@ import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
-import { BAD_STATUS_CHANGE, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
-import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE, JobNotFoundError } from './errors';
+import { commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
+import { JobNotFoundError, jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
@@ -79,7 +79,7 @@ export class JobManager {
     const job = await this.getJobEntityById(jobId, shouldReturnStages);
 
     if (!job) {
-      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
     return this.convertPrismaToJobResponse(job);
@@ -99,7 +99,7 @@ export class JobManager {
       await this.prisma.job.update(updateQueryBody);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+        throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
       }
       throw err;
     }
@@ -109,7 +109,7 @@ export class JobManager {
     const job = await this.getJobEntityById(jobId, false);
 
     if (!job) {
-      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
     if (job.priority === priority) {
@@ -132,7 +132,7 @@ export class JobManager {
     const job = await this.getJobEntityById(jobId, false);
 
     if (!job) {
-      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
     const nextStatusChange = OperationStatusMapper[status];
@@ -140,7 +140,7 @@ export class JobManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new InvalidUpdateError(BAD_STATUS_CHANGE);
+      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
     }
 
     updateActor.send({ type: nextStatusChange });
@@ -163,13 +163,13 @@ export class JobManager {
     const job = await this.getJobEntityById(jobId, false);
 
     if (!job) {
-      throw new JobNotFoundError(JOB_NOT_FOUND_MSG);
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
 
     if (checkJobStatus.getSnapshot().status !== 'done') {
-      throw new InvalidDeletionError(JOB_NOT_IN_FINAL_STATE);
+      throw new InvalidDeletionError(jobsErrorMessages.jobNotInFiniteState);
     }
 
     const deleteQueryBody = {

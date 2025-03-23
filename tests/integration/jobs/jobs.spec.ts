@@ -8,8 +8,8 @@ import { SERVICES } from '@common/constants';
 import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
-import { BAD_STATUS_CHANGE } from '@src/common/errors';
-import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
+import { commonErrorMessages } from '@src/common/errors';
+import { jobsErrorMessages } from '@src/jobs/models/errors';
 import { successMessages } from '@src/stages/models/models';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
@@ -232,7 +232,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
 
@@ -286,7 +286,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });
@@ -346,7 +346,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
 
@@ -408,7 +408,7 @@ describe('job', function () {
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
-        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: BAD_STATUS_CHANGE } });
+        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: commonErrorMessages.invalidStatusChange } });
       });
 
       it('should return 404 with specific error message for non-existent job', async function () {
@@ -420,7 +420,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });
@@ -455,7 +455,7 @@ describe('job', function () {
 
         expect(validateDeletionResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
 
@@ -475,7 +475,7 @@ describe('job', function () {
 
         expect(validateDeletionResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });
@@ -501,7 +501,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: JOB_NOT_IN_FINAL_STATE },
+          body: { message: jobsErrorMessages.jobNotInFiniteState },
         });
       });
 
@@ -511,7 +511,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });

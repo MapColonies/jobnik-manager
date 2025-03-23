@@ -1,56 +1,17 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, JobOperationStatus, StageName, JobMode } from '@prisma/client';
-import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { PrismaClient, Prisma, StageName, JobMode } from '@prisma/client';
 import { StageManager } from '@src/stages/models/manager';
-import { createActor, Snapshot } from 'xstate';
-import { faker } from '@faker-js/faker';
 import { JobManager } from '@src/jobs/models/manager';
-import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
+import { jobsErrorMessages } from '@src/jobs/models/errors';
 import { InvalidUpdateError } from '@src/common/errors';
-import { jobId, anotherStageId } from '../jobs/data';
+import { stagesErrorMessages } from '@src/stages/models/errors';
+import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
+import { createStageEntity, createJobEntity } from '../generator';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
 const prisma = new PrismaClient();
-const dumpUuid = faker.string.uuid();
-
-function createJobEntity(override: Partial<Prisma.JobGetPayload<{ include: { Stage: true } }>>) {
-  const jobEntity = {
-    creationTime: new Date(),
-    creator: 'UNKNOWN',
-    data: {},
-    expirationTime: new Date(),
-    id: 'SOME_ID',
-    name: 'DEFAULT',
-    notifications: {},
-    percentage: 0,
-    priority: 'HIGH',
-    status: JobOperationStatus.PENDING,
-    ttl: new Date(),
-    type: 'PRE_DEFINED',
-    updateTime: new Date(),
-    userMetadata: {},
-    xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
-    Stage: [],
-  } satisfies Prisma.JobGetPayload<{ include: { Stage: true } }>;
-  return { ...jobEntity, ...override };
-}
-
-function createStageEntity(override: Partial<Prisma.StageGetPayload<Record<string, never>>>) {
-  const jobEntity = {
-    data: {},
-    job_id: dumpUuid,
-    id: 'SOME_ID',
-    name: 'DEFAULT',
-    percentage: 0,
-    status: JobOperationStatus.PENDING,
-    userMetadata: {},
-    summary: {},
-    xstate: { status: 'active', error: undefined, output: undefined } as Snapshot<unknown>,
-  } satisfies Prisma.StageGetPayload<Record<string, never>>;
-  return { ...jobEntity, ...override };
-}
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
 
@@ -111,7 +72,7 @@ describe('JobManager', () => {
         it('should result in failure when attempting to retrieve a job with a non-existent stage', async function () {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
 
-          await expect(stageManager.getStageById('some_id')).rejects.toThrow('STAGE_NOT_FOUND');
+          await expect(stageManager.getStageById('some_id')).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
       });
 
@@ -127,12 +88,10 @@ describe('JobManager', () => {
     describe('#getStageByJobId', () => {
       describe('#HappyPath', () => {
         it('should return stage object by provided job id', async function () {
-          const stageEntity = createStageEntity({});
-          const stageId = stageEntity.id;
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(createJobEntity({}));
-          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
+          jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
-          const stage = await stageManager.getStagesByJobId(stageId);
+          const stage = await stageManager.getStagesByJobId(stageEntity.job_id);
 
           const { job_id: jobId, name: type, xstate, ...rest } = stageEntity;
           const expectedStage = [{ jobId, ...rest }];
@@ -161,12 +120,9 @@ describe('JobManager', () => {
     describe('#getSummaryByStageId', () => {
       describe('#HappyPath', () => {
         it("should return stage's summary object by provided stage id", async function () {
-          const stageEntity = createStageEntity({});
-          const stageId = stageEntity.id;
-
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
 
-          const stage = await stageManager.getSummaryByStageId(stageId);
+          const stage = await stageManager.getSummaryByStageId(stageEntity.id);
 
           expect(stage).toMatchObject({});
         });
@@ -176,7 +132,7 @@ describe('JobManager', () => {
         it('should failed on not founded stage when getting by non exists job', async function () {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
 
-          await expect(stageManager.getSummaryByStageId('some_id')).rejects.toThrow('STAGE_NOT_FOUND');
+          await expect(stageManager.getSummaryByStageId('some_id')).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
       });
 
@@ -206,7 +162,7 @@ describe('JobManager', () => {
         it('should failed on for not exists stage when update user metadata of desired stage', async function () {
           jest.spyOn(prisma.stage, 'update').mockRejectedValue(notFoundError);
 
-          await expect(stageManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('STAGE_NOT_FOUND');
+          await expect(stageManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
       });
 
@@ -249,7 +205,7 @@ describe('JobManager', () => {
         it('should reject adding stages to a non-existent job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(stageManager.addStages('someId', [])).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(stageManager.addStages('someId', [])).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -258,7 +214,15 @@ describe('JobManager', () => {
 
         jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
-        await expect(stageManager.addStages('someId', [])).rejects.toThrow(InvalidUpdateError);
+        await expect(stageManager.addStages('someId', [])).rejects.toThrow(
+          new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError)
+        );
+      });
+
+      it('should reject adding stages to a finite job', async function () {
+        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, type: 'DYNAMIC' });
+
+        await expect(stageManager.addStages('someId', [])).rejects.toThrow(new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError));
       });
 
       describe('#SadPath', () => {

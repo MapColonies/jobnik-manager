@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
-import { BAD_STATUS_CHANGE } from '@src/common/errors';
+import { commonErrorMessages } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
-import { JOB_NOT_FOUND_MSG, JOB_NOT_IN_FINAL_STATE } from '@src/jobs/models/errors';
+import { jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { StageCreateModel } from '@src/stages/models/models';
-import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from './data';
+import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from '../data';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -123,7 +123,7 @@ describe('JobManager', () => {
         it("should fail with a 'job not found' error when retrieving the job", async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.getJobById('some_id', false)).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.getJobById('some_id', false)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -149,7 +149,7 @@ describe('JobManager', () => {
         it('should fail when updating user metadata of a non-existent job', async function () {
           jest.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
 
-          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -182,7 +182,7 @@ describe('JobManager', () => {
         it('should fail when updating priority of a non-existent job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -208,13 +208,15 @@ describe('JobManager', () => {
         it('should fail when updating status for a job that does not exist', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updateStatus('someId', JobOperationStatus.PENDING)).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.updateStatus('someId', JobOperationStatus.PENDING)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
 
         it('should fail on invalid status transition', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(BAD_STATUS_CHANGE);
+          await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
+            commonErrorMessages.invalidStatusChange
+          );
         });
       });
 
@@ -241,13 +243,13 @@ describe('JobManager', () => {
         it('should return an error for a request to delete non finalized-status job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.deleteJob(jobEntityWithoutStages.id)).rejects.toThrow(JOB_NOT_IN_FINAL_STATE);
+          await expect(jobManager.deleteJob(jobEntityWithoutStages.id)).rejects.toThrow(jobsErrorMessages.jobNotInFiniteState);
         });
 
         it('should return an error for a request to delete a non-existent job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.deleteJob('someId')).rejects.toThrow(JOB_NOT_FOUND_MSG);
+          await expect(jobManager.deleteJob('someId')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 

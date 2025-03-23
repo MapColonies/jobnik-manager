@@ -33,7 +33,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     priority: 'HIGH',
     status: JobOperationStatus.PENDING,
     ttl: new Date(),
-    type: 'PRE_DEFINED',
+    type: 'DYNAMIC',
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),

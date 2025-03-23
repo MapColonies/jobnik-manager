@@ -7,9 +7,9 @@ import { JobManager } from '@src/jobs/models/manager';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError } from '@src/common/errors';
-import { PRE_DEFINED_JOB_VIOLATION } from '@src/jobs/models/errors';
+import { JobNotFoundError, jobsErrorMessages } from '@src/jobs/models/errors';
 import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
-import { prismaKnownErrors, StageNotFoundError } from './errors';
+import { prismaKnownErrors, StageNotFoundError, stagesErrorMessages } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 
 @injectable()
@@ -25,10 +25,22 @@ export class StageManager {
     const createJobActor = createActor(jobStateMachine).start();
     const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-    const job = await this.jobManager.getJobById(jobId, false);
+    const job = await this.jobManager.getJobEntityById(jobId, false);
 
+    if (!job) {
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
+    }
+
+    // can add stages only on dynamic jobs
     if (job.type !== JobMode.DYNAMIC) {
-      throw new InvalidUpdateError(PRE_DEFINED_JOB_VIOLATION);
+      throw new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError);
+    }
+
+    const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+
+    // can't add stages to finite jobs (final states)
+    if (checkJobStatus.getSnapshot().status === 'done') {
+      throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
     const stageInput = stagesPayload.map(
@@ -88,7 +100,7 @@ export class StageManager {
     const stage = await this.prisma.stage.findUnique(queryBody);
 
     if (!stage) {
-      throw new StageNotFoundError('STAGE_NOT_FOUND');
+      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
     return convertPrismaToStageResponse(stage);

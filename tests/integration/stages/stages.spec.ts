@@ -9,9 +9,10 @@ import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import { JobMode, JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
 import { Snapshot } from 'xstate';
-import { JOB_NOT_FOUND_MSG, PRE_DEFINED_JOB_VIOLATION } from '@src/jobs/models/errors';
+import { jobsErrorMessages } from '@src/jobs/models/errors';
 import { faker } from '@faker-js/faker';
 import { StageCreateModel } from '@src/stages/models/models';
+import { stagesErrorMessages } from '@src/stages/models/errors';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from '../jobs/helpers';
 
 describe('stage', function () {
@@ -143,7 +144,7 @@ describe('stage', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'STAGE_NOT_FOUND' },
+          body: { message: stagesErrorMessages.stageNotFound },
         });
       });
 
@@ -216,7 +217,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });
@@ -254,7 +255,7 @@ describe('stage', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'STAGE_NOT_FOUND' },
+          body: { message: stagesErrorMessages.stageNotFound },
         });
       });
 
@@ -309,7 +310,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: 'STAGE_NOT_FOUND' },
+          body: { message: stagesErrorMessages.stageNotFound },
         });
       });
 
@@ -368,25 +369,41 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+        await createJobRecord({ ...createJobRequestBody }, prisma);
+
+        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: 'someInvalidJobId' } });
+
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+        });
+      });
+
+      it('should return 400 when adding stages to a pre-defined job', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, type: JobMode.PRE_DEFINED }, prisma);
         const createdJobId = job.id;
 
         const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: createdJobId } });
 
+        expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: PRE_DEFINED_JOB_VIOLATION },
+          body: { message: jobsErrorMessages.preDefinedJobStageModificationError },
         });
       });
 
-      it('should return 400 when adding stages to a pre-defined job', async function () {
-        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: 'someInvalidJobId' } });
+      it('should return 400 when adding stages to a finite job', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        // generate some job in finite state (aborted)
+        await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: JobOperationStatus.ABORTED } });
+
+        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: job.id } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
         });
       });
 
@@ -409,7 +426,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: JOB_NOT_FOUND_MSG },
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });

@@ -17,4 +17,6 @@ export const prismaKnownErrors = {
   recordNotFound: 'P2025',
 } as const;
 
-export const BAD_STATUS_CHANGE = 'Invalid status change';
+export const commonErrorMessages = {
+  invalidStatusChange: 'INVALID_STATUS_CHANGE',
+} as const;
