@@ -191,6 +191,17 @@ describe('job', function () {
 
   describe('#getJobById', function () {
     describe('Happy Path', function () {
+      it('should return 200 status code and return the job', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
+        const createdJobId = job.id;
+
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });
+        expect(getJobResponse.body).not.toHaveProperty('stages');
+      });
+
       it('should return 200 status code and return the job with stages when stages flag is true', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
@@ -207,17 +218,6 @@ describe('job', function () {
         const createdJobId = job.id;
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId }, queryParams: { should_return_stages: false } });
-
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });
-        expect(getJobResponse.body).not.toHaveProperty('stages');
-      });
-
-      it('should return 200 status code and return the job without stages when stages flag is omitted', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
-        const createdJobId = job.id;
-
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });

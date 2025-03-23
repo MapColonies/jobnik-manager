@@ -177,8 +177,8 @@ describe('stage', function () {
       it('should return 200 status code and return the stages', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
-
         const stage = await createStageRecord(createdJobId);
+
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
 
         expect(getStageResponse).toSatisfyApiSpec();
@@ -365,6 +365,28 @@ describe('stage', function () {
           body: [createStagesPayload],
         });
       });
+
+      it('should return 200 and create new stages for a job with existing stages', async function () {
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+        const createdJobId = job.id;
+
+        const createStagesPayload = {
+          data: {},
+          type: 'DEFAULT',
+          userMetadata: {},
+        } satisfies StageCreateModel;
+
+        const response = await requestSender.addStages({
+          requestBody: [createStagesPayload],
+          pathParams: { jobId: createdJobId },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: [createStagesPayload],
+        });
+      });
     });
 
     describe('Bad Path', function () {
@@ -377,6 +399,21 @@ describe('stage', function () {
           status: StatusCodes.BAD_REQUEST,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+        });
+      });
+
+      it('should return 400 when the request contains an incorrect body', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
+
+        const getJobResponse = await requestSender.addStages({
+          pathParams: { jobId: job.id },
+          requestBody: {} as unknown as [],
+        });
+
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          body: { message: expect.stringMatching(/request\/body must be array/) },
         });
       });
 
@@ -393,7 +430,7 @@ describe('stage', function () {
         });
       });
 
-      it('should return 400 when adding stages to a finite job', async function () {
+      it('should return 400 when attempting to add stages to a finalized job', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         // generate some job in finite state (aborted)
         await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: JobOperationStatus.ABORTED } });
