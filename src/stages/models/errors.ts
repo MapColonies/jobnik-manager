@@ -10,7 +10,7 @@ export const prismaKnownErrors = {
   recordNotFound: 'P2025',
 } as const;
 
-export const stagesErrorMessages = {
+export const errorMessages = {
   /**Signifies that the specified job could not be located*/
   stageNotFound: 'STAGE_NOT_FOUND',
 } as const;

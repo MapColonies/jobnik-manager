@@ -6,8 +6,8 @@ import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
-import { commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '../../common/errors';
-import { JobNotFoundError, jobsErrorMessages } from './errors';
+import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
+import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, jobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 

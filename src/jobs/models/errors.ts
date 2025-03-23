@@ -5,7 +5,7 @@ export class JobNotFoundError extends Error {
   }
 }
 
-export const jobsErrorMessages = {
+export const errorMessages = {
   /**Operation that are restricted for jobs with finite statuses*/
   jobNotInFiniteState: 'JOB_NOT_IN_FINITE_STATE',
   /**Adding stages to finite state jobs is not allowed*/

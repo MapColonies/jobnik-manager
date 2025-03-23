@@ -7,9 +7,9 @@ import { JobManager } from '@src/jobs/models/manager';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError } from '@src/common/errors';
-import { JobNotFoundError, jobsErrorMessages } from '@src/jobs/models/errors';
+import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
-import { prismaKnownErrors, StageNotFoundError, stagesErrorMessages } from './errors';
+import { prismaKnownErrors, StageNotFoundError, errorMessages as stagesErrorMessages } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 
 @injectable()

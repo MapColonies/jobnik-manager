@@ -17,7 +17,7 @@ export const prismaKnownErrors = {
   recordNotFound: 'P2025',
 } as const;
 
-export const commonErrorMessages = {
+export const errorMessages = {
   /**Status changes are limited by the state machine's allowed transitions*/
   invalidStatusChange: 'INVALID_STATUS_CHANGE',
 } as const;

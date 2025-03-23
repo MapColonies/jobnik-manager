@@ -3,9 +3,9 @@ import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, StageName, JobMode } from '@prisma/client';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
-import { jobsErrorMessages } from '@src/jobs/models/errors';
+import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { InvalidUpdateError } from '@src/common/errors';
-import { stagesErrorMessages } from '@src/stages/models/errors';
+import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
 import { createStageEntity, createJobEntity } from '../generator';
 

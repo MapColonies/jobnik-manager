@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
-import { commonErrorMessages } from '@src/common/errors';
+import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
-import { jobsErrorMessages } from '@src/jobs/models/errors';
+import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { StageCreateModel } from '@src/stages/models/models';
 import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from '../data';

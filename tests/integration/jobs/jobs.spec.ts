@@ -8,8 +8,8 @@ import { SERVICES } from '@common/constants';
 import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
-import { commonErrorMessages } from '@src/common/errors';
-import { jobsErrorMessages } from '@src/jobs/models/errors';
+import { errorMessages as commonErrorMessages } from '@src/common/errors';
+import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { successMessages } from '@src/stages/models/models';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 

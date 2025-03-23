@@ -9,10 +9,10 @@ import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
 import { JobMode, JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
 import { Snapshot } from 'xstate';
-import { jobsErrorMessages } from '@src/jobs/models/errors';
+import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { faker } from '@faker-js/faker';
 import { StageCreateModel } from '@src/stages/models/models';
-import { stagesErrorMessages } from '@src/stages/models/errors';
+import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from '../jobs/helpers';
 
 describe('stage', function () {
