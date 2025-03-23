@@ -7,11 +7,12 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import type { paths, operations } from '@openapi';
 import { initConfig } from '@src/common/config';
-import { JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
+import { JobMode, JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
 import { Snapshot } from 'xstate';
-import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
+import { JOB_NOT_FOUND_MSG, PRE_DEFINED_JOB_VIOLATION } from '@src/jobs/models/errors';
 import { faker } from '@faker-js/faker';
-import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody } from '../jobs/helpers';
+import { StageCreateModel } from '@src/stages/models/models';
+import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from '../jobs/helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -333,6 +334,94 @@ describe('stage', function () {
         jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: dumpUuid }, requestBody: {} });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#addStages', function () {
+    describe('Happy Path', function () {
+      it('should return 200 status code and create the related stages for current job', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const createStagesPayload = {
+          data: {},
+          type: 'DEFAULT',
+          userMetadata: {},
+        } satisfies StageCreateModel;
+
+        const response = await requestSender.addStages({
+          requestBody: [createStagesPayload],
+          pathParams: { jobId: createdJobId },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: [createStagesPayload],
+        });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody, type: JobMode.PRE_DEFINED }, prisma);
+        const createdJobId = job.id;
+
+        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: createdJobId } });
+
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: PRE_DEFINED_JOB_VIOLATION },
+        });
+      });
+
+      it('should return 400 when adding stages to a pre-defined job', async function () {
+        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: 'someInvalidJobId' } });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+        });
+      });
+
+      it('should return 404 when attempting to update a non-existent job ID', async function () {
+        const createStagesPayload = {
+          data: {},
+          type: 'DEFAULT',
+          userMetadata: {},
+        } satisfies StageCreateModel;
+
+        const response = await requestSender.addStages({
+          requestBody: [createStagesPayload],
+          pathParams: { jobId: testJobId },
+        });
+
+        if (response.status !== StatusCodes.NOT_FOUND) {
+          throw new Error();
+        }
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: JOB_NOT_FOUND_MSG },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.addStages({
+          requestBody: [],
+          pathParams: { jobId: testJobId },
+        });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });

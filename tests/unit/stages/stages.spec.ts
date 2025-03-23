@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, JobOperationStatus, StageName } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus, StageName, JobMode } from '@prisma/client';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageManager } from '@src/stages/models/manager';
 import { createActor, Snapshot } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { JobManager } from '@src/jobs/models/manager';
 import { JOB_NOT_FOUND_MSG } from '@src/jobs/models/errors';
+import { InvalidUpdateError } from '@src/common/errors';
 import { jobId, anotherStageId } from '../jobs/data';
 
 let jobManager: JobManager;
@@ -221,7 +222,7 @@ describe('JobManager', () => {
     describe('#addStages', () => {
       describe('#HappyPath', () => {
         it('should add new stages to existing job stages', async function () {
-          const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {} });
+          const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, type: JobMode.DYNAMIC });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
@@ -252,9 +253,17 @@ describe('JobManager', () => {
         });
       });
 
+      it('should reject adding stages to a PRE-DEFINED type job', async function () {
+        const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, type: JobMode.PRE_DEFINED });
+
+        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
+
+        await expect(stageManager.addStages('someId', [])).rejects.toThrow(InvalidUpdateError);
+      });
+
       describe('#SadPath', () => {
         it('should fail with a database error when adding stages', async function () {
-          const jobEntity = createJobEntity({});
+          const jobEntity = createJobEntity({ type: JobMode.DYNAMIC });
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
           jest.spyOn(prisma.stage, 'createManyAndReturn').mockRejectedValueOnce(new Error('db connection error'));
 

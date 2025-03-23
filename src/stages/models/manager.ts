@@ -2,10 +2,12 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
-import { Prisma, StageOperationStatus } from '@prisma/client';
+import { JobMode, Prisma, StageOperationStatus } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/manager';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { InvalidUpdateError } from '@src/common/errors';
+import { PRE_DEFINED_JOB_VIOLATION } from '@src/jobs/models/errors';
 import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
@@ -23,7 +25,11 @@ export class StageManager {
     const createJobActor = createActor(jobStateMachine).start();
     const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-    await this.jobManager.getJobById(jobId, false);
+    const job = await this.jobManager.getJobById(jobId, false);
+
+    if (job.type !== JobMode.DYNAMIC) {
+      throw new InvalidUpdateError(PRE_DEFINED_JOB_VIOLATION);
+    }
 
     const stageInput = stagesPayload.map(
       (stageData) =>

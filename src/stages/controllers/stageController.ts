@@ -5,6 +5,7 @@ import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
 import { JobNotFoundError } from '@src/jobs/models/errors';
+import { InvalidUpdateError } from '@src/common/errors';
 import { StageManager } from '../models/manager';
 import { successMessages, type StageFindCriteriaArg } from '../models/models';
 import { StageNotFoundError } from '../models/errors';
@@ -60,6 +61,10 @@ export class StageController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      }
+
+      if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
       return next(err);
