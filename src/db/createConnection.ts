@@ -54,7 +54,7 @@ export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promi
       WHERE schema_name = ${schema}
     )
   `;
-    if (!checkSchemaExists[0].exists) {
+    if (checkSchemaExists[0] === undefined || !checkSchemaExists[0].exists) {
       throw new Error(`Schema: ${schema} doesn't exists`);
     }
 

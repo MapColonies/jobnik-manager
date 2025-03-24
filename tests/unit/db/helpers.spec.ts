@@ -1,5 +1,4 @@
 /// <reference types="jest-extended" />
-/* eslint-disable @typescript-eslint/no-var-requires */
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { createDbConnectUrl } from '@src/db/helpers';
 
@@ -47,7 +46,7 @@ describe('DB helpers', () => {
 
       const splittedByQuestionMark = connectionUrl.split('?');
       const connectionBaseUri = splittedByQuestionMark[0];
-      const queryParams = splittedByQuestionMark[1];
+      const queryParams = splittedByQuestionMark[1] as string;
       const queryParamsObject = createQueryParamsObject(queryParams);
 
       expect(Object.entries(queryParamsObject)).toHaveLength(3);
