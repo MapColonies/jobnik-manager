@@ -5,7 +5,6 @@ WORKDIR /tmp/buildApp
 
 COPY ./package*.json ./
 COPY .husky/ .husky/
-COPY ./src/db/prisma/schema.prisma ./db/prisma/schema.prisma
 
 RUN npm install
 COPY . .
