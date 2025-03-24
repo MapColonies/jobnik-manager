@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import type { components, operations } from '@src/openapi';
 import type { CamelCase, ScreamingSnakeCase } from 'type-fest';
 
@@ -9,6 +10,7 @@ type SuccessMessagesObj = {
 const successMessages: SuccessMessagesObj = {
   jobModifiedSuccessfully: 'JOB_MODIFIED_SUCCESSFULLY',
   stageModifiedSuccessfully: 'STAGE_MODIFIED_SUCCESSFULLY',
+  jobDeletedSuccessfully: 'JOB_DELETED_SUCCESSFULLY',
 };
 
 type JobModel = components['schemas']['jobResponse'];
@@ -16,5 +18,6 @@ type JobCreateModel = components['schemas']['createJobPayload'];
 type JobCreateResponse = components['schemas']['createJobResponse'];
 type JobGetParams = components['parameters'];
 type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
-
-export { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, successMessages };
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type jobPrismaObject = Prisma.JobGetPayload<{ include: { Stage: boolean } }>;
+export { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, jobPrismaObject, successMessages };

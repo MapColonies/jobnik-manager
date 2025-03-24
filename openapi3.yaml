@@ -11,12 +11,13 @@ paths:
     get:
       operationId: findJobs
       parameters:
-        - $ref: '#/components/parameters/jmode'
-        - $ref: '#/components/parameters/jname'
+        - $ref: '#/components/parameters/jobModeQueryParam'
+        - $ref: '#/components/parameters/jobNameQueryParam'
         - $ref: '#/components/parameters/fromDate'
         - $ref: '#/components/parameters/tillDate'
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/creator'
+        - $ref: '#/components/parameters/includeStages'
       summary: find jobs by criteria
       tags:
         - jobs
@@ -76,6 +77,8 @@ paths:
       - $ref: '#/components/parameters/jobId'
     get:
       operationId: getJobById
+      parameters:
+        - $ref: '#/components/parameters/includeStages'
       summary: Get job by id
       tags:
         - jobs
@@ -88,6 +91,38 @@ paths:
                 $ref: '#/components/schemas/jobResponse'
         '400':
           description: Invalid request, could not get job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+    delete:
+      operationId: deleteJob
+      summary: Delete job by id (cascades with stages)
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Job deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_DELETED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
           content:
             application/json:
               schema:
@@ -270,6 +305,48 @@ paths:
                 $ref: '#/components/schemas/errorMessage'
         '404':
           description: No such job in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+    post:
+      operationId: addStages
+      summary: Adds stages to the end of a dynamic job's existing stages
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/createStagePayload'
+      responses:
+        '201':
+          description: Returns the newly created stages associated with the job ID.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/stageResponse'
+        '400':
+          description: Invalid request, could not create stage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
           content:
             application/json:
               schema:
@@ -503,7 +580,7 @@ components:
     #   required: false
     #   schema:
     #     $ref: '#/components/schemas/status'
-    jmode:
+    jobModeQueryParam:
       in: query
       name: job_mode
       description: |
@@ -511,7 +588,7 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/jobMode'
-    jname:
+    jobNameQueryParam:
       in: query
       name: job_name
       description: |
@@ -551,6 +628,14 @@ components:
       schema:
         type: string
         format: date-time
+    includeStages:
+      in: query
+      name: should_return_stages
+      description: indicated if response body should contain also stages array
+      required: false
+      schema:
+        $ref: '#/components/schemas/returnStage'
+
     # sId:
     #   in: query
     #   name: stage_id
@@ -643,7 +728,7 @@ components:
       enum:
         - JOB_MODIFIED_SUCCESSFULLY
         - STAGE_MODIFIED_SUCCESSFULLY
-        # - TTL_MODIFIED_SUCCESSFULLY
+        - JOB_DELETED_SUCCESSFULLY
         # - JOB_RESTARTED_SUCCESSFULLY
         # - STATUS_MODIFIED_SUCCESSFULLY
         # - USER_METADATA_MODIFIED_SUCCESSFULLY
@@ -707,6 +792,8 @@ components:
         - EXPORT
         - DEFAULT
       example: DEFAULT
+    returnStage:
+      type: boolean
     userMetadata:
       type: object
       additionalProperties: true
@@ -716,7 +803,7 @@ components:
     createJobPayload:
       type: object
       properties:
-        type:
+        jobMode:
           $ref: '#/components/schemas/jobMode'
         name:
           $ref: '#/components/schemas/jobName'
@@ -734,9 +821,13 @@ components:
           $ref: '#/components/schemas/userMetadata'
         creator:
           $ref: '#/components/schemas/creator'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/createStagePayload'
       required:
         - data
-        - type
+        - jobMode
         - creator
         - userMetadata
         - notifications
@@ -752,12 +843,18 @@ components:
           properties:
             id:
               $ref: '#/components/schemas/jobId'
+            status:
+              $ref: '#/components/schemas/jobOperationStatus'
             percentage:
               $ref: '#/components/schemas/percentage'
             creationTime:
               $ref: '#/components/schemas/creationTime'
             updateTime:
               $ref: '#/components/schemas/updateTime'
+            stages:
+              type: array
+              items:
+                $ref: '#/components/schemas/stageResponse'
     createStagePayload:
       type: object
       properties:
@@ -765,14 +862,11 @@ components:
           $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/stagePayload'
-        jobId:
-          $ref: '#/components/schemas/jobId'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
       required:
         - data
         - type
-        - jobId
         - userMetadata
     stageResponse:
       allOf:
@@ -788,6 +882,8 @@ components:
               $ref: '#/components/schemas/summary'
             percentage:
               $ref: '#/components/schemas/percentage'
+            status:
+              $ref: '#/components/schemas/stageOperationStatus'
     taskId:
       type: string
       format: uuid
@@ -855,7 +951,7 @@ components:
           $ref: '#/components/schemas/updateTime'
         expirationTime:
           $ref: '#/components/schemas/expirationTime'
-        type:
+        jobMode:
           $ref: '#/components/schemas/jobMode'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
@@ -869,7 +965,10 @@ components:
           $ref: '#/components/schemas/notifications'
         name:
           $ref: '#/components/schemas/jobName'
-
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/stageResponse'
       additionalProperties: false
       required:
         - id

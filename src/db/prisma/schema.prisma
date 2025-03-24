@@ -13,10 +13,9 @@ datasource db {
 }
 
 model Job {
-  id   String @id @default(uuid()) @db.Uuid
+  id             String             @id @default(uuid()) @db.Uuid
   /// [JobData]
-  data Json   @default("{}")
-
+  data           Json               @default("{}")
   status         JobOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate         Json
@@ -24,8 +23,8 @@ model Job {
   creationTime   DateTime           @default(now()) @map("creation_time")
   updateTime     DateTime           @updatedAt @map("update_time")
   expirationTime DateTime?          @map("expiration_time")
-  type           JobMode            @default(PRE_DEFINED)
-  userMetadata   Json            @default("{}") @map("user_metadata")
+  jobMode        JobMode            @default(PRE_DEFINED) @map("job_mode")
+  userMetadata   Json               @default("{}") @map("user_metadata")
   priority       Priority           @default(VERY_LOW)
   creator        Creator            @default(UNKNOWN)
   ttl            DateTime?
@@ -99,11 +98,12 @@ model Stage {
   /// [StageData]
   data Json   @default("{}")
 
-  job   Job    @relation(fields: [job_id], references: [id])
+  job    Job    @relation(fields: [job_id], references: [id], onDelete: Cascade)
   job_id String @db.Uuid
 
   percentage   Int                  @default(0)
-  userMetadata Json                 @default("{}")
+  /// [UserMetadata]
+  userMetadata Json                 @default("{}") @map("user_metadata")
   /// [StageSummary]
   summary      Json                 @default("{}")
   status       StageOperationStatus @default(CREATED)

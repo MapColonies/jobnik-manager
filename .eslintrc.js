@@ -7,7 +7,7 @@ const AllowedSqlOperators = {
   format: null,
   filter: {
     match: true,
-    regex: '^(AND|OR)$',
+    regex: '^(AND|OR|Stage|job_id)$',
   },
 };
 

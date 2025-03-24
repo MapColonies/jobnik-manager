@@ -2,10 +2,15 @@ import { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
-import { Prisma } from '@prisma/client';
+import { JobMode, Prisma, StageOperationStatus } from '@prisma/client';
 import { JobManager } from '@src/jobs/models/manager';
-import type { StageFindCriteriaArg, StageModel, StageSummary } from './models';
-import { prismaKnownErrors, StageNotFoundError } from './errors';
+import { createActor } from 'xstate';
+import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { InvalidUpdateError } from '@src/common/errors';
+import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
+import { prismaKnownErrors, StageNotFoundError, errorMessages as stagesErrorMessages } from './errors';
+import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 
 @injectable()
 export class StageManager {
@@ -15,13 +20,62 @@ export class StageManager {
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
+  public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<StageModel[]> {
+    // todo - use stages machine on next phase when will be implemented
+    const createJobActor = createActor(jobStateMachine).start();
+    const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+
+    const job = await this.jobManager.getJobEntityById(jobId);
+
+    if (!job) {
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
+    }
+
+    // can add stages only on dynamic jobs
+    if (job.jobMode !== JobMode.DYNAMIC) {
+      throw new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError);
+    }
+
+    const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+
+    // can't add stages to finite jobs (final states)
+    if (checkJobStatus.getSnapshot().status === 'done') {
+      throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
+    }
+
+    const stageInput = stagesPayload.map(
+      (stageData) =>
+        ({
+          data: stageData.data,
+          name: stageData.type,
+          xstate: persistenceSnapshot,
+          userMetadata: stageData.userMetadata,
+          status: StageOperationStatus.CREATED,
+          job_id: jobId,
+        }) satisfies Prisma.StageCreateManyInput
+    );
+
+    const queryBody = {
+      data: stageInput,
+    };
+
+    try {
+      const stages = await this.prisma.stage.createManyAndReturn(queryBody);
+
+      return convertArrayPrismaStageToStageResponse(stages);
+    } catch (error) {
+      this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
+
+      throw error;
+    }
+  }
+
   public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
     let queryBody = undefined;
     if (params !== undefined) {
       queryBody = {
         where: {
           AND: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             job_id: { equals: params.job_id },
             name: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
@@ -32,7 +86,7 @@ export class StageManager {
 
     const stages = await this.prisma.stage.findMany(queryBody);
 
-    const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
+    const result = convertArrayPrismaStageToStageResponse(stages);
     return result;
   }
 
@@ -46,10 +100,10 @@ export class StageManager {
     const stage = await this.prisma.stage.findUnique(queryBody);
 
     if (!stage) {
-      throw new StageNotFoundError('STAGE_NOT_FOUND');
+      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
-    return this.convertPrismaToStageResponse(stage);
+    return convertPrismaToStageResponse(stage);
   }
 
   public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
@@ -58,13 +112,12 @@ export class StageManager {
 
     const queryBody = {
       where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         job_id: jobId,
       },
     };
 
     const stages = await this.prisma.stage.findMany(queryBody);
-    const result = stages.map((stage) => this.convertPrismaToStageResponse(stage));
+    const result = stages.map((stage) => convertPrismaToStageResponse(stage));
     return result;
   }
 
@@ -94,18 +147,5 @@ export class StageManager {
       }
       throw err;
     }
-  }
-
-  private convertPrismaToStageResponse(prismaObjects: Prisma.StageGetPayload<Record<string, never>>): StageModel {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
-    const transformedFields = {
-      data: data as Record<string, unknown>,
-      userMetadata: userMetadata as Record<string, never>,
-      summary: summary as Record<string, never>,
-      type: name,
-      jobId: job_id,
-    };
-    return Object.assign(rest, transformedFields);
   }
 }

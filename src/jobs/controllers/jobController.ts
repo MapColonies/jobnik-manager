@@ -4,10 +4,10 @@ import { injectable, inject } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
+import { InvalidDeletionError, InvalidUpdateError } from '@common/errors';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg, successMessages } from '../models/models';
 import { JobNotFoundError } from '../models/errors';
-import { InvalidUpdateError } from '../../common/errors';
 
 @injectable()
 export class JobController {
@@ -43,7 +43,13 @@ export class JobController {
 
   public getJobById: TypedRequestHandlers['GET /jobs/{jobId}'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getJobById(req.params.jobId);
+      let includeStages: boolean | undefined = false;
+
+      if (req.query) {
+        includeStages = req.query.should_return_stages;
+      }
+
+      const response = await this.manager.getJobById(req.params.jobId, includeStages);
 
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
@@ -102,6 +108,22 @@ export class JobController {
       } else if (err instanceof InvalidUpdateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error({ msg: `Job status update failed: invalid status transition`, status: req.body.status, err });
+      }
+
+      return next(err);
+    }
+  };
+
+  public deleteJob: TypedRequestHandlers['DELETE /jobs/{jobId}'] = async (req, res, next) => {
+    try {
+      await this.manager.deleteJob(req.params.jobId);
+
+      return res.status(httpStatus.OK).json({ code: successMessages.jobDeletedSuccessfully });
+    } catch (err) {
+      if (err instanceof JobNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidDeletionError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
       return next(err);
