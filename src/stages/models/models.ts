@@ -17,4 +17,5 @@ type StageCreateModel = components['schemas']['createStagePayload'];
 type StageSummary = components['schemas']['summary'];
 type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
 
-export { StageSummary, StageModel, StageFindCriteriaArg, StageCreateModel, successMessages };
+export { successMessages };
+export type { StageSummary, StageModel, StageFindCriteriaArg, StageCreateModel };

@@ -1,4 +1,3 @@
-// @ts-expect-error https://github.com/google/zx/issues/871
 import { $ } from 'zx';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { initConfig, getConfig } from '../../../src/common/config';
