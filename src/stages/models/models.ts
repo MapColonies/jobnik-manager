@@ -1,5 +1,5 @@
-import type { components, operations } from '@src/openapi';
 import type { CamelCase, ScreamingSnakeCase } from 'type-fest';
+import type { components, operations } from '@src/openapi';
 
 type SuccessMessages = components['schemas']['successMessages'];
 type SuccessMessagesObj = {

@@ -1,8 +1,8 @@
 import { Application } from 'express';
 import { DependencyContainer } from 'tsyringe';
-import type { ConfigType } from '@common/config';
 import { PrismaClient } from '@prisma/client';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
+import type { ConfigType } from '@common/config';
 import { registerExternalValues, RegisterOptions } from './containerConfig';
 import { ServerBuilder } from './serverBuilder';
 import { SERVICES } from './common/constants';

@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
 import { JobOperationStatus, Prisma, Stage, StageOperationStatus } from '@prisma/client';
+import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
-import { createActor } from 'xstate';
 
 const randomUuid = faker.string.uuid();
 

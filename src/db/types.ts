@@ -1,5 +1,5 @@
-import { components } from '@openapi';
 import { Snapshot } from 'xstate';
+import { components } from '@openapi';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
