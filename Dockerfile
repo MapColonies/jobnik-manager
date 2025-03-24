@@ -5,12 +5,13 @@ WORKDIR /tmp/buildApp
 
 COPY ./package*.json ./
 COPY .husky/ .husky/
+COPY ./src/db/prisma/schema.prisma ./db/prisma/schema.prisma
 
 RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:20.3.1-alpine3.17 as production
+FROM node:20.19.0-alpine3.21 as production
 
 RUN apk add dumb-init
 
@@ -22,6 +23,7 @@ WORKDIR /usr/src/app
 
 COPY --chown=node:node package*.json ./
 COPY .husky/ .husky/
+COPY --chown=node:node ./src/db/prisma/schema.prisma ./db/prisma/schema.prisma
 
 RUN npm ci --only=production
 
@@ -29,7 +31,7 @@ COPY --chown=node:node --from=build /tmp/buildApp/dist .
 COPY --chown=node:node ./config ./config
 
 # to include prisma cli installation 
-RUN npm run migration:format 
+RUN npx prisma format --check --schema ./db/prisma/schema.prisma
 
 USER node
 EXPOSE 8080
