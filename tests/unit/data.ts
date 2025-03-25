@@ -1,8 +1,7 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
-import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobOperationStatus } from '@prisma/client';
+import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { createJobEntity, createStageEntity } from './generator';
 
 const deleteActor = createActor(jobStateMachine).start();

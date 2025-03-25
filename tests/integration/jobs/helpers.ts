@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { StageOperationStatus, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
+import { faker } from '@faker-js/faker';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
 import { JobCreateModel } from '@src/jobs/models/models';
-import { faker } from '@faker-js/faker';
 
 export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<Prisma.JobGetPayload<Record<string, never>>> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();

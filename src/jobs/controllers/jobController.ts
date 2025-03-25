@@ -1,9 +1,9 @@
 import type { Logger } from '@map-colonies/js-logger';
 import httpStatus from 'http-status-codes';
 import { injectable, inject } from 'tsyringe';
-import { SERVICES } from '@common/constants';
-import type { TypedRequestHandlers } from '@openapi';
 import { HttpError } from '@map-colonies/error-express-handler';
+import type { TypedRequestHandlers } from '@openapi';
+import { SERVICES } from '@common/constants';
 import { InvalidDeletionError, InvalidUpdateError } from '@common/errors';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg, successMessages } from '../models/models';

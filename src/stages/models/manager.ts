@@ -1,10 +1,10 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import { SERVICES } from '@common/constants';
 import type { PrismaClient } from '@prisma/client';
 import { JobMode, Prisma, StageOperationStatus } from '@prisma/client';
-import { JobManager } from '@src/jobs/models/manager';
 import { createActor } from 'xstate';
+import { JobManager } from '@src/jobs/models/manager';
+import { SERVICES } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
