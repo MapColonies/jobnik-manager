@@ -96,4 +96,21 @@ export class StageController {
       return next(err);
     }
   };
+
+  public updateStatus: TypedRequestHandlers['PUT /stages/{stageId}/status'] = async (req, res, next) => {
+    try {
+      await this.manager.updateStatus(req.params.stageId, req.body.status);
+
+      return res.status(httpStatus.OK).json({ code: successMessages.stageModifiedSuccessfully });
+    } catch (err) {
+      if (err instanceof StageNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
+        this.logger.error({ msg: `Stage status update failed: invalid status transition`, status: req.body.status, err });
+      }
+
+      return next(err);
+    }
+  };
 }

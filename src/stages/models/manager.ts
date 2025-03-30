@@ -6,11 +6,12 @@ import { createActor } from 'xstate';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { InvalidUpdateError } from '@src/common/errors';
+import { InvalidUpdateError, errorMessages as commonErrorMessages } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import type { StageCreateModel, StageFindCriteriaArg, StageModel, StageSummary } from './models';
+import type { StageCreateModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
 import { prismaKnownErrors, StageNotFoundError, errorMessages as stagesErrorMessages } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
+import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
 @injectable()
 export class StageManager {
@@ -21,9 +22,8 @@ export class StageManager {
   ) {}
 
   public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<StageModel[]> {
-    // todo - use stages machine on next phase when will be implemented
-    const createJobActor = createActor(jobStateMachine).start();
-    const persistenceSnapshot = createJobActor.getPersistedSnapshot();
+    const createStageActor = createActor(stageStateMachine).start();
+    const persistenceSnapshot = createStageActor.getPersistedSnapshot();
 
     const job = await this.jobManager.getJobEntityById(jobId);
 
@@ -147,5 +147,53 @@ export class StageManager {
       }
       throw err;
     }
+  }
+
+  /**
+   * This method is used to get a stage entity by its id from the database.
+   * @param stageId unique identifier of the stage.
+   * @returns The stage entity if found, otherwise null.
+   */
+  public async getStageEntityById(stageId: string): Promise<StagePrismaObject | null> {
+    const queryBody = {
+      where: {
+        id: stageId,
+      },
+    };
+
+    const stage = await this.prisma.stage.findUnique(queryBody);
+
+    return stage;
+  }
+
+  public async updateStatus(stageId: string, status: StageOperationStatus): Promise<void> {
+    const stage = await this.getStageEntityById(stageId);
+
+    if (!stage) {
+      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+    }
+
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
+    const updateQueryBody = {
+      where: {
+        id: stageId,
+      },
+      data: {
+        status,
+        xstate: newPersistedSnapshot,
+      },
+    };
+
+    await this.prisma.stage.update(updateQueryBody);
   }
 }

@@ -3,8 +3,8 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobMode, JobOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
-import { Snapshot } from 'xstate';
+import { JobMode, JobOperationStatus, StageOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
+import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
@@ -13,7 +13,9 @@ import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageCreateModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from '../jobs/helpers';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { errorMessages as commonErrorMessages } from '@src/common/errors';
+import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -21,6 +23,7 @@ describe('stage', function () {
 
   let createStageRecord: (jobId: string) => Promise<Prisma.StageGetPayload<Record<string, never>>>;
   const dumpUuid = faker.string.uuid();
+  const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
   beforeAll(async function () {
     await initConfig(true);
@@ -43,7 +46,7 @@ describe('stage', function () {
         job_id: jobId,
         name: 'DEFAULT' as StageName,
         data: {},
-        xstate: { status: 'active', error: undefined, output: undefined } as Snapshot<unknown>,
+        xstate: persistedSnapshot,
         userMetadata: {},
       };
       const res = await prisma.stage.create({ data: requestBody });
@@ -475,6 +478,79 @@ describe('stage', function () {
         const response = await requestSender.addStages({
           requestBody: [],
           pathParams: { jobId: testJobId },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#updateStatus', function () {
+    describe('Happy Path', function () {
+      it("should return 201 status code and modify stages's status", async function () {
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+
+        if (!job.Stage[0]) {
+          throw new Error('Stage was not created');
+        }
+
+        const createdStageId = job.Stage[0].id;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: createdStageId },
+          requestBody: { status: StageOperationStatus.PENDING },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
+
+        expect(getJobResponse).toHaveProperty('body.status', JobOperationStatus.PENDING);
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('should return 400 with detailed error for invalid status transition', async function () {
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+
+        if (!job.Stage[0]) {
+          throw new Error('Stage was not created');
+        }
+
+        const createdStageId = job.Stage[0].id;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: createdStageId },
+          requestBody: { status: JobOperationStatus.COMPLETED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: commonErrorMessages.invalidStatusChange } });
+      });
+
+      it('should return 404 with specific error message for non-existent stage', async function () {
+        const getJobResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: testStageId },
+          requestBody: { status: StageOperationStatus.COMPLETED },
+        });
+
+        expect(getJobResponse).toSatisfyApiSpec();
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: stagesErrorMessages.stageNotFound },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+
+        const response = await requestSender.updateStageStatus({
+          pathParams: { stageId: testStageId },
+          requestBody: { status: StageOperationStatus.PENDING },
         });
 
         expect(response).toSatisfyApiSpec();

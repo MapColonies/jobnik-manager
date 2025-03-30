@@ -6,6 +6,7 @@ import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { StageCreateModel } from '@src/stages/models/models';
+import { randomUuid } from '@tests/unit/generator';
 import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from '../data';
 
 let jobManager: JobManager;
@@ -198,9 +199,12 @@ describe('JobManager', () => {
     describe('#updateStatus', () => {
       describe('#HappyPath', () => {
         it('should successfully update job status by id', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
+          const jobId = randomUuid;
 
-          await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.PENDING)).toResolve();
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, id: jobId });
+          jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
+
+          await expect(jobManager.updateStatus(jobId, JobOperationStatus.PENDING)).toResolve();
         });
       });
 

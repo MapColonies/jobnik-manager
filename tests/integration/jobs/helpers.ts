@@ -3,10 +3,12 @@ import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
-import { JobCreateModel } from '@src/jobs/models/models';
+import { JobCreateModel, jobPrismaObject } from '@src/jobs/models/models';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<Prisma.JobGetPayload<Record<string, never>>> => {
+export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<jobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
+  const stagesPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
   let input = undefined;
   let stagesInput = undefined;
@@ -17,7 +19,7 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
     stagesInput = stages.map((stage) => {
       const { type, ...rest } = stage;
 
-      const stageFull = Object.assign(rest, { xstate: persistedSnapshot, name: type, status: StageOperationStatus.CREATED });
+      const stageFull = Object.assign(rest, { xstate: stagesPersistedSnapshot, name: type, status: StageOperationStatus.CREATED });
       return stageFull;
     });
     input = { ...bodyInput, xstate: persistedSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
@@ -55,3 +57,4 @@ export const createJobRequestWithStagesBody = {
 } satisfies JobCreateModel;
 
 export const testJobId = faker.string.uuid();
+export const testStageId = faker.string.uuid();
