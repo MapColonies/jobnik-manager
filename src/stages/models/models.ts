@@ -1,4 +1,5 @@
 import type { CamelCase, ScreamingSnakeCase } from 'type-fest';
+import { Prisma } from '@prisma/client';
 import type { components, operations } from '@src/openapi';
 
 type SuccessMessages = components['schemas']['successMessages'];
@@ -16,6 +17,7 @@ type StageModel = components['schemas']['stageResponse'];
 type StageCreateModel = components['schemas']['createStagePayload'];
 type StageSummary = components['schemas']['summary'];
 type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
+type StagePrismaObject = Prisma.StageGetPayload<Prisma.StageDefaultArgs>;
 
 export { successMessages };
-export type { StageSummary, StageModel, StageFindCriteriaArg, StageCreateModel };
+export type { StageSummary, StageModel, StageFindCriteriaArg, StageCreateModel, StagePrismaObject };

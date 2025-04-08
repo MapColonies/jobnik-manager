@@ -186,6 +186,23 @@ export type paths = {
     patch: operations['updateStageUserMetadata'];
     trace?: never;
   };
+  '/stages/{stageId}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    /** change stage's status */
+    put: operations['updateStageStatus'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -1019,6 +1036,62 @@ export interface operations {
     };
     responses: {
       /** @description modify user metadata object */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage on database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateStageStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Stage */
+        stageId: components['parameters']['stageId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          status: components['schemas']['stageOperationStatus'];
+        };
+      };
+    };
+    responses: {
+      /** @description Stage and tasks will move to wait status */
       200: {
         headers: {
           [name: string]: unknown;

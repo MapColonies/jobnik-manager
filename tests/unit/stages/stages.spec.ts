@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, StageName, JobMode } from '@prisma/client';
+import { PrismaClient, Prisma, StageName, JobMode, StageOperationStatus } from '@prisma/client';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { InvalidUpdateError } from '@src/common/errors';
+import { errorMessages as commonErrorMessages, InvalidUpdateError } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
-import { createStageEntity, createJobEntity } from '../generator';
+import { createStageEntity, createJobEntity, randomUuid } from '../generator';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
@@ -232,6 +232,43 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'createManyAndReturn').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.addStages(jobEntity.id, [])).rejects.toThrow('db connection error');
+        });
+      });
+    });
+
+    describe('#updateStatus', () => {
+      describe('#HappyPath', () => {
+        it('should successfully update stage status by id', async function () {
+          const stageId = randomUuid;
+
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue({ ...stageEntity, id: stageId });
+          jest.spyOn(prisma.stage, 'update').mockResolvedValue({ ...stageEntity, id: stageId });
+
+          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.PENDING)).toResolve();
+        });
+      });
+
+      describe('#BadPath', () => {
+        it('should fail when updating status for a state that does not exist', async function () {
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
+
+          await expect(stageManager.updateStatus('someId', StageOperationStatus.PENDING)).rejects.toThrow(stagesErrorMessages.stageNotFound);
+        });
+
+        it('should fail on invalid status transition', async function () {
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+
+          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
+            commonErrorMessages.invalidStatusChange
+          );
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should fail with a database error when updating status', async function () {
+          jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(stageManager.updateStatus('someId', StageOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
         });
       });
     });

@@ -4,9 +4,11 @@ import { JobOperationStatus, Prisma, Stage, StageOperationStatus } from '@prisma
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-const randomUuid = faker.string.uuid();
+const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
+export const randomUuid = faker.string.uuid();
 export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unknown>> {
   Stage?: Stage[];
 }
@@ -53,11 +55,7 @@ export const createStageEntity = (
     status: StageOperationStatus.CREATED,
     userMetadata: {},
     percentage: 0,
-    xstate: {
-      status: 'active',
-      output: undefined,
-      error: undefined,
-    },
+    xstate: stageInitializedPersistedSnapshot,
   } satisfies Prisma.StageGetPayload<Record<string, never>>;
   return { ...stageEntity, ...override };
 };
