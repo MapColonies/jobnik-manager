@@ -401,12 +401,6 @@ export type components = {
     taskPayload: {
       [key: string]: unknown;
     };
-    createTaskPayload: {
-      type: components['schemas']['taskType'];
-      data: components['schemas']['taskPayload'];
-      stageId: components['schemas']['stageId'];
-      userMetadata?: components['schemas']['userMetadata'];
-    };
     taskResponse: {
       id: components['schemas']['taskId'];
       type: components['schemas']['taskType'];

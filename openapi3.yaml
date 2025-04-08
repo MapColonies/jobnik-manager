@@ -1049,22 +1049,22 @@ components:
     taskPayload:
       type: object
       additionalProperties: true
-    createTaskPayload:
-      type: object
-      properties:
-        type:
-          $ref: '#/components/schemas/taskType'
-        data:
-          $ref: '#/components/schemas/taskPayload'
-        stageId:
-          $ref: '#/components/schemas/stageId'
-        userMetadata:
-          $ref: '#/components/schemas/userMetadata'
-      required:
-        - data
-        - type
-        - stageId
-      additionalProperties: false
+    # createTaskPayload:
+    #   type: object
+    #   properties:
+    #     type:
+    #       $ref: '#/components/schemas/taskType'
+    #     data:
+    #       $ref: '#/components/schemas/taskPayload'
+    #     stageId:
+    #       $ref: '#/components/schemas/stageId'
+    #     userMetadata:
+    #       $ref: '#/components/schemas/userMetadata'
+    #   required:
+    #     - data
+    #     - type
+    #     - stageId
+    #   additionalProperties: false
     taskResponse:
       type: object
       properties:
