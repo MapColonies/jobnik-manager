@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
-import { JobOperationStatus, Prisma, Stage, StageOperationStatus } from '@prisma/client';
+import { JobOperationStatus, Prisma, Stage, StageOperationStatus, TaskOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { TaskPrismaObject } from '@src/tasks/models/models';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
@@ -58,4 +59,21 @@ export const createStageEntity = (
     xstate: stageInitializedPersistedSnapshot,
   } satisfies Prisma.StageGetPayload<Record<string, never>>;
   return { ...stageEntity, ...override };
+};
+
+export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrismaObject => {
+  const taskEntity = {
+    data: {},
+    type: 'DEFAULT',
+    stage_id: faker.string.uuid(),
+    id: faker.string.uuid(),
+    status: TaskOperationStatus.CREATED,
+    userMetadata: {},
+    attempts: 0,
+    creationTime: new Date(),
+    updateTime: new Date(),
+    //replace with task xstate machine once implemented
+    xstate: stageInitializedPersistedSnapshot,
+  } satisfies TaskPrismaObject;
+  return { ...taskEntity, ...override };
 };

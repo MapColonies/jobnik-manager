@@ -3,9 +3,9 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobMode, JobOperationStatus, StageOperationStatus, type Prisma, type PrismaClient, type StageName } from '@prisma/client';
-import { createActor } from 'xstate';
+import { JobMode, JobOperationStatus, StageOperationStatus, type PrismaClient, type StageName } from '@prisma/client';
 import { faker } from '@faker-js/faker';
+import { Pool } from 'pg';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
@@ -13,17 +13,16 @@ import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageCreateModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
+import { createStageRecord, createStageWithoutTaskBody } from './helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
+  let pool: Pool;
 
-  let createStageRecord: (jobId: string) => Promise<Prisma.StageGetPayload<Record<string, never>>>;
   const dumpUuid = faker.string.uuid();
-  const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
   beforeAll(async function () {
     await initConfig(true);
@@ -40,18 +39,12 @@ describe('stage', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    pool = container.resolve<Pool>(SERVICES.PG_POOL);
+  });
 
-    createStageRecord = async (jobId: string): Promise<Prisma.StageGetPayload<Record<string, never>>> => {
-      const requestBody = {
-        job_id: jobId,
-        name: 'DEFAULT' as StageName,
-        data: {},
-        xstate: persistedSnapshot,
-        userMetadata: {},
-      };
-      const res = await prisma.stage.create({ data: requestBody });
-      return res;
-    };
+  afterEach(async () => {
+    await prisma.$disconnect();
+    await pool.end();
   });
 
   afterAll(async () => {
@@ -61,9 +54,9 @@ describe('stage', function () {
   describe('#getStages', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching stage', async function () {
-        await createJobRecord(createJobRequestWithStagesBody, prisma);
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
 
-        const response = await requestSender.getStages({ queryParams: { stage_type: 'DEFAULT' as StageName } });
+        const response = await requestSender.getStages({ queryParams: { job_id: job.id } });
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
@@ -72,7 +65,8 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and empty array', async function () {
-        const response = await requestSender.getStages({ queryParams: { job_id: dumpUuid } });
+        const someRandomUuid = faker.string.uuid();
+        const response = await requestSender.getStages({ queryParams: { job_id: someRandomUuid } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -84,7 +78,14 @@ describe('stage', function () {
       it('should return 200 status code and all the stages if no query params were defined', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
-        await createStageRecord(createdJobId);
+
+        await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
 
         const response = await requestSender.getStages();
 
@@ -132,7 +133,14 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
-        const stage = await createStageRecord(createdJobId);
+        const stage = await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
+
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
@@ -180,7 +188,13 @@ describe('stage', function () {
       it('should return 200 status code and return the stages', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
-        const stage = await createStageRecord(createdJobId);
+        const stage = await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
 
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
 
@@ -243,7 +257,14 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
-        const stage = await createStageRecord(createdJobId);
+        const stage = await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
+
         const getStageResponse = await requestSender.getStageSummary({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
@@ -292,7 +313,13 @@ describe('stage', function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
-        const stage = await createStageRecord(createdJobId);
+        const stage = await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
 
         const updateUserMetadataResponse = await requestSender.updateStageUserMetadata({
           pathParams: { stageId: stage.id },
@@ -320,7 +347,13 @@ describe('stage', function () {
       it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
-        const stage = await createStageRecord(createdJobId);
+        const stage = await createStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            job_id: createdJobId,
+          },
+          prisma
+        );
 
         const response = await requestSender.updateStageUserMetadata({
           pathParams: { stageId: stage.id },

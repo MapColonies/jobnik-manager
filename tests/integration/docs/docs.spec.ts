@@ -1,6 +1,8 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import httpStatusCodes from 'http-status-codes';
+import { Pool } from 'pg';
+import { PrismaClient } from '@prisma/client';
 import { getApp } from '@src/app';
 import { SERVICES } from '@src/common/constants';
 import { initConfig } from '@src/common/config';
@@ -8,21 +10,35 @@ import { DocsRequestSender } from './helpers/docsRequestSender';
 
 describe('docs', function () {
   let requestSender: DocsRequestSender;
+  let prisma: PrismaClient;
+  let pool: Pool;
 
   beforeAll(async function () {
     await initConfig(true);
   });
 
   beforeEach(async function () {
-    const [app] = await getApp({
+    const [app, container] = await getApp({
       override: [
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
         { token: SERVICES.TRACER, provider: { useValue: trace.getTracer('testTracer') } },
       ],
       useChild: true,
     });
+
     requestSender = new DocsRequestSender(app);
+    prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    pool = container.resolve<Pool>(SERVICES.PG_POOL);
   });
+
+  afterEach(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });
+
+  // afterAll(async () => {
+  //   await prisma.$disconnect();
+  // });
 
   describe('Happy Path', function () {
     it('should return 200 status code and the resource', async function () {

@@ -6,10 +6,10 @@ import { createActor } from 'xstate';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { InvalidUpdateError, errorMessages as commonErrorMessages } from '@src/common/errors';
+import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { StageCreateModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
-import { prismaKnownErrors, StageNotFoundError, errorMessages as stagesErrorMessages } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
@@ -70,7 +70,7 @@ export class StageManager {
     }
   }
 
-  public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
+  public async getStages(params: StageFindCriteriaArg): Promise<StageModel[] | undefined> {
     let queryBody = undefined;
     if (params !== undefined) {
       queryBody = {
@@ -91,13 +91,7 @@ export class StageManager {
   }
 
   public async getStageById(stageId: string): Promise<StageModel> {
-    const queryBody = {
-      where: {
-        id: stageId,
-      },
-    };
-
-    const stage = await this.prisma.stage.findUnique(queryBody);
+    const stage = await this.getStageEntityById(stageId);
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -143,7 +137,7 @@ export class StageManager {
       await this.prisma.stage.update(updateQueryBody);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new StageNotFoundError('STAGE_NOT_FOUND');
+        throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
       }
       throw err;
     }

@@ -542,6 +542,154 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/stageId'
+    get:
+      operationId: getTasksByStageId
+      summary: Get task by stage ID
+      responses:
+        '200':
+          description: Requested tasks array by provided stage identifier
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such task in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - stages
+  /tasks:
+    parameters:
+      - $ref: '#/components/parameters/paramStageId'
+      - $ref: '#/components/parameters/paramTaskType'
+      - $ref: '#/components/parameters/fromDate'
+      - $ref: '#/components/parameters/tillDate'
+      - $ref: '#/components/parameters/paramsTaskStatus'
+    get:
+      operationId: getTasksByCriteria
+      summary: Get task by criteria
+      responses:
+        '200':
+          description: Requested tasks array by provided query params
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such task in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - tasks
+  /tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    get:
+      operationId: getTaskById
+      summary: Get task by ID
+      responses:
+        '200':
+          description: Requested task object by identifier
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such task in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - tasks
+  /tasks/{taskId}/user-metadata:
+    patch:
+      operationId: updateTaskUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      summary: update user metadata object
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: modify user metadata object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: TASK_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:
@@ -560,13 +708,13 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/stageId'
-    # taskId:
-    #   in: path
-    #   name: taskId
-    #   description: ID of requested task
-    #   required: true
-    #   schema:
-    #     type: string
+    taskId:
+      in: path
+      name: taskId
+      description: ID of requested task
+      required: true
+      schema:
+        type: string
     # taskType:
     #   in: path
     #   name: taskType
@@ -574,14 +722,14 @@ components:
     #   required: true
     #   schema:
     #     $ref: '#/components/schemas/taskType'
-    # status:
-    #   in: query
-    #   name: status
-    #   description: |
-    #     The status of the job.
-    #   required: false
-    #   schema:
-    #     $ref: '#/components/schemas/status'
+    paramsTaskStatus:
+      in: query
+      name: status
+      description: |
+        The status of the job.
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskOperationStatus'
     jobModeQueryParam:
       in: query
       name: job_mode
@@ -638,13 +786,13 @@ components:
       schema:
         $ref: '#/components/schemas/returnStage'
 
-    # sId:
-    #   in: query
-    #   name: stage_id
-    #   description: unique stage identifier
-    #   required: false
-    #   schema:
-    #     $ref: '#/components/schemas/stageId'
+    paramStageId:
+      in: query
+      name: stage_id
+      description: unique stage identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/stageId'
     paramJobId:
       in: query
       name: job_id
@@ -667,13 +815,13 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/stageOperationStatus'
-    # tType:
-    #   in: query
-    #   name: task_type
-    #   description: task's type
-    #   required: false
-    #   schema:
-    #     $ref: '#/components/schemas/taskType'
+    paramTaskType:
+      in: query
+      name: task_type
+      description: task's type
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
     # jobName:
     #   in: path
     #   name: jobName
@@ -729,6 +877,7 @@ components:
       type: string
       enum:
         - JOB_MODIFIED_SUCCESSFULLY
+        - TASK_MODIFIED_SUCCESSFULLY
         - STAGE_MODIFIED_SUCCESSFULLY
         - JOB_DELETED_SUCCESSFULLY
         # - JOB_RESTARTED_SUCCESSFULLY
@@ -766,7 +915,6 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-
     taskOperationStatus:
       type: string
       enum:
@@ -900,6 +1048,7 @@ components:
       example: DEFAULT
     taskPayload:
       type: object
+      additionalProperties: true
     createTaskPayload:
       type: object
       properties:
@@ -909,22 +1058,26 @@ components:
           $ref: '#/components/schemas/taskPayload'
         stageId:
           $ref: '#/components/schemas/stageId'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
       required:
         - data
         - type
         - stageId
       additionalProperties: false
     taskResponse:
-      allOf:
-        - $ref: '#/components/schemas/createTaskPayload'
       type: object
-      required:
-        - id
-        - stageId
-        - taskOperationStatus
       properties:
         id:
           $ref: '#/components/schemas/taskId'
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/taskPayload'
+        stageId:
+          $ref: '#/components/schemas/stageId'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
         creationTime:
           $ref: '#/components/schemas/creationTime'
         updateTime:
@@ -933,8 +1086,13 @@ components:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'
-        priority:
-          $ref: '#/components/schemas/priority'
+      required:
+        - id
+        - type
+        - data
+        - stageId
+        - status
+      additionalProperties: false
     createJobResponse:
       type: object
       properties:

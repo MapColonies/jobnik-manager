@@ -8,6 +8,7 @@ declare global {
     type UserMetadata = components['schemas']['userMetadata'];
     type StageData = components['schemas']['stagePayload'];
     type StageSummary = components['schemas']['summary'];
+    type TaskData = components['schemas']['taskPayload'];
     type PersistenceSnapshot = Snapshot<unknown>;
   }
 }

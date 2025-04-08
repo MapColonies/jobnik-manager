@@ -4,18 +4,19 @@ import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
-import { SERVICES } from '@common/constants';
+import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { successMessages } from '@src/stages/models/models';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
+  let pool: Pool;
 
   beforeAll(async function () {
     await initConfig(true);
@@ -32,6 +33,12 @@ describe('job', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    pool = container.resolve<Pool>(SERVICES.PG_POOL);
+  });
+
+  afterEach(async () => {
+    await prisma.$disconnect();
+    await pool.end();
   });
 
   afterAll(async () => {

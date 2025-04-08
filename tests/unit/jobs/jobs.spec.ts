@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
+import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -12,7 +12,7 @@ import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithout
 let jobManager: JobManager;
 const prisma = new PrismaClient();
 
-const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
+const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {

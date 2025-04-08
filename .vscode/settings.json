@@ -17,5 +17,8 @@
     {
       "file": "node_modules/@map-colonies/infra-copilot-instructions/instructions/code.md"
     }
-  ]
+  ],
+  "[prisma]": {
+    "editor.defaultFormatter": "Prisma.prisma"
+  }
 }

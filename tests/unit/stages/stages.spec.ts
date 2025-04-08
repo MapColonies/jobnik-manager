@@ -4,7 +4,7 @@ import { PrismaClient, Prisma, StageName, JobMode, StageOperationStatus } from '
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { errorMessages as commonErrorMessages, InvalidUpdateError } from '@src/common/errors';
+import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { anotherStageId, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, randomUuid } from '../generator';
@@ -13,7 +13,7 @@ let jobManager: JobManager;
 let stageManager: StageManager;
 const prisma = new PrismaClient();
 
-const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
+const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
@@ -104,7 +104,7 @@ describe('JobManager', () => {
         it('should failed on not founded stage when getting by non exists job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(stageManager.getStagesByJobId('some_id')).rejects.toThrow('JOB_NOT_FOUND');
+          await expect(stageManager.getStagesByJobId('some_id')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
