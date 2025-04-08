@@ -43,7 +43,6 @@ describe('stage', function () {
   });
 
   afterEach(async () => {
-    await prisma.$disconnect();
     await pool.end();
   });
 
