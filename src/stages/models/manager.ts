@@ -70,7 +70,7 @@ export class StageManager {
     }
   }
 
-  public async getStages(params: StageFindCriteriaArg): Promise<StageModel[] | undefined> {
+  public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
     let queryBody = undefined;
     if (params !== undefined) {
       queryBody = {

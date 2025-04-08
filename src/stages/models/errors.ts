@@ -6,6 +6,6 @@ export class StageNotFoundError extends Error {
 }
 
 export const errorMessages = {
-  /**Signifies that the specified job could not be located*/
+  /**Signifies that the specified stage could not be located*/
   stageNotFound: 'STAGE_NOT_FOUND',
 } as const;
