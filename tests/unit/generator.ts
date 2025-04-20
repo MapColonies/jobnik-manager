@@ -24,7 +24,7 @@ const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start()
 
 export const randomUuid = faker.string.uuid();
 export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unknown>> {
-  Stage?: Stage[];
+  stage?: Stage[];
 }
 
 export const createJobParams = {

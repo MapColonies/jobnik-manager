@@ -12,13 +12,13 @@ export const stageId = faker.string.uuid();
 export const anotherStageId = faker.string.uuid();
 
 export const jobEntityWithoutStages = createJobEntity({ id: jobId });
-export const jobEntityWithEmptyStagesArr = createJobEntity({ id: jobId, Stage: [] });
+export const jobEntityWithEmptyStagesArr = createJobEntity({ id: jobId, stage: [] });
 export const stageEntity = createStageEntity({ id: stageId, jobId, data: { name: 'someStage' } });
 
 export const jobEntityWithStages = createJobEntity({
   id: jobId,
   data: {},
-  Stage: [stageEntity],
+  stage: [stageEntity],
 });
 
 export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot();

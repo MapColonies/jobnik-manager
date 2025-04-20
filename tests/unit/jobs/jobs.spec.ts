@@ -90,8 +90,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = [{ ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -113,8 +113,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = { ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = { ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
 
           expect(jobs).toMatchObject(expectedJob);
         });

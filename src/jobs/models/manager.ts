@@ -32,7 +32,7 @@ export class JobManager {
             creationTime: { gte: params.from_date, lte: params.till_date },
           },
         },
-        include: { Stage: params.should_return_stages },
+        include: { stage: params.should_return_stages },
       };
     }
 
@@ -59,12 +59,12 @@ export class JobManager {
           return stageFull;
         });
 
-        input = { ...bodyInput, xstate: persistenceSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
+        input = { ...bodyInput, xstate: persistenceSnapshot, stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
       } else {
         input = { ...bodyInput, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
       }
 
-      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { Stage: true } }));
+      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: true } }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
@@ -191,7 +191,7 @@ export class JobManager {
       where: {
         id: jobId,
       },
-      include: { Stage: includeStages },
+      include: { stage: includeStages },
     };
 
     const job = await this.prisma.job.findUnique(queryBody);
@@ -201,7 +201,7 @@ export class JobManager {
 
   private convertPrismaToJobResponse(prismaObjects: jobPrismaObject): JobModel {
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, Stage, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, stage, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
@@ -210,7 +210,7 @@ export class JobManager {
       notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
       ttl: ttl ? ttl.toISOString() : undefined,
-      stages: Array.isArray(Stage) ? convertArrayPrismaStageToStageResponse(Stage) : undefined,
+      stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
     };
 
     return Object.assign(rest, transformedFields);

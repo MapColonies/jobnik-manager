@@ -519,11 +519,11 @@ describe('stage', function () {
       it("should return 201 status code and modify stages's status", async function () {
         const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
 
-        if (!job.Stage[0]) {
+        if (!job.stage[0]) {
           throw new Error('Stage was not created');
         }
 
-        const createdStageId = job.Stage[0].id;
+        const createdStageId = job.stage[0].id;
 
         const setStatusResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: createdStageId },
@@ -543,11 +543,11 @@ describe('stage', function () {
       it('should return 400 with detailed error for invalid status transition', async function () {
         const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
 
-        if (!job.Stage[0]) {
+        if (!job.stage[0]) {
           throw new Error('Stage was not created');
         }
 
-        const createdStageId = job.Stage[0].id;
+        const createdStageId = job.stage[0].id;
 
         const setStatusResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: createdStageId },

@@ -22,12 +22,12 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
       const stageFull = Object.assign(rest, { xstate: stagesPersistedSnapshot, name: type, status: StageOperationStatus.CREATED });
       return stageFull;
     });
-    input = { ...bodyInput, xstate: persistedSnapshot, Stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
+    input = { ...bodyInput, xstate: persistedSnapshot, stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
   } else {
     input = { ...bodyInput, xstate: persistedSnapshot } satisfies Prisma.JobCreateInput;
   }
 
-  const res = await prisma.job.create({ data: input, include: { Stage: true } });
+  const res = await prisma.job.create({ data: input, include: { stage: true } });
   return res;
 };
 

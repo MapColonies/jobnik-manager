@@ -30,7 +30,7 @@ model Job {
   ttl            DateTime?
   notifications  Json               @default("{}")
   name           JobName            @default(DEFAULT)
-  Stage          Stage[]
+  stage          Stage[]
 
   @@map("job")
 }
@@ -110,7 +110,7 @@ model Stage {
   /// [PersistenceSnapshot]
   xstate       Json
   name         StageName            @default(DEFAULT)
-  Task         Task[]
+  task         Task[]
 
   @@map("stage")
 }
