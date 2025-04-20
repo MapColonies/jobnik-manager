@@ -654,7 +654,7 @@ paths:
       operationId: updateTaskUserMetadata
       parameters:
         - $ref: '#/components/parameters/taskId'
-      summary: update user metadata object
+      summary: Update user metadata object
       tags:
         - tasks
       requestBody:
