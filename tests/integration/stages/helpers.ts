@@ -4,7 +4,6 @@ import { faker } from '@faker-js/faker';
 import { StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-const testJobId = faker.string.uuid();
 const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
 export const createStageRecord = async (body: Prisma.StageCreateManyInput, prisma: PrismaClient): Promise<StagePrismaObject> => {
@@ -13,7 +12,7 @@ export const createStageRecord = async (body: Prisma.StageCreateManyInput, prism
 };
 
 export const createStageWithoutTaskBody = {
-  job_id: testJobId,
+  job_id: faker.string.uuid(),
   name: StageName.DEFAULT,
   data: {},
   xstate: persistedSnapshot,
