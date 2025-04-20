@@ -26,6 +26,6 @@ export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload
  * @param prismaObjects array of db entities
  * @returns array of TaskModel
  */
-export function convertArrayPrismaTaskToStageResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>[]): TaskModel[] {
+export function convertArrayPrismaTaskToTaskResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>[]): TaskModel[] {
   return prismaObjects.map((task) => convertPrismaToTaskResponse(task));
 }

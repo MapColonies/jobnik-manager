@@ -6,7 +6,7 @@ import { StageManager } from '@src/stages/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
-import { convertArrayPrismaTaskToStageResponse, convertPrismaToTaskResponse } from './helper';
+import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 @injectable()
 export class TaskManager {
@@ -35,7 +35,7 @@ export class TaskManager {
 
     const tasks = await this.prisma.task.findMany(queryBody);
 
-    const result = convertArrayPrismaTaskToStageResponse(tasks);
+    const result = convertArrayPrismaTaskToTaskResponse(tasks);
     return result;
   }
 
