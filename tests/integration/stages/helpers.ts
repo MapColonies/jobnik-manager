@@ -17,4 +17,4 @@ export const createStageWithoutTaskBody = {
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},
-};
+} satisfies Prisma.StageCreateManyInput;
