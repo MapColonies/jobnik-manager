@@ -15,7 +15,7 @@ import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { createStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
-import { createTaskBody, createTaskRecord } from './helpers';
+import { createTaskBody, createTaskRecords } from './helpers';
 
 describe('task', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -54,7 +54,7 @@ describe('task', function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecord([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
 
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stage.id } });
 
@@ -79,7 +79,7 @@ describe('task', function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        await createTaskRecord(
+        await createTaskRecords(
           [
             { ...createTaskBody, stage_id: stage.id },
             { ...createTaskBody, stage_id: stage.id },
@@ -131,7 +131,7 @@ describe('task', function () {
       it('should return 200 status code and return the stage', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecord([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
 
@@ -169,7 +169,7 @@ describe('task', function () {
       it('should return 200 status code and return the tasks', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        await createTaskRecord(
+        await createTaskRecords(
           [
             { ...createTaskBody, stage_id: stage.id },
             { ...createTaskBody, stage_id: stage.id },
@@ -249,7 +249,7 @@ describe('task', function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecord([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
 
         const updateUserMetadataResponse = await requestSender.updateTaskUserMetadata({
           pathParams: { taskId: tasks[0]!.id },
@@ -280,7 +280,7 @@ describe('task', function () {
       it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecord([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
 
         const response = await requestSender.updateTaskUserMetadata({
           pathParams: { taskId: tasks[0]!.id },

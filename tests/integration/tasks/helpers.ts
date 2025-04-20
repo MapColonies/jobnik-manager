@@ -8,7 +8,7 @@ import { TaskPrismaObject } from '@src/tasks/models/models';
 const testStageId = faker.string.uuid();
 const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
-export const createTaskRecord = async (body: Prisma.TaskCreateManyInput[], prisma: PrismaClient): Promise<TaskPrismaObject[]> => {
+export const createTaskRecords = async (body: Prisma.TaskCreateManyInput[], prisma: PrismaClient): Promise<TaskPrismaObject[]> => {
   const res = await prisma.task.createManyAndReturn({ data: body });
   return res;
 };
