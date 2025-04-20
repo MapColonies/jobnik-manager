@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma } from '@prisma/client';
+import { PrismaClient, Prisma, TaskType } from '@prisma/client';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -35,7 +35,7 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({});
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
 
-          const tasks = await taskManager.getTasks({ task_type: 'DEFAULT' });
+          const tasks = await taskManager.getTasks({ task_type: TaskType.DEFAULT });
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
@@ -46,7 +46,7 @@ describe('JobManager', () => {
         it('should return empty array', async function () {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
 
-          const tasks = await taskManager.getTasks({ task_type: 'DEFAULT' });
+          const tasks = await taskManager.getTasks({ task_type: TaskType.DEFAULT });
 
           expect(tasks).toMatchObject([]);
         });
@@ -56,7 +56,7 @@ describe('JobManager', () => {
         it('should failed on db error when find tasks', async function () {
           jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(taskManager.getTasks({ task_type: 'DEFAULT' })).rejects.toThrow('db connection error');
+          await expect(taskManager.getTasks({ task_type: TaskType.DEFAULT })).rejects.toThrow('db connection error');
         });
       });
     });

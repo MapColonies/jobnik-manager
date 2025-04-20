@@ -3,7 +3,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobMode, JobOperationStatus, StageOperationStatus, type PrismaClient, type StageName } from '@prisma/client';
+import { JobMode, JobOperationStatus, StageName, StageOperationStatus, type PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { Pool } from 'pg';
 import type { MatcherContext } from '@jest/expect';
@@ -142,7 +142,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, type: 'DEFAULT' } });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: StageOperationStatus.CREATED, type: StageName.DEFAULT } });
       });
     });
 
@@ -383,7 +383,7 @@ describe('stage', function () {
 
         const createStagesPayload = {
           data: {},
-          type: 'DEFAULT',
+          type: StageName.DEFAULT,
           userMetadata: {},
         } satisfies StageCreateModel;
 
@@ -405,7 +405,7 @@ describe('stage', function () {
 
         const createStagesPayload = {
           data: {},
-          type: 'DEFAULT',
+          type: StageName.DEFAULT,
           userMetadata: {},
         } satisfies StageCreateModel;
 
@@ -478,7 +478,7 @@ describe('stage', function () {
       it('should return 404 when attempting to update a non-existent job ID', async function () {
         const createStagesPayload = {
           data: {},
-          type: 'DEFAULT',
+          type: StageName.DEFAULT,
           userMetadata: {},
         } satisfies StageCreateModel;
 

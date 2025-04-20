@@ -45,7 +45,7 @@ describe('JobManager', () => {
         it('should failed on db error when find stages', async function () {
           const prismaCreateJobMock = jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(stageManager.getStages({ stage_type: 'DEFAULT' })).rejects.toThrow('db connection error');
+          await expect(stageManager.getStages({ stage_type: StageName.DEFAULT })).rejects.toThrow('db connection error');
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
         });
@@ -184,7 +184,7 @@ describe('JobManager', () => {
 
           const anotherStagePayload = {
             data: {},
-            type: 'DEFAULT' as StageName,
+            type: StageName.DEFAULT,
             userMetadata: { someData: '123' },
           };
 
@@ -220,7 +220,7 @@ describe('JobManager', () => {
       });
 
       it('should reject adding stages to a finite job', async function () {
-        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, jobMode: 'DYNAMIC' });
+        jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, jobMode: JobMode.DYNAMIC });
 
         await expect(stageManager.addStages('someId', [])).rejects.toThrow(new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError));
       });

@@ -136,7 +136,7 @@ describe('task', function () {
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
-        expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED, type: 'DEFAULT' } });
+        expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED, type: TaskType.DEFAULT } });
       });
     });
 
