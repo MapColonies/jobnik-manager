@@ -1,6 +1,18 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
-import { JobOperationStatus, Prisma, Stage, StageOperationStatus, TaskOperationStatus, TaskType } from '@prisma/client';
+import {
+  Creator,
+  JobMode,
+  JobName,
+  JobOperationStatus,
+  Priority,
+  Prisma,
+  Stage,
+  StageName,
+  StageOperationStatus,
+  TaskOperationStatus,
+  TaskType,
+} from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -15,10 +27,10 @@ export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unkno
 }
 
 export const createJobParams = {
-  name: 'DEFAULT',
-  creator: 'UNKNOWN',
+  name: JobName.DEFAULT,
+  creator: Creator.UNKNOWN,
   data: { stages: [] },
-  jobMode: 'PRE_DEFINED',
+  jobMode: JobMode.PRE_DEFINED,
   notifications: {},
   userMetadata: {},
 } satisfies JobCreateModel;
@@ -26,17 +38,17 @@ export const createJobParams = {
 export function createJobEntity(override: Partial<JobWithStages>): JobWithStages {
   const jobEntity = {
     creationTime: new Date(),
-    creator: 'UNKNOWN',
+    creator: Creator.UNKNOWN,
     data: {},
     expirationTime: new Date(),
     id: randomUuid,
-    name: 'DEFAULT',
+    name: JobName.DEFAULT,
     notifications: {},
     percentage: 0,
-    priority: 'HIGH',
+    priority: Priority.HIGH,
     status: JobOperationStatus.PENDING,
     ttl: new Date(),
-    jobMode: 'DYNAMIC',
+    jobMode: JobMode.DYNAMIC,
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
@@ -49,7 +61,7 @@ export const createStageEntity = (
 ): Prisma.StageGetPayload<Record<string, unknown>> => {
   const stageEntity = {
     data: {},
-    name: 'DEFAULT',
+    name: StageName.DEFAULT,
     summary: {},
     job_id: faker.string.uuid(),
     id: faker.string.uuid(),
