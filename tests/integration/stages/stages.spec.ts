@@ -65,8 +65,7 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and empty array', async function () {
-        const someRandomUuid = faker.string.uuid();
-        const response = await requestSender.getStages({ queryParams: { job_id: someRandomUuid } });
+        const response = await requestSender.getStages({ queryParams: { job_id: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
