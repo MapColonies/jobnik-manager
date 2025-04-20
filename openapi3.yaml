@@ -547,7 +547,7 @@ paths:
       - $ref: '#/components/parameters/stageId'
     get:
       operationId: getTasksByStageId
-      summary: Get task by stage ID
+      summary: Get tasks by stage ID
       responses:
         '200':
           description: Requested tasks array by provided stage identifier
