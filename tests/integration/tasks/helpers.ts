@@ -13,7 +13,7 @@ export const createTaskRecords = async (body: Prisma.TaskCreateManyInput[], pris
 };
 
 export const createTaskBody = {
-  stage_id: faker.string.uuid(),
+  stageId: faker.string.uuid(),
   type: TaskType.DEFAULT,
   data: {},
   xstate: persistedSnapshot,

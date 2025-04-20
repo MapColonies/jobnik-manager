@@ -37,8 +37,8 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasks({ task_type: 'DEFAULT' });
 
-          const { stage_id, creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, stageId: stage_id, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -70,8 +70,8 @@ describe('JobManager', () => {
 
           const task = await taskManager.getTaskById(taskId);
 
-          const { stage_id, creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = { ...rest, stageId: stage_id, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
+          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const expectedTask = { ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
 
           expect(task).toMatchObject(expectedTask);
         });
@@ -98,15 +98,15 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return task object by provided stage id', async function () {
           const stageEntity = createStageEntity({});
-          const taskEntity = createTaskEntity({ stage_id: stageEntity.id });
+          const taskEntity = createTaskEntity({ stageId: stageEntity.id });
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
 
           const stage = await taskManager.getTasksByStageId(stageEntity.id);
 
-          const { stage_id, creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, stageId: stage_id, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(stage).toMatchObject(expectedTask);
         });

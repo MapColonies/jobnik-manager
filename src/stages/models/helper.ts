@@ -7,14 +7,13 @@ import { StageModel, StagePrismaObject } from './models';
  */
 export function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { data, job_id, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
+  const { data, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
     userMetadata: userMetadata as Record<string, never>,
     summary: summary as Record<string, never>,
     type: name,
-    jobId: job_id,
   };
   return Object.assign(rest, transformedFields);
 }

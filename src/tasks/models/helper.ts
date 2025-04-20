@@ -8,12 +8,11 @@ import { TaskModel } from './models';
  */
 export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>): TaskModel {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  const { data, stage_id, userMetadata, xstate, creationTime, updateTime, ...rest } = prismaObjects;
+  const { data, userMetadata, xstate, creationTime, updateTime, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
     userMetadata: userMetadata as { [key: string]: unknown },
-    stageId: stage_id,
     updateTime: updateTime.toISOString(),
     creationTime: creationTime.toISOString(),
   };

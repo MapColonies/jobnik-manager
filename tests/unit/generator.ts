@@ -62,7 +62,7 @@ export const createStageEntity = (override: Partial<StagePrismaObject>): StagePr
     data: {},
     name: StageName.DEFAULT,
     summary: {},
-    job_id: faker.string.uuid(),
+    jobId: faker.string.uuid(),
     id: faker.string.uuid(),
     status: StageOperationStatus.CREATED,
     userMetadata: {},
@@ -76,7 +76,7 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
   const taskEntity = {
     data: {},
     type: TaskType.DEFAULT,
-    stage_id: faker.string.uuid(),
+    stageId: faker.string.uuid(),
     id: faker.string.uuid(),
     status: TaskOperationStatus.CREATED,
     userMetadata: {},

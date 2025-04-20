@@ -51,7 +51,7 @@ export class StageManager {
           xstate: persistenceSnapshot,
           userMetadata: stageData.userMetadata,
           status: StageOperationStatus.CREATED,
-          job_id: jobId,
+          jobId,
         }) satisfies Prisma.StageCreateManyInput
     );
 
@@ -76,7 +76,7 @@ export class StageManager {
       queryBody = {
         where: {
           AND: {
-            job_id: { equals: params.job_id },
+            jobId: { equals: params.job_id },
             name: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
           },
@@ -106,7 +106,7 @@ export class StageManager {
 
     const queryBody = {
       where: {
-        job_id: jobId,
+        jobId,
       },
     };
 

@@ -43,7 +43,7 @@ describe('JobManager', () => {
           const job = await jobManager.createJob(createJobParams);
 
           expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([{ jobId: stageEntity.job_id, id: stageEntity.id }]);
+          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
         });
 
         it('should return created job formatted with empty stage array', async function () {

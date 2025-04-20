@@ -12,7 +12,7 @@ export const createStageRecord = async (body: Prisma.StageCreateManyInput, prism
 };
 
 export const createStageWithoutTaskBody = {
-  job_id: faker.string.uuid(),
+  jobId: faker.string.uuid(),
   name: StageName.DEFAULT,
   data: {},
   xstate: persistedSnapshot,

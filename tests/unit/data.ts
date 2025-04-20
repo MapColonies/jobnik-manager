@@ -13,7 +13,7 @@ export const anotherStageId = faker.string.uuid();
 
 export const jobEntityWithoutStages = createJobEntity({ id: jobId });
 export const jobEntityWithEmptyStagesArr = createJobEntity({ id: jobId, Stage: [] });
-export const stageEntity = createStageEntity({ id: stageId, job_id: jobId, data: { name: 'someStage' } });
+export const stageEntity = createStageEntity({ id: stageId, jobId, data: { name: 'someStage' } });
 
 export const jobEntityWithStages = createJobEntity({
   id: jobId,

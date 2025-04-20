@@ -53,8 +53,8 @@ describe('task', function () {
       it('should return 200 status code and the matching task', async function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stage.id } });
 
@@ -78,11 +78,11 @@ describe('task', function () {
       it('should return 200 status code and all the tasks if no query params were defined', async function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         await createTaskRecords(
           [
-            { ...createTaskBody, stage_id: stage.id },
-            { ...createTaskBody, stage_id: stage.id },
+            { ...createTaskBody, stageId: stage.id },
+            { ...createTaskBody, stageId: stage.id },
           ],
           prisma
         );
@@ -130,8 +130,8 @@ describe('task', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the stage', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
 
@@ -168,11 +168,11 @@ describe('task', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the tasks', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         await createTaskRecords(
           [
-            { ...createTaskBody, stage_id: stage.id },
-            { ...createTaskBody, stage_id: stage.id },
+            { ...createTaskBody, stageId: stage.id },
+            { ...createTaskBody, stageId: stage.id },
           ],
           prisma
         );
@@ -196,7 +196,7 @@ describe('task', function () {
 
       it('should return a 200 status code with empty array object if no tasks exists for the requested stage', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         const createdStageId = stage.id;
 
         const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: createdStageId } });
@@ -248,8 +248,8 @@ describe('task', function () {
       it("should return 201 status code and modify tasks's userMetadata object", async function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const updateUserMetadataResponse = await requestSender.updateTaskUserMetadata({
           pathParams: { taskId: tasks[0]!.id },
@@ -279,8 +279,8 @@ describe('task', function () {
 
       it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, job_id: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stage_id: stage.id }], prisma);
+        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const response = await requestSender.updateTaskUserMetadata({
           pathParams: { taskId: tasks[0]!.id },

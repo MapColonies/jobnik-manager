@@ -81,7 +81,7 @@ describe('stage', function () {
         await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
@@ -134,7 +134,7 @@ describe('stage', function () {
         const stage = await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
@@ -188,7 +188,7 @@ describe('stage', function () {
         const stage = await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
@@ -256,7 +256,7 @@ describe('stage', function () {
         const stage = await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
@@ -311,7 +311,7 @@ describe('stage', function () {
         const stage = await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
@@ -345,7 +345,7 @@ describe('stage', function () {
         const stage = await createStageRecord(
           {
             ...createStageWithoutTaskBody,
-            job_id: createdJobId,
+            jobId: createdJobId,
           },
           prisma
         );
