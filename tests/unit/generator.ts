@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
-import { JobOperationStatus, Prisma, Stage, StageOperationStatus, TaskOperationStatus } from '@prisma/client';
+import { JobOperationStatus, Prisma, Stage, StageOperationStatus, TaskOperationStatus, TaskType } from '@prisma/client';
 import { createActor } from 'xstate';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -64,7 +64,7 @@ export const createStageEntity = (
 export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrismaObject => {
   const taskEntity = {
     data: {},
-    type: 'DEFAULT',
+    type: TaskType.DEFAULT,
     stage_id: faker.string.uuid(),
     id: faker.string.uuid(),
     status: TaskOperationStatus.CREATED,

@@ -5,6 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
+import { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
@@ -37,7 +38,6 @@ describe('job', function () {
   });
 
   afterEach(async () => {
-    await prisma.$disconnect();
     await pool.end();
   });
 
@@ -113,8 +113,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) },
+          body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) as MatcherContext },
         });
       });
     });
@@ -177,8 +176,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/body must have required property/) },
+          body: { message: expect.stringMatching(/request\/body must have required property/) as MatcherContext },
         });
       });
     });
@@ -249,8 +247,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
       });
     });
@@ -366,8 +363,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) },
+          body: { message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as MatcherContext },
         });
       });
     });
@@ -494,8 +490,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
       });
 

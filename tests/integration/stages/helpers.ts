@@ -14,7 +14,7 @@ export const createStageRecord = async (body: Prisma.StageCreateManyInput, prism
 
 export const createStageWithoutTaskBody = {
   job_id: testJobId,
-  name: 'DEFAULT' as StageName,
+  name: StageName.DEFAULT,
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},

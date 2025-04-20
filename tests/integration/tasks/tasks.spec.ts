@@ -6,6 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { TaskOperationStatus, TaskType, type PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { Pool } from 'pg';
+import { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
@@ -108,8 +109,7 @@ describe('task', function () {
           expect(response).toSatisfyApiSpec();
           expect(response).toMatchObject({
             status: StatusCodes.BAD_REQUEST,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-            body: { message: expect.stringMatching(/request\/query\/task_type must be equal to one of the allowed values/) },
+            body: { message: expect.stringMatching(/request\/query\/task_type must be equal to one of the allowed values/) as MatcherContext },
           });
         });
       });
@@ -216,8 +216,7 @@ describe('task', function () {
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
         });
       });
 
@@ -289,8 +288,10 @@ describe('task', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        expect(response).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: expect.stringMatching('is not valid JSON') } });
+        expect(response).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching('is not valid JSON') as MatcherContext },
+        });
       });
     });
 
