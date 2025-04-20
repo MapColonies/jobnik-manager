@@ -715,13 +715,6 @@ components:
       required: true
       schema:
         type: string
-    # taskType:
-    #   in: path
-    #   name: taskType
-    #   description: ID of requested task
-    #   required: true
-    #   schema:
-    #     $ref: '#/components/schemas/taskType'
     paramsTaskStatus:
       in: query
       name: status
