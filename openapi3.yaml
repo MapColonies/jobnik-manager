@@ -1127,7 +1127,7 @@ components:
     errorMessage:
       type: object
       properties:
-        'message:':
+        message:
           type: string
         stacktrace:
           type: string

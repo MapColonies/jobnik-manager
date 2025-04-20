@@ -213,7 +213,7 @@ export type paths = {
       };
       cookie?: never;
     };
-    /** Get task by stage ID */
+    /** Get tasks by stage ID */
     get: operations['getTasksByStageId'];
     put?: never;
     post?: never;
@@ -242,7 +242,7 @@ export type paths = {
       path?: never;
       cookie?: never;
     };
-    /** Get task by criteria */
+    /** Get tasks by criteria */
     get: operations['getTasksByCriteria'];
     put?: never;
     post?: never;
@@ -285,7 +285,7 @@ export type paths = {
     delete?: never;
     options?: never;
     head?: never;
-    /** update user metadata object */
+    /** Update user metadata object */
     patch: operations['updateTaskUserMetadata'];
     trace?: never;
   };
@@ -430,7 +430,7 @@ export type components = {
       stages?: components['schemas']['stageResponse'][];
     };
     errorMessage: {
-      'message:'?: string;
+      message: string;
       stacktrace?: string;
     };
     defaultOkMessage: {
