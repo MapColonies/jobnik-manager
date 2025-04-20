@@ -6,7 +6,6 @@ import { StageModel, StagePrismaObject } from './models';
  * @returns StageModel
  */
 export function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
   const { data, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
 
   const transformedFields = {

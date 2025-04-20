@@ -23,7 +23,6 @@ export class TaskManager {
       queryBody = {
         where: {
           AND: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
             stageId: { equals: params.stage_id },
             type: { equals: params.task_type },
             status: { equals: params.status },
@@ -55,7 +54,6 @@ export class TaskManager {
 
     const queryBody = {
       where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
         stageId,
       },
     };

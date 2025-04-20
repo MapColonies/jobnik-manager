@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { TaskType, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
