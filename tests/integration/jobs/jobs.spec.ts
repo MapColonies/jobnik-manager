@@ -5,7 +5,7 @@ import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
-import { MatcherContext } from '@jest/expect';
+import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
