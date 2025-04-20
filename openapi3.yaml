@@ -586,7 +586,7 @@ paths:
       - $ref: '#/components/parameters/paramsTaskStatus'
     get:
       operationId: getTasksByCriteria
-      summary: Get task by criteria
+      summary: Get tasks by criteria
       responses:
         '200':
           description: Requested tasks array by provided query params
