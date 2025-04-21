@@ -3,7 +3,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobMode, JobOperationStatus, StageName, StageOperationStatus, type PrismaClient } from '@prisma/client';
+import { JobMode, StageName, StageOperationStatus, type PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
 import { Pool } from 'pg';
 import type { MatcherContext } from '@jest/expect';
@@ -148,20 +148,20 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return a 404 status code with a validation error message if the requested stage does not exist', async function () {
-        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
           body: { message: stagesErrorMessages.stageNotFound },
         });
       });
 
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: 'someInvalidJobId' } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
         });
@@ -196,7 +196,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: JobOperationStatus.CREATED, id: stage.id }] });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
       });
 
       it('should return a 200 status code with empty array object if no stages exists for the requested job', async function () {
@@ -215,10 +215,10 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid', async function () {
-        const getJobResponse = await requestSender.getStageByJobId({ pathParams: { jobId: 'someInvalidJobId' } });
+        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
@@ -270,20 +270,20 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it("should return a 404 status code and a validation error indicating the stage's non-existence should be returned", async function () {
-        const getJobResponse = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
+        const getStageResponse = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
           body: { message: stagesErrorMessages.stageNotFound },
         });
       });
 
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-        const getJobResponse = await requestSender.getStageSummary({ pathParams: { stageId: 'someInvalidJobId' } });
+        const getStageResponse = await requestSender.getStageSummary({ pathParams: { stageId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
         });
@@ -426,9 +426,9 @@ describe('stage', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
         await createJobRecord({ ...createJobRequestBody }, prisma);
 
-        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: 'someInvalidJobId' } });
+        const getStageResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
@@ -437,12 +437,12 @@ describe('stage', function () {
       it('should return 400 when the request contains an incorrect body', async function () {
         const job = await createJobRecord({ ...createJobRequestBody }, prisma);
 
-        const getJobResponse = await requestSender.addStages({
+        const getStageResponse = await requestSender.addStages({
           pathParams: { jobId: job.id },
           requestBody: {} as unknown as [],
         });
 
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/body must be array/) as MatcherContext },
         });
@@ -452,10 +452,10 @@ describe('stage', function () {
         const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
         const createdJobId = job.id;
 
-        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: createdJobId } });
+        const getStageResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: createdJobId } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: jobsErrorMessages.preDefinedJobStageModificationError },
         });
@@ -464,12 +464,12 @@ describe('stage', function () {
       it('should return 400 when attempting to add stages to a finalized job', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         // generate some job in finite state (aborted)
-        await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: JobOperationStatus.ABORTED } });
+        await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: StageOperationStatus.ABORTED } });
 
-        const getJobResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: job.id } });
+        const getStageResponse = await requestSender.addStages({ requestBody: [], pathParams: { jobId: job.id } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
         });
@@ -533,9 +533,9 @@ describe('stage', function () {
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
 
-        const getJobResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
 
-        expect(getJobResponse).toHaveProperty('body.status', JobOperationStatus.PENDING);
+        expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
     });
 
@@ -551,7 +551,7 @@ describe('stage', function () {
 
         const setStatusResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: createdStageId },
-          requestBody: { status: JobOperationStatus.COMPLETED },
+          requestBody: { status: StageOperationStatus.COMPLETED },
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
@@ -559,13 +559,13 @@ describe('stage', function () {
       });
 
       it('should return 404 with specific error message for non-existent stage', async function () {
-        const getJobResponse = await requestSender.updateStageStatus({
+        const getStageResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
           requestBody: { status: StageOperationStatus.COMPLETED },
         });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
           body: { message: stagesErrorMessages.stageNotFound },
         });

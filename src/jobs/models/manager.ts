@@ -200,7 +200,6 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: jobPrismaObject): JobModel {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, stage, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, never>,

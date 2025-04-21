@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
 import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
