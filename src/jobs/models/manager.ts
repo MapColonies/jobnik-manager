@@ -8,7 +8,7 @@ import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
-import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, jobPrismaObject } from './models';
+import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -186,7 +186,7 @@ export class JobManager {
    * @param jobId unique identifier of the job.
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string, includeStages?: boolean): Promise<jobPrismaObject | null> {
+  public async getJobEntityById(jobId: string, includeStages?: boolean): Promise<JobPrismaObject | null> {
     const queryBody = {
       where: {
         id: jobId,
@@ -199,7 +199,7 @@ export class JobManager {
     return job;
   }
 
-  private convertPrismaToJobResponse(prismaObjects: jobPrismaObject): JobModel {
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
     const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, stage, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, never>,

@@ -3,10 +3,10 @@ import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
-import { JobCreateModel, jobPrismaObject } from '@src/jobs/models/models';
+import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<jobPrismaObject> => {
+export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
   const stagesPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 

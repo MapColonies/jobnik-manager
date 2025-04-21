@@ -6,7 +6,6 @@ type JobCreateModel = components['schemas']['createJobPayload'];
 type JobCreateResponse = components['schemas']['createJobResponse'];
 type JobGetParams = components['parameters'];
 type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
-// eslint-disable-next-line @typescript-eslint/naming-convention
-type jobPrismaObject = Prisma.JobGetPayload<{ include: { stage: boolean } }>;
+type JobPrismaObject = Prisma.JobGetPayload<{ include: { stage: boolean } }>;
 
-export type { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, jobPrismaObject };
+export type { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, JobPrismaObject };
