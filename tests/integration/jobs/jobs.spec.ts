@@ -450,11 +450,11 @@ describe('job', function () {
         const createdJobId = job.id;
 
         await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
-        const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
-        expect(deleteResponse).toSatisfyApiSpec();
-        expect(deleteResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.OK,
           body: { code: successMessages.jobDeletedSuccessfully },
         });
@@ -470,11 +470,11 @@ describe('job', function () {
         const createdJobId = job.id;
 
         await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
-        const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
-        expect(deleteResponse).toSatisfyApiSpec();
-        expect(deleteResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.OK,
           body: { code: successMessages.jobDeletedSuccessfully },
         });
@@ -488,10 +488,10 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: 'someInvalidJobId' } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
@@ -501,20 +501,20 @@ describe('job', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
-        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: jobsErrorMessages.jobNotInFiniteState },
         });
       });
 
       it('should return 404 with specific error message for non-existent job', async function () {
-        const response = await requestSender.deleteJob({ pathParams: { jobId: testJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: testJobId } });
 
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
           body: { message: jobsErrorMessages.jobNotFound },
         });
@@ -525,12 +525,12 @@ describe('job', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.deleteJob({
+        const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },
         });
 
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });
