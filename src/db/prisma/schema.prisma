@@ -98,8 +98,8 @@ model Stage {
   /// [StageData]
   data Json   @default("{}")
 
-  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId String @db.Uuid @map("job_id")
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String @map("job_id") @db.Uuid
 
   percentage   Int                  @default(0)
   /// [UserMetadata]
@@ -137,7 +137,7 @@ model Task {
   updateTime   DateTime            @updatedAt @map("update_time")
   userMetadata Json                @default("{}") @map("user_metadata")
   stage        Stage               @relation(fields: [stageId], references: [id], onDelete: Cascade)
-  stageId     String              @db.Uuid @map("stage_id")
+  stageId      String              @map("stage_id") @db.Uuid
   attempts     Int                 @default(0)
 
   @@map("task")
