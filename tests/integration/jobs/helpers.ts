@@ -1,12 +1,12 @@
-import { StageOperationStatus, type Prisma, type PrismaClient } from '@prisma/client';
+import { Creator, JobMode, JobName, StageName, StageOperationStatus, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
-import { JobCreateModel, jobPrismaObject } from '@src/jobs/models/models';
+import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<jobPrismaObject> => {
+export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
   const stagesPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
@@ -32,24 +32,24 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
 };
 
 export const createJobRequestBody = {
-  name: 'DEFAULT',
-  creator: 'UNKNOWN',
+  name: JobName.DEFAULT,
+  creator: Creator.UNKNOWN,
   data: {},
-  jobMode: 'DYNAMIC',
+  jobMode: JobMode.DYNAMIC,
   notifications: {},
   userMetadata: {},
 } satisfies JobCreateModel;
 
 export const createJobRequestWithStagesBody = {
-  name: 'DEFAULT',
-  creator: 'UNKNOWN',
+  name: JobName.DEFAULT,
+  creator: Creator.UNKNOWN,
   data: {},
-  jobMode: 'DYNAMIC',
+  jobMode: JobMode.DYNAMIC,
   notifications: {},
   userMetadata: {},
   stages: [
     {
-      type: 'DEFAULT',
+      type: StageName.DEFAULT,
       data: {},
       userMetadata: {},
     },

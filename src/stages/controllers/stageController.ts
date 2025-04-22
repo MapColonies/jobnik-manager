@@ -83,7 +83,7 @@ export class StageController {
     }
   };
 
-  public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
+  public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}/summary'] = async (req, res, next) => {
     try {
       const response = await this.manager.getSummaryByStageId(req.params.stageId);
       return res.status(httpStatus.OK).json(response);

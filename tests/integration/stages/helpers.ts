@@ -7,7 +7,6 @@ import { TaskCreateModel } from '@src/tasks/models/models';
 import { convertPrismaToStageResponse } from '@src/stages/models/helper';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 
-const testJobId = faker.string.uuid();
 const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
 /**
@@ -70,9 +69,9 @@ export const addStageRecord = async (body: Prisma.StageCreateManyInput, prisma: 
 };
 
 export const createStageWithoutTaskBody = {
-  jobId: testJobId,
+  jobId: faker.string.uuid(),
   name: StageName.DEFAULT,
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},
-};
+} satisfies Prisma.StageCreateManyInput;

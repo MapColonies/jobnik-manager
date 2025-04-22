@@ -549,7 +549,7 @@ paths:
       - $ref: '#/components/parameters/stageId'
     get:
       operationId: getTasksByStageId
-      summary: Get task by stage ID
+      summary: Get tasks by stage ID
       responses:
         '200':
           description: Requested tasks array by provided stage identifier
@@ -630,7 +630,7 @@ paths:
       - $ref: '#/components/parameters/paramsTaskStatus'
     get:
       operationId: getTasksByCriteria
-      summary: Get task by criteria
+      summary: Get tasks by criteria
       responses:
         '200':
           description: Requested tasks array by provided query params
@@ -698,7 +698,7 @@ paths:
       operationId: updateTaskUserMetadata
       parameters:
         - $ref: '#/components/parameters/taskId'
-      summary: update user metadata object
+      summary: Update user metadata object
       tags:
         - tasks
       requestBody:
@@ -1190,7 +1190,7 @@ components:
     errorMessage:
       type: object
       properties:
-        'message:':
+        message:
           type: string
         stacktrace:
           type: string

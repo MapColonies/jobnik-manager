@@ -26,7 +26,6 @@ export const randomUuid = faker.string.uuid();
 export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unknown>> {
   stage?: Stage[];
 }
-
 export interface StageWithTasks extends Prisma.StageGetPayload<Record<string, unknown>> {
   task?: Task[];
 }
@@ -60,7 +59,6 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
-
 export const createStageEntity = (override: Partial<StageCreateWithTasksModel & StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
@@ -74,6 +72,7 @@ export const createStageEntity = (override: Partial<StageCreateWithTasksModel & 
     xstate: stageInitializedPersistedSnapshot,
     task: undefined,
   } satisfies StageWithTasks;
+
   return { ...stageEntity, ...override };
 };
 

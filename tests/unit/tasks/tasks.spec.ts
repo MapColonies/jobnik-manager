@@ -59,7 +59,7 @@ describe('JobManager', () => {
         it('should failed on db error when find tasks', async function () {
           jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(taskManager.getTasks({ task_type: 'DEFAULT' })).rejects.toThrow('db connection error');
+          await expect(taskManager.getTasks({ task_type: TaskType.DEFAULT })).rejects.toThrow('db connection error');
         });
       });
     });

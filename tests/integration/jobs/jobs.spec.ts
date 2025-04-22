@@ -3,7 +3,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobOperationStatus, JobMode, Priority, type PrismaClient } from '@prisma/client';
+import { JobMode, JobName, JobOperationStatus, Priority, type PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
@@ -162,7 +162,7 @@ describe('job', function () {
     describe('Bad Path', function () {
       it('should return a 400 status code along with a specific validation error message detailing the missing required parameters for job creation', async function () {
         const badRequestBody = {
-          name: 'DEFAULT',
+          name: JobName.DEFAULT,
         };
 
         const response = await requestSender.createJob({
@@ -326,13 +326,14 @@ describe('job', function () {
       });
 
       it("should return 204 status code without modifying job's priority", async function () {
-        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_LOW };
+        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_HIGH };
         const job = await createJobRecord(createJobRequestBodyWithPriority, prisma);
         const createdJobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
-          requestBody: { priority: Priority.VERY_LOW },
+
+          requestBody: { priority: Priority.VERY_HIGH },
         });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
