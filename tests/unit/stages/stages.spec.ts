@@ -9,7 +9,7 @@ import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownEr
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { StageCreateWithTasksModel } from '@src/stages/models/models';
 import { jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
-import { createStageEntity, createJobEntity, randomUuid, createTaskEntity } from '../generator';
+import { createStageEntity, createJobEntity, createTaskEntity } from '../generator';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
@@ -30,7 +30,7 @@ describe('JobManager', () => {
   describe('#Stages', () => {
     describe('#getStages', () => {
       describe('#HappyPath', () => {
-        it('should return array with single stage formatted object by criteria', async function () {
+        it('should return array with single stage formatted object by criteria without tasks', async function () {
           const stageEntity = createStageEntity({});
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
@@ -41,6 +41,23 @@ describe('JobManager', () => {
           const expectedStage = [rest];
 
           expect(stages).toMatchObject(expectedStage);
+          expect(stages[0]?.tasks).toBeUndefined();
+        });
+
+        it('should return array with single stage formatted object by criteria with related tasks', async function () {
+          const stageId = faker.string.uuid();
+          const taskEntity = createTaskEntity({ stageId, type: TaskType.DEFAULT });
+          const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
+          jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+
+          const stages = await stageManager.getStages({ stage_type: StageName.DEFAULT, should_return_tasks: true });
+
+          const { name: type, xstate, task, ...rest } = stageEntity;
+
+          const expectedStage = [rest];
+
+          expect(stages).toMatchObject(expectedStage);
+          expect(stages[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
       });
 
@@ -69,6 +86,24 @@ describe('JobManager', () => {
           const expectedStage = rest;
 
           expect(stage).toMatchObject(expectedStage);
+          expect(stage.tasks).toBeUndefined();
+        });
+
+        it('should return stage object by provided id with related tasks', async function () {
+          const stageId = faker.string.uuid();
+          const taskEntity = createTaskEntity({ stageId, type: TaskType.DEFAULT });
+          const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
+
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+
+          const stage = await stageManager.getStageById(stageId);
+
+          const { name: type, xstate, task, ...rest } = stageEntity;
+
+          const expectedStage = rest;
+
+          expect(stage).toMatchObject(expectedStage);
+          expect(stage.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
       });
 
@@ -98,10 +133,28 @@ describe('JobManager', () => {
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
           const { name: type, xstate, task, ...rest } = stageEntity;
+          const expectedStage = [rest];
+
+          expect(stage).toMatchObject(expectedStage);
+          expect(stage[0]?.tasks).toBeUndefined();
+        });
+
+        it('should return stage object by provided job id with related tasks', async function () {
+          const stageId = faker.string.uuid();
+          const taskEntity = createTaskEntity({ stageId, type: TaskType.DEFAULT });
+          const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
+          jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+
+          const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
+
+          const { name: type, xstate, task, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
           expect(stage).toMatchObject(expectedStage);
+          expect(stage[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
       });
 
@@ -199,7 +252,7 @@ describe('JobManager', () => {
             jobId: uniqueJobId,
             id: uniqueStageId,
             userMetadata: anotherStagePayload.userMetadata,
-            type: anotherStagePayload.type,
+            name: anotherStagePayload.type,
           });
 
           jest.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
@@ -232,7 +285,7 @@ describe('JobManager', () => {
             jobId: uniqueJobId,
             id: uniqueStageId,
             userMetadata: anotherStagePayload.userMetadata,
-            type: anotherStagePayload.type,
+            name: anotherStagePayload.type,
             data: anotherStagePayload.data,
             task: [taskEntity],
           });
@@ -265,7 +318,7 @@ describe('JobManager', () => {
             jobId: uniqueJobId,
             id: uniqueStageId,
             userMetadata: anotherStagePayload.userMetadata,
-            type: anotherStagePayload.type,
+            name: anotherStagePayload.type,
             data: anotherStagePayload.data,
             task: [],
           });
@@ -320,7 +373,7 @@ describe('JobManager', () => {
     describe('#updateStatus', () => {
       describe('#HappyPath', () => {
         it('should successfully update stage status by id', async function () {
-          const stageId = randomUuid;
+          const stageId = faker.string.uuid();
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue({ ...stageEntity, id: stageId });
           jest.spyOn(prisma.stage, 'update').mockResolvedValue({ ...stageEntity, id: stageId });

@@ -2,7 +2,7 @@ import { Prisma } from '@prisma/client';
 import { Snapshot } from 'xstate';
 import type { components, operations } from '@src/openapi';
 
-type StageModel = components['schemas']['stageResponse'];
+type StageModel = components['schemas']['getStageResponse'];
 type StageCreateModel = components['schemas']['createStagePayload'];
 type StageCreateWithTasksModel = components['schemas']['createStageWithTasksPayload'];
 type StageCreateBody = StageCreateModel & { jobId: string; xstate: Snapshot<unknown> };

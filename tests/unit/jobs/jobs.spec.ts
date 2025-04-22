@@ -40,7 +40,6 @@ describe('JobManager', () => {
           } satisfies JobCreateModel;
 
           const job = await jobManager.createJob(createJobParams);
-
           expect(job).toMatchObject(createJobParams);
           expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
         });

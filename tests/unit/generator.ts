@@ -18,7 +18,6 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
-import { StageCreateWithTasksModel } from '@src/stages/models/models';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
@@ -59,7 +58,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
-export const createStageEntity = (override: Partial<StageCreateWithTasksModel & StageWithTasks>): StageWithTasks => {
+export const createStageEntity = (override: Partial<StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
     name: StageName.DEFAULT,
