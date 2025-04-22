@@ -1,7 +1,7 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import type { PrismaClient } from '@prisma/client';
-import { JobMode, Prisma, StageOperationStatus } from '@prisma/client';
+import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES } from '@common/constants';
@@ -9,7 +9,8 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import type { StageCreateModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
+import { TaskCreateModel } from '@src/tasks/models/models';
+import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
@@ -21,7 +22,7 @@ export class StageManager {
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
-  public async addStages(jobId: string, stagesPayload: StageCreateModel[]): Promise<StageModel[]> {
+  public async addStage(jobId: string, stagePayload: StageCreateWithTasksModel): Promise<StageModel> {
     const createStageActor = createActor(stageStateMachine).start();
     const persistenceSnapshot = createStageActor.getPersistedSnapshot();
 
@@ -42,27 +43,44 @@ export class StageManager {
     if (checkJobStatus.getSnapshot().status === 'done') {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
+    let input = undefined;
+    let tasksInput = undefined;
+    const { tasks: taskReq, type, ...bodyInput } = stagePayload;
 
-    const stageInput = stagesPayload.map(
-      (stageData) =>
-        ({
-          data: stageData.data,
-          name: stageData.type,
-          xstate: persistenceSnapshot,
-          userMetadata: stageData.userMetadata,
-          status: StageOperationStatus.CREATED,
-          job_id: jobId,
-        }) satisfies Prisma.StageCreateManyInput
-    );
+    input = {
+      ...bodyInput,
+      name: type,
+      status: StageOperationStatus.CREATED,
+      job: {
+        connect: {
+          id: jobId,
+        },
+      },
+      xstate: persistenceSnapshot,
+    } satisfies Prisma.StageCreateInput;
 
-    const queryBody = {
-      data: stageInput,
+    // will add also task creation, if exists in request
+    if (taskReq !== undefined && taskReq.length > 0) {
+      const tasks: TaskCreateModel[] = taskReq;
+      tasksInput = tasks.map((task) => {
+        const taskFull = Object.assign(task, { xstate: persistenceSnapshot, status: TaskOperationStatus.CREATED });
+        return taskFull;
+      });
+
+      input = { ...input, task: { create: tasksInput } } satisfies Prisma.StageCreateInput;
+    }
+
+    const queryBody: Prisma.StageCreateArgs = {
+      data: input,
+      include: {
+        task: false,
+      },
     };
 
     try {
-      const stages = await this.prisma.stage.createManyAndReturn(queryBody);
+      const stage = await this.prisma.stage.create(queryBody);
 
-      return convertArrayPrismaStageToStageResponse(stages);
+      return convertPrismaToStageResponse(stage);
     } catch (error) {
       this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
 
@@ -76,11 +94,12 @@ export class StageManager {
       queryBody = {
         where: {
           AND: {
-            job_id: { equals: params.job_id },
+            jobId: { equals: params.job_id },
             name: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
           },
         },
+        include: { task: params.should_return_tasks },
       };
     }
 
@@ -90,8 +109,8 @@ export class StageManager {
     return result;
   }
 
-  public async getStageById(stageId: string): Promise<StageModel> {
-    const stage = await this.getStageEntityById(stageId);
+  public async getStageById(stageId: string, includeTasks?: boolean): Promise<StageModel> {
+    const stage = await this.getStageEntityById(stageId, includeTasks);
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -100,13 +119,16 @@ export class StageManager {
     return convertPrismaToStageResponse(stage);
   }
 
-  public async getStagesByJobId(jobId: string): Promise<StageModel[]> {
+  public async getStagesByJobId(jobId: string, includeTasks?: boolean): Promise<StageModel[]> {
     // To validate existence of job, if not will throw JobNotFoundError
     await this.jobManager.getJobById(jobId);
 
     const queryBody = {
       where: {
-        job_id: jobId,
+        jobId,
+      },
+      include: {
+        task: includeTasks,
       },
     };
 
@@ -143,23 +165,6 @@ export class StageManager {
     }
   }
 
-  /**
-   * This method is used to get a stage entity by its id from the database.
-   * @param stageId unique identifier of the stage.
-   * @returns The stage entity if found, otherwise null.
-   */
-  public async getStageEntityById(stageId: string): Promise<StagePrismaObject | null> {
-    const queryBody = {
-      where: {
-        id: stageId,
-      },
-    };
-
-    const stage = await this.prisma.stage.findUnique(queryBody);
-
-    return stage;
-  }
-
   public async updateStatus(stageId: string, status: StageOperationStatus): Promise<void> {
     const stage = await this.getStageEntityById(stageId);
 
@@ -189,5 +194,25 @@ export class StageManager {
     };
 
     await this.prisma.stage.update(updateQueryBody);
+  }
+
+  /**
+   * This method is used to get a stage entity by its id from the database.
+   * @param stageId unique identifier of the stage.
+   * @returns The stage entity if found, otherwise null.
+   */
+  public async getStageEntityById(stageId: string, includeTasks?: boolean): Promise<StagePrismaObject | null> {
+    const queryBody = {
+      where: {
+        id: stageId,
+      },
+      include: {
+        task: includeTasks,
+      },
+    };
+
+    const stage = await this.prisma.stage.findUnique(queryBody);
+
+    return stage;
   }
 }

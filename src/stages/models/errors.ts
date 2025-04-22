@@ -6,6 +6,8 @@ export class StageNotFoundError extends Error {
 }
 
 export const errorMessages = {
+  /**Adding tasks to finite state stages is not allowed*/
+  stageAlreadyFinishedTasksError: 'STAGE_ALREADY_FINISHED_TASKS_ERROR',
   /**Signifies that the specified stage could not be located*/
   stageNotFound: 'STAGE_NOT_FOUND',
 } as const;

@@ -281,10 +281,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/errorMessage'
   /jobs/{jobId}/stages:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
     get:
       operationId: getStageByJobId
       parameters:
-        - $ref: '#/components/parameters/jobId'
+        - $ref: '#/components/parameters/includeTasks'
       summary: find stages by job id
       tags:
         - jobs
@@ -296,7 +298,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/stageResponse'
+                  $ref: '#/components/schemas/getStageResponse'
         '400':
           description: Bad parameters input
           content:
@@ -315,9 +317,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/stage:
     post:
-      operationId: addStages
-      summary: Adds stages to the end of a dynamic job's existing stages
+      operationId: addStage
+      summary: Add single stages to the end of a dynamic job's existing stages with optional tasks array
       parameters:
         - $ref: '#/components/parameters/jobId'
       tags:
@@ -327,18 +330,14 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/createStagePayload'
+              $ref: '#/components/schemas/createStageWithTasksPayload'
       responses:
         '201':
-          description: Returns the newly created stages associated with the job ID.
+          description: Returns the newly created stage associated with the job ID.
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/stageResponse'
+                $ref: '#/components/schemas/stageResponse'
         '400':
           description: Invalid request, could not create stage
           content:
@@ -364,6 +363,7 @@ paths:
         - $ref: '#/components/parameters/paramJobId'
         - $ref: '#/components/parameters/paramStageType'
         - $ref: '#/components/parameters/stageStatus'
+        - $ref: '#/components/parameters/includeTasks'
       summary: find stages by criteria
       tags:
         - stages
@@ -375,7 +375,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/stageResponse'
+                  $ref: '#/components/schemas/getStageResponse'
         '400':
           description: Bad parameters input
           content:
@@ -389,10 +389,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/errorMessage'
   /stages/{stageId}:
+    parameters:
+      - $ref: '#/components/parameters/stageId'
     get:
       operationId: getStageById
       parameters:
-        - $ref: '#/components/parameters/stageId'
+        - $ref: '#/components/parameters/includeTasks'
       summary: find stage by id
       tags:
         - stages
@@ -402,7 +404,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/stageResponse'
+                $ref: '#/components/schemas/getStageResponse'
         '400':
           description: Bad parameters input
           content:
@@ -577,6 +579,48 @@ paths:
                 $ref: '#/components/schemas/errorMessage'
       tags:
         - stages
+    post:
+      operationId: addTasks
+      summary: Adds tasks to the end of a  existing stage
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/createTaskPayload'
+      responses:
+        '201':
+          description: Returns the newly created tasks associated with the stage ID.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid request, could not create task
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such stage on database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
   /tasks:
     parameters:
       - $ref: '#/components/parameters/paramStageId'
@@ -715,13 +759,6 @@ components:
       required: true
       schema:
         type: string
-    # taskType:
-    #   in: path
-    #   name: taskType
-    #   description: ID of requested task
-    #   required: true
-    #   schema:
-    #     $ref: '#/components/schemas/taskType'
     paramsTaskStatus:
       in: query
       name: status
@@ -785,7 +822,13 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/returnStage'
-
+    includeTasks:
+      in: query
+      name: should_return_tasks
+      description: indicated if response body should contain also tasks array
+      required: false
+      schema:
+        $ref: '#/components/schemas/returnTask'
     paramStageId:
       in: query
       name: stage_id
@@ -822,13 +865,6 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/taskType'
-    # jobName:
-    #   in: path
-    #   name: jobName
-    #   description: the type of the job
-    #   required: true
-    #   schema:
-    #     $ref: '#/components/schemas/jobName'
   schemas:
     creationTime:
       type: string
@@ -943,6 +979,8 @@ components:
       example: DEFAULT
     returnStage:
       type: boolean
+    returnTask:
+      type: boolean
     userMetadata:
       type: object
       additionalProperties: true
@@ -1024,6 +1062,7 @@ components:
           required:
             - id
             - summary
+            - jobId
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -1033,6 +1072,17 @@ components:
               $ref: '#/components/schemas/percentage'
             status:
               $ref: '#/components/schemas/stageOperationStatus'
+            jobId:
+              $ref: '#/components/schemas/jobId'
+    getStageResponse:
+      allOf:
+        - $ref: '#/components/schemas/stageResponse'
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/taskResponse'
     taskId:
       type: string
       format: uuid
@@ -1049,22 +1099,28 @@ components:
     taskPayload:
       type: object
       additionalProperties: true
-    # createTaskPayload:
-    #   type: object
-    #   properties:
-    #     type:
-    #       $ref: '#/components/schemas/taskType'
-    #     data:
-    #       $ref: '#/components/schemas/taskPayload'
-    #     stageId:
-    #       $ref: '#/components/schemas/stageId'
-    #     userMetadata:
-    #       $ref: '#/components/schemas/userMetadata'
-    #   required:
-    #     - data
-    #     - type
-    #     - stageId
-    #   additionalProperties: false
+    createStageWithTasksPayload:
+      allOf:
+        - $ref: '#/components/schemas/createStagePayload'
+        - type: object
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/createTaskPayload'
+    createTaskPayload:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/taskPayload'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+      required:
+        - data
+        - type
+      additionalProperties: false
     taskResponse:
       type: object
       properties:

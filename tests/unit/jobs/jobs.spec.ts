@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus, Creator, Priority } from '@prisma/client';
 import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -43,7 +42,7 @@ describe('JobManager', () => {
           const job = await jobManager.createJob(createJobParams);
 
           expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([{ jobId: stageEntity.job_id, id: stageEntity.id }]);
+          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
         });
 
         it('should return created job formatted with empty stage array', async function () {
@@ -88,10 +87,10 @@ describe('JobManager', () => {
         it('should return formatted jobs matching the search criteria', async function () {
           jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntityWithoutStages]);
 
-          const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
+          const jobs = await jobManager.getJobs({ creator: Creator.UNKNOWN });
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = [{ ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -101,7 +100,7 @@ describe('JobManager', () => {
         it('should fail with a database error when finding jobs', async function () {
           jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.getJobs({ creator: 'UNKNOWN' })).rejects.toThrow('db connection error');
+          await expect(jobManager.getJobs({ creator: Creator.UNKNOWN })).rejects.toThrow('db connection error');
         });
       });
     });
@@ -113,8 +112,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = { ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = { ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -169,13 +168,15 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
           jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, 'MEDIUM')).toResolve();
+          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.MEDIUM)).toResolve();
         });
 
         it('should not perform a job priority update when the provided priority matches the current job priority', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: 'HIGH' });
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
 
-          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, 'HIGH')).rejects.toThrow('Priority cannot be updated to the same value.');
+          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.HIGH)).rejects.toThrow(
+            'Priority cannot be updated to the same value.'
+          );
         });
       });
 
@@ -183,7 +184,7 @@ describe('JobManager', () => {
         it('should fail when updating priority of a non-existent job', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow(jobsErrorMessages.jobNotFound);
+          await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -191,7 +192,7 @@ describe('JobManager', () => {
         it('should fail with a database error when updating priority', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('db connection error');
+          await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow('db connection error');
         });
       });
     });

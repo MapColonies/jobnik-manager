@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { TaskType, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
@@ -14,8 +13,8 @@ export const createTaskRecord = async (body: Prisma.TaskCreateManyInput[], prism
 };
 
 export const createTaskBody = {
-  stage_id: testStageId,
-  type: 'DEFAULT' as TaskType,
+  stageId: testStageId,
+  type: TaskType.DEFAULT,
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},

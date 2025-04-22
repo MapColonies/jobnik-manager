@@ -3,8 +3,9 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobOperationStatus, type JobMode, type Priority, type PrismaClient } from '@prisma/client';
+import { JobOperationStatus, JobMode, Priority, type PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
+import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
@@ -37,7 +38,6 @@ describe('job', function () {
   });
 
   afterEach(async () => {
-    await prisma.$disconnect();
     await pool.end();
   });
 
@@ -48,13 +48,13 @@ describe('job', function () {
   describe('#FindJobs', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching job with stages when stages flag is true', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: 'PRE_DEFINED' as JobMode, should_return_stages: true } });
+        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED, should_return_stages: true } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
@@ -66,13 +66,13 @@ describe('job', function () {
       });
 
       it('should return 200 status code and the matching job with stages when stages flag is false', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: 'PRE_DEFINED' as JobMode, should_return_stages: false } });
+        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED, should_return_stages: false } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
@@ -84,13 +84,13 @@ describe('job', function () {
       });
 
       it('should return 200 status code and return the job without stages when stages flag is omitted', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: 'PRE_DEFINED' as JobMode };
+        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
 
         await requestSender.createJob({
           requestBody: preDefinedJobRequestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: 'PRE_DEFINED' as JobMode } });
+        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
@@ -113,8 +113,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) },
+          body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) as MatcherContext },
         });
       });
     });
@@ -155,7 +154,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: 'CREATED', ...createJobWithoutStagesRequestBody },
+          body: { status: JobOperationStatus.CREATED, ...createJobWithoutStagesRequestBody },
         });
       });
     });
@@ -177,8 +176,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/body must have required property/) },
+          body: { message: expect.stringMatching(/request\/body must have required property/) as MatcherContext },
         });
       });
     });
@@ -249,8 +247,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
       });
     });
@@ -313,29 +310,29 @@ describe('job', function () {
   describe('#updateJobPriority', function () {
     describe('Happy Path', function () {
       it("should return 201 status code and modify job's priority", async function () {
-        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: 'VERY_LOW' as Priority };
+        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_LOW };
         const job = await createJobRecord(createJobRequestBodyWithPriority, prisma);
         const createdJobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
-          requestBody: { priority: 'VERY_HIGH' },
+          requestBody: { priority: Priority.VERY_HIGH },
         });
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
-        expect(getJobResponse.body).toMatchObject({ priority: 'VERY_HIGH' });
+        expect(getJobResponse.body).toMatchObject({ priority: Priority.VERY_HIGH });
       });
 
       it("should return 204 status code without modifying job's priority", async function () {
-        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: 'VERY_LOW' as Priority };
+        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_LOW };
         const job = await createJobRecord(createJobRequestBodyWithPriority, prisma);
         const createdJobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
-          requestBody: { priority: 'VERY_LOW' },
+          requestBody: { priority: Priority.VERY_LOW },
         });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
@@ -348,7 +345,10 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return 404 with specific error message for non-existent job', async function () {
-        const getJobResponse = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: 'VERY_HIGH' } });
+        const getJobResponse = await requestSender.updateJobPriority({
+          pathParams: { jobId: testJobId },
+          requestBody: { priority: Priority.VERY_HIGH },
+        });
 
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
@@ -366,8 +366,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) },
+          body: { message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as MatcherContext },
         });
       });
     });
@@ -376,7 +375,7 @@ describe('job', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: 'VERY_HIGH' } });
+        const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: Priority.VERY_HIGH } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -451,11 +450,11 @@ describe('job', function () {
         const createdJobId = job.id;
 
         await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
-        const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
-        expect(deleteResponse).toSatisfyApiSpec();
-        expect(deleteResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.OK,
           body: { code: successMessages.jobDeletedSuccessfully },
         });
@@ -471,11 +470,11 @@ describe('job', function () {
         const createdJobId = job.id;
 
         await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
-        const deleteResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
         const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
 
-        expect(deleteResponse).toSatisfyApiSpec();
-        expect(deleteResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.OK,
           body: { code: successMessages.jobDeletedSuccessfully },
         });
@@ -489,13 +488,12 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: 'someInvalidJobId' } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: 'someInvalidJobId' } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
         });
       });
 
@@ -503,20 +501,20 @@ describe('job', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
-        const getJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
 
-        expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: jobsErrorMessages.jobNotInFiniteState },
         });
       });
 
       it('should return 404 with specific error message for non-existent job', async function () {
-        const response = await requestSender.deleteJob({ pathParams: { jobId: testJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: testJobId } });
 
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
           body: { message: jobsErrorMessages.jobNotFound },
         });
@@ -527,12 +525,12 @@ describe('job', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.deleteJob({
+        const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },
         });
 
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(deleteJobResponse).toSatisfyApiSpec();
+        expect(deleteJobResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });

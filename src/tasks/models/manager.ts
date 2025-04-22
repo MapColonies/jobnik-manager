@@ -1,20 +1,83 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prisma/client';
+import { createActor } from 'xstate';
 import { SERVICES } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
-import { prismaKnownErrors } from '@src/common/errors';
-import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject } from './models';
+import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
+import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { JobManager } from '@src/jobs/models/manager';
+import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
-import { convertArrayPrismaTaskToStageResponse, convertPrismaToTaskResponse } from './helper';
+import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 @injectable()
 export class TaskManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
-    @inject(StageManager) private readonly stageManager: StageManager
+    @inject(StageManager) private readonly stageManager: StageManager,
+    @inject(JobManager) private readonly jobManager: JobManager
   ) {}
+
+  public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
+    // todo - use dedicated state machine for task when will be implemented
+    const createTaskActor = createActor(stageStateMachine).start();
+    const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
+
+    const stage = await this.stageManager.getStageEntityById(stageId);
+
+    if (!stage) {
+      this.logger.error(`Failed adding tasks to stage, stage not exists`);
+      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
+    }
+
+    const checkStageStatus = createActor(jobStateMachine, { snapshot: stage.xstate }).start();
+
+    // can't add tasks to finite stages (final states)
+    if (checkStageStatus.getSnapshot().status === 'done') {
+      this.logger.error(`Failed adding tasks to stage, not allowed on finite state of stage`);
+      throw new InvalidUpdateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
+    }
+
+    // can't add tasks on running stage of pre-defined job
+    const job = await this.jobManager.getJobById(stage.jobId);
+
+    if (job.jobMode === JobMode.PRE_DEFINED && checkStageStatus.getSnapshot().value === StageOperationStatus.IN_PROGRESS) {
+      this.logger.error(`Failed adding tasks to stage, not allowed on running stage of pre-defined job`);
+      throw new InvalidUpdateError(tasksErrorMessages.addTaskNotAllowed);
+    }
+
+    const taskInput = tasksPayload.map(
+      (taskData) =>
+        ({
+          attempts: 0,
+          data: taskData.data,
+          type: taskData.type,
+          xstate: persistenceSnapshot,
+          userMetadata: taskData.userMetadata,
+          status: TaskOperationStatus.CREATED,
+
+          stageId,
+        }) satisfies Prisma.TaskCreateManyInput
+    );
+
+    const queryBody = {
+      data: taskInput,
+    };
+
+    try {
+      const tasks = await this.prisma.task.createManyAndReturn(queryBody);
+
+      return convertArrayPrismaTaskToTaskResponse(tasks);
+    } catch (error) {
+      this.logger.error(`Failed adding tasks to stage with error: ${(error as Error).message}`);
+
+      throw error;
+    }
+  }
 
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
     let queryBody = undefined;
@@ -23,8 +86,7 @@ export class TaskManager {
       queryBody = {
         where: {
           AND: {
-            // eslint-disable-next-line @typescript-eslint/naming-convention
-            stage_id: { equals: params.stage_id },
+            stageId: { equals: params.stage_id },
             type: { equals: params.task_type },
             status: { equals: params.status },
             creationTime: { gte: params.from_date, lte: params.till_date },
@@ -35,7 +97,7 @@ export class TaskManager {
 
     const tasks = await this.prisma.task.findMany(queryBody);
 
-    const result = convertArrayPrismaTaskToStageResponse(tasks);
+    const result = convertArrayPrismaTaskToTaskResponse(tasks);
     return result;
   }
 
@@ -55,8 +117,7 @@ export class TaskManager {
 
     const queryBody = {
       where: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        stage_id: stageId,
+        stageId,
       },
     };
 

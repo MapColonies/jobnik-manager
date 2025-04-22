@@ -30,7 +30,13 @@ export class StageController {
 
   public getStageById: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getStageById(req.params.stageId);
+      let includeTasks: boolean | undefined = false;
+
+      if (req.query) {
+        includeTasks = req.query.should_return_tasks;
+      }
+
+      const response = await this.manager.getStageById(req.params.stageId, includeTasks);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof StageNotFoundError) {
@@ -43,7 +49,13 @@ export class StageController {
 
   public getStagesByJobId: TypedRequestHandlers['GET /jobs/{jobId}/stages'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getStagesByJobId(req.params.jobId);
+      let includeTasks: boolean | undefined = false;
+
+      if (req.query) {
+        includeTasks = req.query.should_return_tasks;
+      }
+
+      const response = await this.manager.getStagesByJobId(req.params.jobId, includeTasks);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof JobNotFoundError) {
@@ -53,9 +65,9 @@ export class StageController {
     }
   };
 
-  public addStages: TypedRequestHandlers['POST /jobs/{jobId}/stages'] = async (req, res, next) => {
+  public addStage: TypedRequestHandlers['POST /jobs/{jobId}/stage'] = async (req, res, next) => {
     try {
-      const response = await this.manager.addStages(req.params.jobId, req.body);
+      const response = await this.manager.addStage(req.params.jobId, req.body);
 
       return res.status(httpStatus.CREATED).json(response);
     } catch (err) {
