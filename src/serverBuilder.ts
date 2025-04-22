@@ -14,6 +14,7 @@ import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
 import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
+import { TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
 
 @injectable()
 export class ServerBuilder {
@@ -24,7 +25,8 @@ export class ServerBuilder {
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
     @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
-    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router
+    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router,
+    @inject(TASK_ROUTER_SYMBOL) private readonly taskRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -49,6 +51,7 @@ export class ServerBuilder {
   private buildRoutes(): void {
     this.serverInstance.use('/jobs', this.jobRouter);
     this.serverInstance.use('/stages', this.stageRouter);
+    this.serverInstance.use('/tasks', this.taskRouter);
     this.buildDocsRoutes();
   }
 

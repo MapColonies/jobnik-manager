@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
+import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -12,7 +11,7 @@ import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithout
 let jobManager: JobManager;
 const prisma = new PrismaClient();
 
-const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: 'P2025', clientVersion: '1' });
+const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
@@ -43,7 +42,7 @@ describe('JobManager', () => {
           const job = await jobManager.createJob(createJobParams);
 
           expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([{ jobId: stageEntity.job_id, id: stageEntity.id }]);
+          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
         });
 
         it('should return created job formatted with empty stage array', async function () {
@@ -90,8 +89,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobs({ creator: 'UNKNOWN' });
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = [{ ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -113,8 +112,8 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
-          const { xstate, Stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
-          const expectedJob = { ...rest, stages: Stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
+          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const expectedJob = { ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
 
           expect(jobs).toMatchObject(expectedJob);
         });

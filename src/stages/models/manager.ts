@@ -6,10 +6,10 @@ import { createActor } from 'xstate';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { InvalidUpdateError, errorMessages as commonErrorMessages } from '@src/common/errors';
+import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { StageCreateModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
-import { prismaKnownErrors, StageNotFoundError, errorMessages as stagesErrorMessages } from './errors';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
@@ -51,7 +51,7 @@ export class StageManager {
           xstate: persistenceSnapshot,
           userMetadata: stageData.userMetadata,
           status: StageOperationStatus.CREATED,
-          job_id: jobId,
+          jobId,
         }) satisfies Prisma.StageCreateManyInput
     );
 
@@ -76,7 +76,7 @@ export class StageManager {
       queryBody = {
         where: {
           AND: {
-            job_id: { equals: params.job_id },
+            jobId: { equals: params.job_id },
             name: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
           },
@@ -91,13 +91,7 @@ export class StageManager {
   }
 
   public async getStageById(stageId: string): Promise<StageModel> {
-    const queryBody = {
-      where: {
-        id: stageId,
-      },
-    };
-
-    const stage = await this.prisma.stage.findUnique(queryBody);
+    const stage = await this.getStageEntityById(stageId);
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -112,7 +106,7 @@ export class StageManager {
 
     const queryBody = {
       where: {
-        job_id: jobId,
+        jobId,
       },
     };
 
@@ -143,7 +137,7 @@ export class StageManager {
       await this.prisma.stage.update(updateQueryBody);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === prismaKnownErrors.recordNotFound) {
-        throw new StageNotFoundError('STAGE_NOT_FOUND');
+        throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
       }
       throw err;
     }

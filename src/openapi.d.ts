@@ -203,6 +203,92 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/stages/{stageId}/tasks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Stage */
+        stageId: components['parameters']['stageId'];
+      };
+      cookie?: never;
+    };
+    /** Get tasks by stage ID */
+    get: operations['getTasksByStageId'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/tasks': {
+    parameters: {
+      query?: {
+        /** @description unique stage identifier */
+        stage_id?: components['parameters']['paramStageId'];
+        /** @description task's type */
+        task_type?: components['parameters']['paramTaskType'];
+        /** @description results start update date */
+        from_date?: components['parameters']['fromDate'];
+        /** @description results end update date */
+        till_date?: components['parameters']['tillDate'];
+        /** @description The status of the job.
+         *      */
+        status?: components['parameters']['paramsTaskStatus'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get tasks by criteria */
+    get: operations['getTasksByCriteria'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/tasks/{taskId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of requested task */
+        taskId: components['parameters']['taskId'];
+      };
+      cookie?: never;
+    };
+    /** Get task by ID */
+    get: operations['getTaskById'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/tasks/{taskId}/user-metadata': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Update user metadata object */
+    patch: operations['updateTaskUserMetadata'];
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -237,7 +323,7 @@ export type components = {
      * @example JOB_MODIFIED_SUCCESSFULLY
      * @enum {string}
      */
-    successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
+    successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'TASK_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
     /** @enum {string} */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
@@ -312,20 +398,20 @@ export type components = {
      * @enum {string}
      */
     taskType: 'TILE_SEEDING' | 'TILE_RENDERING' | 'PUBLISH_CATALOG' | 'PUBLISH_LAYER' | 'DEFAULT';
-    taskPayload: Record<string, never>;
-    createTaskPayload: {
-      type: components['schemas']['taskType'];
-      data: components['schemas']['taskPayload'];
-      stageId: components['schemas']['stageId'];
+    taskPayload: {
+      [key: string]: unknown;
     };
     taskResponse: {
       id: components['schemas']['taskId'];
+      type: components['schemas']['taskType'];
+      data: components['schemas']['taskPayload'];
+      stageId: components['schemas']['stageId'];
+      userMetadata?: components['schemas']['userMetadata'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      status?: components['schemas']['taskOperationStatus'];
+      status: components['schemas']['taskOperationStatus'];
       attempts?: components['schemas']['attempts'];
-      priority?: components['schemas']['priority'];
-    } & WithRequired<components['schemas']['createTaskPayload'], 'stageId'>;
+    };
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
@@ -344,7 +430,7 @@ export type components = {
       stages?: components['schemas']['stageResponse'][];
     };
     errorMessage: {
-      'message:'?: string;
+      message: string;
       stacktrace?: string;
     };
     defaultOkMessage: {
@@ -360,6 +446,11 @@ export type components = {
     jobId: components['schemas']['jobId'];
     /** @description ID of Stage */
     stageId: components['schemas']['stageId'];
+    /** @description ID of requested task */
+    taskId: string;
+    /** @description The status of the job.
+     *      */
+    paramsTaskStatus: components['schemas']['taskOperationStatus'];
     /** @description The mode of the job.
      *      */
     jobModeQueryParam: components['schemas']['jobMode'];
@@ -378,6 +469,8 @@ export type components = {
     tillDate: string;
     /** @description indicated if response body should contain also stages array */
     includeStages: components['schemas']['returnStage'];
+    /** @description unique stage identifier */
+    paramStageId: components['schemas']['stageId'];
     /** @description unique job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description stage's type */
@@ -385,6 +478,8 @@ export type components = {
     /** @description The status of the stage.
      *      */
     stageStatus: components['schemas']['stageOperationStatus'];
+    /** @description task's type */
+    paramTaskType: components['schemas']['taskType'];
   };
   requestBodies: never;
   headers: never;
@@ -1129,8 +1224,218 @@ export interface operations {
       };
     };
   };
+  getTasksByStageId: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Stage */
+        stageId: components['parameters']['stageId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Requested tasks array by provided stage identifier */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'][];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such task in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  getTasksByCriteria: {
+    parameters: {
+      query?: {
+        /** @description unique stage identifier */
+        stage_id?: components['parameters']['paramStageId'];
+        /** @description task's type */
+        task_type?: components['parameters']['paramTaskType'];
+        /** @description results start update date */
+        from_date?: components['parameters']['fromDate'];
+        /** @description results end update date */
+        till_date?: components['parameters']['tillDate'];
+        /** @description The status of the job.
+         *      */
+        status?: components['parameters']['paramsTaskStatus'];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Requested tasks array by provided query params */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'][];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such task in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  getTaskById: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of requested task */
+        taskId: components['parameters']['taskId'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Requested task object by identifier */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such task in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateTaskUserMetadata: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of requested task */
+        taskId: components['parameters']['taskId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['userMetadata'];
+      };
+    };
+    responses: {
+      /** @description modify user metadata object */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage on database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
 }
-type WithRequired<T, K extends keyof T> = T & {
-  [P in K]-?: T[P];
-};
 export type TypedRequestHandlers = ImportedTypedRequestHandlers<paths, operations>;

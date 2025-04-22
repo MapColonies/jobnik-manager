@@ -3,11 +3,11 @@ import httpStatus from 'http-status-codes';
 import { injectable, inject } from 'tsyringe';
 import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
-import { SERVICES } from '@common/constants';
+import { SERVICES, successMessages } from '@common/constants';
 import { JobNotFoundError } from '@src/jobs/models/errors';
 import { InvalidUpdateError } from '@src/common/errors';
 import { StageManager } from '../models/manager';
-import { successMessages, type StageFindCriteriaArg } from '../models/models';
+import type { StageFindCriteriaArg } from '../models/models';
 import { StageNotFoundError } from '../models/errors';
 
 @injectable()
@@ -71,7 +71,7 @@ export class StageController {
     }
   };
 
-  public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
+  public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}/summary'] = async (req, res, next) => {
     try {
       const response = await this.manager.getSummaryByStageId(req.params.stageId);
       return res.status(httpStatus.OK).json(response);
