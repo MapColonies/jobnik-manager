@@ -1,5 +1,5 @@
-import { Prisma } from '@prisma/client';
 import { Snapshot } from 'xstate';
+import { Prisma } from '@prismaClient';
 import type { components, operations } from '@src/openapi';
 
 type StageModel = components['schemas']['stageResponse'];
