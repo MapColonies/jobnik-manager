@@ -17,6 +17,7 @@ module.exports = {
     '!**/models/**',
     '!<rootDir>/src/*',
     '!<rootDir>/src/db/helpers.ts',
+    '!<rootDir>/src/db/prisma/generated/client/**',
     '!<rootDir>/src/db/createConnection.ts',
   ],
   coverageDirectory: '<rootDir>/coverage',

@@ -1,6 +1,6 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';

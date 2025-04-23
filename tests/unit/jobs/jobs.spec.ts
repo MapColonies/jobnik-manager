@@ -1,5 +1,5 @@
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, JobOperationStatus } from '@prisma/client';
+import { PrismaClient, Prisma, JobOperationStatus } from '@prismaClient';
 import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';

@@ -1,6 +1,6 @@
-import { StageName, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
+import { StageName, type Prisma, type PrismaClient } from '@prismaClient';
 import { StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
