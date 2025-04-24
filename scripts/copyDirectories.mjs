@@ -26,37 +26,21 @@ function validateArgs() {
   return { source, destination };
 }
 
-// Function to copy files directly preserving structure but not including source path
-function copyFilesCorrectly(source, destination) {
+function deepCopyDirectory(source, destination) {
   try {
-    // Create destination directory if it doesn't exist
     if (!fs.existsSync(destination)) {
       fs.mkdirSync(destination, { recursive: true });
     }
 
-    // Get a list of all files and directories in the source directory
-    const entries = fs.readdirSync(source, { withFileTypes: true });
-
-    // Process each entry
-    for (const entry of entries) {
-      const sourcePath = path.join(source, entry.name);
-      const destPath = path.join(destination, entry.name);
-
-      if (entry.isDirectory()) {
-        // Recursively copy directories
-        copyFilesCorrectly(sourcePath, destPath);
-      } else if (entry.isFile() && !entry.name.endsWith('.d.ts')) {
-        // Copy files that don't end with .d.ts
-        // Ensure the destination directory exists
-        const destDir = path.dirname(destPath);
-        if (!fs.existsSync(destDir)) {
-          fs.mkdirSync(destDir, { recursive: true });
+    fs.copy(source, destination, {
+      filter: (src, dest) => {
+        if (src.endsWith('.d.ts')) {
+          return false;
         }
 
-        // Copy the file
-        fs.copyFileSync(sourcePath, destPath);
-      }
-    }
+        return true;
+      },
+    });
   } catch (error) {
     console.error('Error copying directory:', error);
     process.exit(1);
@@ -66,10 +50,9 @@ function copyFilesCorrectly(source, destination) {
 // Main function
 function main() {
   const { source, destination } = validateArgs();
-  copyFilesCorrectly(source, destination);
+  deepCopyDirectory(source, destination);
 }
 
-// Execute the script
 try {
   main();
 } catch (err) {
