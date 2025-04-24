@@ -19,6 +19,7 @@ module.exports = {
     '!**/routes/**',
     '!<rootDir>/src/*',
     '!<rootDir>/src/db/createConnection.ts',
+    '!<rootDir>/src/db/prisma/generated/client/**',
     '!<rootDir>/src/**/models/models.ts',
   ],
 

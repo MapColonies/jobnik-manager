@@ -1,8 +1,8 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import type { PrismaClient } from '@prisma/client';
-import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
+import type { PrismaClient } from '@prismaClient';
+import { JobMode, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';

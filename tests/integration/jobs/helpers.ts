@@ -1,6 +1,6 @@
-import { Creator, JobMode, JobName, StageName, StageOperationStatus, type Prisma, type PrismaClient } from '@prisma/client';
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
+import { Creator, JobMode, JobName, StageName, StageOperationStatus, type Prisma, type PrismaClient } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
 import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';

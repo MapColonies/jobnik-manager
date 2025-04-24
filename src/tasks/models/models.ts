@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prismaClient';
 import type { components, operations } from '@src/openapi';
 
 type TaskModel = components['schemas']['taskResponse'];

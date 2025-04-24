@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { createActor } from 'xstate';
 import {
   Creator,
   JobMode,
@@ -12,8 +13,7 @@ import {
   Task,
   TaskOperationStatus,
   TaskType,
-} from '@prisma/client';
-import { createActor } from 'xstate';
+} from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';

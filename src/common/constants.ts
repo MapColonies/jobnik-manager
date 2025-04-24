@@ -20,7 +20,6 @@ export const SERVICES = {
   CONFIG: Symbol('Config'),
   TRACER: Symbol('Tracer'),
   METRICS: Symbol('METRICS'),
-  PG_POOL: Symbol('PgPool'),
   PRISMA: Symbol('Prisma'),
   HEALTHCHECK: Symbol('Healthcheck'),
 } satisfies Record<string, symbol>;

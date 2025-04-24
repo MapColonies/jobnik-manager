@@ -3,11 +3,10 @@ import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import { JobMode, StageName, StageOperationStatus, TaskType, type PrismaClient } from '@prisma/client';
 import { faker } from '@faker-js/faker';
-import { Pool } from 'pg';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
+import { JobMode, StageName, StageOperationStatus, TaskType,type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -22,7 +21,6 @@ import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from '
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
-  let pool: Pool;
 
   const dumpUuid = faker.string.uuid();
 
@@ -41,14 +39,9 @@ describe('stage', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
-    pool = container.resolve<Pool>(SERVICES.PG_POOL);
   });
 
   afterEach(async () => {
-    await pool.end();
-  });
-
-  afterAll(async () => {
     await prisma.$disconnect();
   });
 

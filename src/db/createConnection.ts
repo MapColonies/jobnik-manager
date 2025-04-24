@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { hostname } from 'node:os';
 import { commonDbFullV1Type } from '@map-colonies/schemas';
-import { Pool, type PoolConfig } from 'pg';
+import type { PoolConfig } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../db/prisma/generated/client';
 
 interface SchemaExistsResult {
   exists: boolean;
@@ -33,14 +33,8 @@ export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfi
   return dataSourceOptions;
 };
 
-export async function initPoolConnection(dbConfig: PoolConfig): Promise<Pool> {
-  const pool = new Pool(dbConfig);
-  await pool.query('SELECT NOW()');
-  return pool;
-}
-
-export function createPrismaClient(pool: Pool, schema: string): PrismaClient {
-  const adapter = new PrismaPg(pool, { schema });
+export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {
+  const adapter = new PrismaPg(poolConfig, { schema });
   const prisma = new PrismaClient({ adapter });
   return prisma;
 }

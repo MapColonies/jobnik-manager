@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
-import { JobOperationStatus } from '@prisma/client';
+import { JobOperationStatus } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { createJobEntity, createStageEntity } from './generator';
