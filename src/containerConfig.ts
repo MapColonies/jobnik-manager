@@ -34,7 +34,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
   const metricsRegistry = new Registry();
   configInstance.initializeMetrics(metricsRegistry);
 
-  const pgPoolConfig = createConnectionOptions(dbConfig);
+  const prismaClientConfig = createConnectionOptions(dbConfig);
 
   const healthCheck = (prisma: PrismaClient): HealthCheck => {
     return async (): Promise<void> => {
