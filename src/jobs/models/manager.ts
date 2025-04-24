@@ -1,8 +1,8 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import type { PrismaClient, Priority, JobOperationStatus } from '@prisma/client';
-import { Prisma, StageOperationStatus } from '@prisma/client';
 import { createActor } from 'xstate';
+import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
+import { Prisma, StageOperationStatus } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';

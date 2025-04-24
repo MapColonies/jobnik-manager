@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { setup } from 'xstate';
-import { JobOperationStatus } from '@prisma/client';
+import { JobOperationStatus } from '@prismaClient';
 
 type ChangeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
 

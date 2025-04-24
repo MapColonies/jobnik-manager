@@ -15,7 +15,6 @@ const AllowedSqlOperators = {
 const namingConvention = [...namingConventions, AllowedSqlOperators];
 
 const customConfig = {
-  ignores: ['**/*.js', 'dist/**', 'helm/**', 'coverage/**', 'reports/**', '.husky/**'],
   rules: {
     '@typescript-eslint/naming-convention': namingConvention,
   },
@@ -26,4 +25,6 @@ const customConfig = {
   },
 };
 
-export default config(jestConfig, tsBaseConfig, customConfig);
+export default config(jestConfig, tsBaseConfig, customConfig, {
+  ignores: ['src/db/prisma/generated'],
+});

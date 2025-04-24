@@ -1,8 +1,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import httpStatusCodes from 'http-status-codes';
-import { Pool } from 'pg';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@src/common/constants';
 import { initConfig } from '@src/common/config';
@@ -11,7 +10,6 @@ import { DocsRequestSender } from './helpers/docsRequestSender';
 describe('docs', function () {
   let requestSender: DocsRequestSender;
   let prisma: PrismaClient;
-  let pool: Pool;
 
   beforeAll(async function () {
     await initConfig(true);
@@ -28,12 +26,10 @@ describe('docs', function () {
 
     requestSender = new DocsRequestSender(app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
-    pool = container.resolve<Pool>(SERVICES.PG_POOL);
   });
 
   afterEach(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });
 
   describe('Happy Path', function () {
