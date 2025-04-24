@@ -54,7 +54,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       token: SERVICES.PRISMA,
       provider: {
         useFactory: instancePerContainerCachingFactory(() => {
-          return createPrismaClient(pgPoolConfig, dbConfig.schema);
+          return createPrismaClient(prismaClientConfig, dbConfig.schema);
         }),
       },
     },
