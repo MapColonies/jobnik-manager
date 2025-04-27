@@ -43,11 +43,10 @@ export class StageManager {
     if (checkJobStatus.getSnapshot().status === 'done') {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
-    let input = undefined;
-    let tasksInput = undefined;
+
     const { tasks: taskReq, type, ...bodyInput } = stagePayload;
 
-    input = {
+    let input: Prisma.StageCreateInput = {
       ...bodyInput,
       name: type,
       status: StageOperationStatus.CREATED,
@@ -57,12 +56,12 @@ export class StageManager {
         },
       },
       xstate: persistenceSnapshot,
-    } satisfies Prisma.StageCreateInput;
+    };
 
     // will add also task creation, if exists in request
     if (taskReq !== undefined && taskReq.length > 0) {
       const tasks: TaskCreateModel[] = taskReq;
-      tasksInput = tasks.map((task) => {
+      const tasksInput = tasks.map((task) => {
         const taskFull = Object.assign(task, { xstate: persistenceSnapshot, status: TaskOperationStatus.CREATED });
         return taskFull;
       });
