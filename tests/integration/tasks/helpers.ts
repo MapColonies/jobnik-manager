@@ -1,10 +1,11 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { TaskType, type Prisma, type PrismaClient } from '@prismaClient';
-import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import {} from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 
-const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
+const persistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
 
 export const createTaskRecords = async (body: Prisma.TaskCreateManyInput[], prisma: PrismaClient): Promise<TaskPrismaObject[]> => {
   const res = await prisma.task.createManyAndReturn({ data: body });

@@ -18,8 +18,10 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
+const taskInitializedPersistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
 
 export const randomUuid = faker.string.uuid();
 export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unknown>> {
@@ -86,8 +88,7 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
     attempts: 0,
     creationTime: new Date(),
     updateTime: new Date(),
-    //replace with task xstate machine once implemented
-    xstate: stageInitializedPersistedSnapshot,
+    xstate: taskInitializedPersistedSnapshot,
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };
