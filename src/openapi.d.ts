@@ -238,7 +238,7 @@ export type paths = {
     /** Get tasks by stage ID */
     get: operations['getTasksByStageId'];
     put?: never;
-    /** Adds tasks to the end of a  existing stage */
+    /** Append tasks to an existing stage */
     post: operations['addTasks'];
     delete?: never;
     options?: never;
@@ -1336,7 +1336,7 @@ export interface operations {
       };
     };
     responses: {
-      /** @description Returns the newly created tasks associated with the stage ID. */
+      /** @description Returns the newly created tasks. */
       201: {
         headers: {
           [name: string]: unknown;
