@@ -2,7 +2,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
-import { SERVICES } from '@common/constants';
+import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -37,7 +37,7 @@ export class TaskManager {
     const checkStageStatus = createActor(jobStateMachine, { snapshot: stage.xstate }).start();
 
     // can't add tasks to finite stages (final states)
-    if (checkStageStatus.getSnapshot().status === 'done') {
+    if (checkStageStatus.getSnapshot().status === XSTATE_DONE_STATE) {
       this.logger.error(`Failed adding tasks to stage, not allowed on finite state of stage`);
       throw new InvalidUpdateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
     }

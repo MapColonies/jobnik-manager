@@ -4,7 +4,7 @@ import { createActor } from 'xstate';
 import type { PrismaClient } from '@prismaClient';
 import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
-import { SERVICES } from '@common/constants';
+import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -40,7 +40,7 @@ export class StageManager {
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
 
     // can't add stages to finite jobs (final states)
-    if (checkJobStatus.getSnapshot().status === 'done') {
+    if (checkJobStatus.getSnapshot().status === XSTATE_DONE_STATE) {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
