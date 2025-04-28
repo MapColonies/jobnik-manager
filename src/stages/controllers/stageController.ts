@@ -30,13 +30,7 @@ export class StageController {
 
   public getStageById: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
     try {
-      let includeTasks: boolean | undefined = false;
-
-      if (req.query) {
-        includeTasks = req.query.should_return_tasks;
-      }
-
-      const response = await this.manager.getStageById(req.params.stageId, includeTasks);
+      const response = await this.manager.getStageById(req.params.stageId, req.query?.should_return_tasks);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof StageNotFoundError) {

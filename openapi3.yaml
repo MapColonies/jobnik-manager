@@ -581,7 +581,7 @@ paths:
         - stages
     post:
       operationId: addTasks
-      summary: Adds tasks to the end of a  existing stage
+      summary: Append tasks to an existing stage
       parameters:
         - $ref: '#/components/parameters/stageId'
       tags:
@@ -596,7 +596,7 @@ paths:
                 $ref: '#/components/schemas/createTaskPayload'
       responses:
         '201':
-          description: Returns the newly created tasks associated with the stage ID.
+          description: Returns the newly created tasks.
           content:
             application/json:
               schema:

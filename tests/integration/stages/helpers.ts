@@ -44,6 +44,7 @@ export const createStageWithJob = async (stagePayload: StageCreateWithTasksModel
     const tasks: TaskCreateModel[] = taskReq;
     tasksInput = tasks.map((task) => {
       const taskFull = Object.assign(task, { xstate: taskPersistenceSnapshot, status: TaskOperationStatus.CREATED });
+
       return taskFull;
     });
 

@@ -31,3 +31,8 @@ export const successMessages: SuccessMessagesObj = {
   jobDeletedSuccessfully: 'JOB_DELETED_SUCCESSFULLY',
   taskModifiedSuccessfully: 'TASK_MODIFIED_SUCCESSFULLY',
 };
+
+/**
+ * The value representing the final state in XState state machine
+ */
+export const XSTATE_DONE_STATE = 'done';
