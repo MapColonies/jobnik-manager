@@ -5,6 +5,7 @@ import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
 import { StageNotFoundError } from '@src/stages/models/errors';
+import { InvalidUpdateError } from '@src/common/errors';
 import { TaskManager } from '../models/manager';
 import { type TasksFindCriteriaArg } from '../models/models';
 import { TaskNotFoundError } from '../models/errors';
@@ -15,6 +16,24 @@ export class TaskController {
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(TaskManager) private readonly manager: TaskManager
   ) {}
+
+  public addTasks: TypedRequestHandlers['POST /stages/{stageId}/tasks'] = async (req, res, next) => {
+    try {
+      const response = await this.manager.addTasks(req.params.stageId, req.body);
+
+      return res.status(httpStatus.CREATED).json(response);
+    } catch (err) {
+      if (err instanceof StageNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      }
+
+      if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
+      }
+
+      return next(err);
+    }
+  };
 
   public getTasks: TypedRequestHandlers['GET /tasks'] = async (req, res, next) => {
     const params: TasksFindCriteriaArg = req.query;

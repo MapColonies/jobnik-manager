@@ -14,6 +14,7 @@ const stageRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.patch('/:stageId/user-metadata', controller.updateUserMetadata);
   router.put('/:stageId/status', controller.updateStatus);
   router.get('/:stageId/tasks', taskController.getTaskByStageId);
+  router.post('/:stageId/tasks', taskController.addTasks);
 
   return router;
 };

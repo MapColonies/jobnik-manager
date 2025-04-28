@@ -101,14 +101,33 @@ export type paths = {
     parameters: {
       query?: never;
       header?: never;
-      path?: never;
+      path: {
+        /** @description ID of Job */
+        jobId: components['parameters']['jobId'];
+      };
       cookie?: never;
     };
     /** find stages by job id */
     get: operations['getStageByJobId'];
     put?: never;
-    /** Adds stages to the end of a dynamic job's existing stages */
-    post: operations['addStages'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/jobs/{jobId}/stage': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Add single stages to the end of a dynamic job's existing stages with optional tasks array */
+    post: operations['addStage'];
     delete?: never;
     options?: never;
     head?: never;
@@ -136,7 +155,10 @@ export type paths = {
     parameters: {
       query?: never;
       header?: never;
-      path?: never;
+      path: {
+        /** @description ID of Stage */
+        stageId: components['parameters']['stageId'];
+      };
       cookie?: never;
     };
     /** find stage by id */
@@ -216,7 +238,8 @@ export type paths = {
     /** Get tasks by stage ID */
     get: operations['getTasksByStageId'];
     put?: never;
-    post?: never;
+    /** Append tasks to an existing stage */
+    post: operations['addTasks'];
     delete?: never;
     options?: never;
     head?: never;
@@ -352,6 +375,7 @@ export type components = {
      */
     jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
     returnStage: boolean;
+    returnTask: boolean;
     userMetadata: {
       [key: string]: unknown;
     };
@@ -390,6 +414,10 @@ export type components = {
       summary: components['schemas']['summary'];
       percentage?: components['schemas']['percentage'];
       status?: components['schemas']['stageOperationStatus'];
+      jobId: components['schemas']['jobId'];
+    };
+    getStageResponse: components['schemas']['stageResponse'] & {
+      tasks?: components['schemas']['taskResponse'][];
     };
     /** Format: uuid */
     taskId: string;
@@ -400,6 +428,14 @@ export type components = {
     taskType: 'TILE_SEEDING' | 'TILE_RENDERING' | 'PUBLISH_CATALOG' | 'PUBLISH_LAYER' | 'DEFAULT';
     taskPayload: {
       [key: string]: unknown;
+    };
+    createStageWithTasksPayload: components['schemas']['createStagePayload'] & {
+      tasks?: components['schemas']['createTaskPayload'][];
+    };
+    createTaskPayload: {
+      type: components['schemas']['taskType'];
+      data: components['schemas']['taskPayload'];
+      userMetadata?: components['schemas']['userMetadata'];
     };
     taskResponse: {
       id: components['schemas']['taskId'];
@@ -469,6 +505,8 @@ export type components = {
     tillDate: string;
     /** @description indicated if response body should contain also stages array */
     includeStages: components['schemas']['returnStage'];
+    /** @description indicated if response body should contain also tasks array */
+    includeTasks: components['schemas']['returnTask'];
     /** @description unique stage identifier */
     paramStageId: components['schemas']['stageId'];
     /** @description unique job identifier */
@@ -866,7 +904,10 @@ export interface operations {
   };
   getStageByJobId: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description indicated if response body should contain also tasks array */
+        should_return_tasks?: components['parameters']['includeTasks'];
+      };
       header?: never;
       path: {
         /** @description ID of Job */
@@ -882,7 +923,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['stageResponse'][];
+          'application/json': components['schemas']['getStageResponse'][];
         };
       };
       /** @description Bad parameters input */
@@ -914,7 +955,7 @@ export interface operations {
       };
     };
   };
-  addStages: {
+  addStage: {
     parameters: {
       query?: never;
       header?: never;
@@ -926,17 +967,17 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['createStagePayload'][];
+        'application/json': components['schemas']['createStageWithTasksPayload'];
       };
     };
     responses: {
-      /** @description Returns the newly created stages associated with the job ID. */
+      /** @description Returns the newly created stage associated with the job ID. */
       201: {
         headers: {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['stageResponse'][];
+          'application/json': components['schemas']['stageResponse'];
         };
       };
       /** @description Invalid request, could not create stage */
@@ -978,6 +1019,8 @@ export interface operations {
         /** @description The status of the stage.
          *      */
         stage_operation_status?: components['parameters']['stageStatus'];
+        /** @description indicated if response body should contain also tasks array */
+        should_return_tasks?: components['parameters']['includeTasks'];
       };
       header?: never;
       path?: never;
@@ -991,7 +1034,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['stageResponse'][];
+          'application/json': components['schemas']['getStageResponse'][];
         };
       };
       /** @description Bad parameters input */
@@ -1016,7 +1059,10 @@ export interface operations {
   };
   getStageById: {
     parameters: {
-      query?: never;
+      query?: {
+        /** @description indicated if response body should contain also tasks array */
+        should_return_tasks?: components['parameters']['includeTasks'];
+      };
       header?: never;
       path: {
         /** @description ID of Stage */
@@ -1032,7 +1078,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['stageResponse'];
+          'application/json': components['schemas']['getStageResponse'];
         };
       };
       /** @description Bad parameters input */
@@ -1255,6 +1301,60 @@ export interface operations {
         };
       };
       /** @description No such task in the database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  addTasks: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of Stage */
+        stageId: components['parameters']['stageId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['createTaskPayload'][];
+      };
+    };
+    responses: {
+      /** @description Returns the newly created tasks. */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'][];
+        };
+      };
+      /** @description Invalid request, could not create task */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such stage on database */
       404: {
         headers: {
           [name: string]: unknown;

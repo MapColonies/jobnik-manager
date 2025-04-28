@@ -10,6 +10,7 @@ import {
   Stage,
   StageName,
   StageOperationStatus,
+  Task,
   TaskOperationStatus,
   TaskType,
 } from '@prismaClient';
@@ -17,13 +18,15 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
-import { StagePrismaObject } from '@src/stages/models/models';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
 export const randomUuid = faker.string.uuid();
 export interface JobWithStages extends Prisma.JobGetPayload<Record<string, unknown>> {
   stage?: Stage[];
+}
+export interface StageWithTasks extends Prisma.StageGetPayload<Record<string, unknown>> {
+  task?: Task[];
 }
 
 export const createJobParams = {
@@ -55,8 +58,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
-
-export const createStageEntity = (override: Partial<StagePrismaObject>): StagePrismaObject => {
+export const createStageEntity = (override: Partial<StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
     name: StageName.DEFAULT,
@@ -67,7 +69,9 @@ export const createStageEntity = (override: Partial<StagePrismaObject>): StagePr
     userMetadata: {},
     percentage: 0,
     xstate: stageInitializedPersistedSnapshot,
-  } satisfies StagePrismaObject;
+    task: undefined,
+  } satisfies StageWithTasks;
+
   return { ...stageEntity, ...override };
 };
 

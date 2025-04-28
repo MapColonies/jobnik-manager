@@ -147,7 +147,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: 'CREATED', ...createJobWithoutStagesRequestBody },
+          body: { status: JobOperationStatus.CREATED, ...createJobWithoutStagesRequestBody },
         });
       });
     });
@@ -325,6 +325,7 @@ describe('job', function () {
 
         const setPriorityResponse = await requestSender.updateJobPriority({
           pathParams: { jobId: createdJobId },
+
           requestBody: { priority: Priority.VERY_HIGH },
         });
 

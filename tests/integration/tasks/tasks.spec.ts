@@ -6,14 +6,16 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobMode, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
+import { TaskCreateModel } from '@src/tasks/models/models';
+import { StageCreateWithTasksModel } from '@src/stages/models/models';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
-import { createStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
+import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from '../stages/helpers';
 import { createTaskBody, createTaskRecords } from './helpers';
 
 describe('task', function () {
@@ -46,7 +48,7 @@ describe('task', function () {
       it('should return 200 status code and the matching task', async function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stage.id } });
@@ -71,7 +73,7 @@ describe('task', function () {
       it('should return 200 status code and all the tasks if no query params were defined', async function () {
         // create full tree
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         await createTaskRecords(
           [
             { ...createTaskBody, stageId: stage.id },
@@ -123,7 +125,7 @@ describe('task', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the stage', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
@@ -161,7 +163,7 @@ describe('task', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the tasks', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         await createTaskRecords(
           [
             { ...createTaskBody, stageId: stage.id },
@@ -189,7 +191,8 @@ describe('task', function () {
 
       it('should return a 200 status code with empty array object if no tasks exists for the requested stage', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+
         const createdStageId = stage.id;
 
         const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: createdStageId } });
@@ -241,7 +244,7 @@ describe('task', function () {
       it("should return 201 status code and modify tasks's userMetadata object", async function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const updateUserMetadataResponse = await requestSender.updateTaskUserMetadata({
@@ -272,7 +275,7 @@ describe('task', function () {
 
       it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await createStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
 
         const response = await requestSender.updateTaskUserMetadata({
@@ -296,6 +299,172 @@ describe('task', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#addTasks', function () {
+    describe('Happy Path', function () {
+      it('should return 200 status code and create the related tasks for current stage', async function () {
+        const stagePayload = {
+          data: {},
+          type: StageName.DEFAULT,
+          userMetadata: {},
+        } satisfies StageCreateWithTasksModel;
+
+        const stage = await createStageWithJob(stagePayload, prisma);
+
+        const createTasksPayload = {
+          data: {},
+          type: TaskType.DEFAULT,
+          userMetadata: {},
+        } satisfies TaskCreateModel;
+
+        const response = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: [createTasksPayload],
+        });
+      });
+
+      it('should return 200 and create new tasks for a stage with existing tasks', async function () {
+        const stagePayload = {
+          data: {},
+          type: StageName.DEFAULT,
+          userMetadata: {},
+          tasks: [
+            {
+              data: {},
+              type: TaskType.DEFAULT,
+              userMetadata: {},
+            },
+          ],
+        } satisfies StageCreateWithTasksModel;
+
+        const stage = await createStageWithJob(stagePayload, prisma);
+
+        const createTasksPayload = {
+          data: {},
+          type: TaskType.DEFAULT,
+          userMetadata: {},
+        } satisfies TaskCreateModel;
+
+        const response = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: [createTasksPayload],
+        });
+      });
+
+      describe('Bad Path', function () {
+        it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: 'someInvalidStageId' } });
+
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
+          });
+        });
+
+        it('should return 400 when the request contains an incorrect body', async function () {
+          const stagePayload = {
+            data: {},
+            type: StageName.DEFAULT,
+            userMetadata: {},
+          } satisfies StageCreateWithTasksModel;
+
+          const stage = await createStageWithJob(stagePayload, prisma);
+
+          const addTasksResponse = await requestSender.addTasks({
+            pathParams: { stageId: stage.id },
+            requestBody: {} as unknown as [],
+          });
+
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: expect.stringMatching(/request\/body must be array/) as MatcherContext },
+          });
+        });
+
+        it('should return 400 when adding tasks to a pre-defined job with running stage', async function () {
+          const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
+          const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+
+          // generate some stage in running mode (in-progress)
+          await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.PENDING } });
+          await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.IN_PROGRESS } });
+
+          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+
+          expect(addTasksResponse).toSatisfyApiSpec();
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: tasksErrorMessages.addTaskNotAllowed },
+          });
+        });
+
+        it('should return 400 when attempting to add tasks to a finalized stage', async function () {
+          const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
+          const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
+
+          // generate some stage in finite state (aborted)
+          await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.ABORTED } });
+
+          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+
+          expect(addTasksResponse).toSatisfyApiSpec();
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: stagesErrorMessages.stageAlreadyFinishedTasksError },
+          });
+        });
+
+        it('should return 404 when attempting to update a non-existent stage ID', async function () {
+          const createStagesPayload = {
+            data: {},
+            type: TaskType.DEFAULT,
+            userMetadata: {},
+          } satisfies TaskCreateModel;
+
+          const response = await requestSender.addTasks({
+            requestBody: [createStagesPayload],
+            pathParams: { stageId: faker.string.uuid() },
+          });
+
+          if (response.status !== StatusCodes.NOT_FOUND) {
+            throw new Error();
+          }
+
+          expect(response).toSatisfyApiSpec();
+          expect(response).toMatchObject({
+            status: StatusCodes.NOT_FOUND,
+            body: { message: stagesErrorMessages.stageNotFound },
+          });
+        });
+      });
+
+      describe('Sad Path', function () {
+        it('should return 500 status code when the database driver throws an error', async function () {
+          jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+
+          const response = await requestSender.addTasks({
+            requestBody: [],
+            pathParams: { stageId: faker.string.uuid() },
+          });
+
+          expect(response).toSatisfyApiSpec();
+          expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        });
       });
     });
   });

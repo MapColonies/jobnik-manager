@@ -2,10 +2,18 @@ import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
 import { JobOperationStatus } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { createJobEntity, createStageEntity } from './generator';
 
 const deleteActor = createActor(jobStateMachine).start();
 deleteActor.send({ type: 'abort' });
+
+const abortedStageActor = createActor(stageStateMachine).start();
+abortedStageActor.send({ type: 'abort' });
+
+const runningStageActor = createActor(stageStateMachine).start();
+runningStageActor.send({ type: 'pend' });
+runningStageActor.send({ type: 'process' });
 
 export const jobId = faker.string.uuid();
 export const stageId = faker.string.uuid();
@@ -22,6 +30,9 @@ export const jobEntityWithStages = createJobEntity({
 });
 
 export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot();
+export const inProgressStageXstatePersistentSnapshot = runningStageActor.getPersistedSnapshot();
+export const abortedStageXstatePersistentSnapshot = abortedStageActor.getPersistedSnapshot();
+
 export const jobEntityWithAbortStatus = createJobEntity({
   xstate: abortedXstatePersistentSnapshot,
   status: JobOperationStatus.ABORTED,

@@ -8,4 +8,6 @@ export class TaskNotFoundError extends Error {
 export const errorMessages = {
   /**Signifies that the specified task could not be located*/
   taskNotFound: 'TASK_NOT_FOUND',
+  /**Signifies that the specified task could not be added*/
+  addTaskNotAllowed: 'ADD_TASK_NOT_ALLOWED',
 } as const;

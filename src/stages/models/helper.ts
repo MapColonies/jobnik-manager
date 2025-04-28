@@ -1,3 +1,4 @@
+import { convertArrayPrismaTaskToTaskResponse } from '@src/tasks/models/helper';
 import { StageModel, StagePrismaObject } from './models';
 
 /**
@@ -6,13 +7,14 @@ import { StageModel, StagePrismaObject } from './models';
  * @returns StageModel
  */
 export function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
-  const { data, userMetadata, summary, xstate, name, ...rest } = prismaObjects;
+  const { data, userMetadata, summary, task, xstate, name, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
-    userMetadata: userMetadata as Record<string, never>,
-    summary: summary as Record<string, never>,
+    userMetadata: userMetadata as Record<string, unknown>,
+    summary: summary as Record<string, unknown>,
     type: name,
+    tasks: Array.isArray(task) ? convertArrayPrismaTaskToTaskResponse(task) : undefined,
   };
   return Object.assign(rest, transformedFields);
 }
