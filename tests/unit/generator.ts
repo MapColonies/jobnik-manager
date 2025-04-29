@@ -86,6 +86,7 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
     status: TaskOperationStatus.CREATED,
     userMetadata: {},
     attempts: 0,
+    maxAttempts: 0,
     creationTime: new Date(),
     updateTime: new Date(),
     xstate: taskInitializedPersistedSnapshot,

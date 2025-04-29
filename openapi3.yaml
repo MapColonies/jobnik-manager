@@ -938,6 +938,8 @@ components:
       maximum: 100
     attempts:
       type: integer
+    maxAttempts:
+      type: integer
     stageId:
       type: string
       format: uuid
@@ -1162,6 +1164,8 @@ components:
           $ref: '#/components/schemas/taskPayload'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
       required:
         - data
         - type
@@ -1187,12 +1191,16 @@ components:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
       required:
         - id
         - type
         - data
         - stageId
         - status
+        - attempts
+        - maxAttempts
       additionalProperties: false
     createJobResponse:
       type: object

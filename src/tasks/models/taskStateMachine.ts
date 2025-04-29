@@ -82,3 +82,4 @@ const taskStateMachine = setup({
 });
 
 export { taskStateMachine, OperationStatusMapper };
+export type { changeStatusOperations };

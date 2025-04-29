@@ -351,6 +351,7 @@ export type components = {
     };
     percentage: number;
     attempts: number;
+    maxAttempts: number;
     /** Format: uuid */
     stageId: string;
     stagePayload: {
@@ -456,6 +457,7 @@ export type components = {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
       userMetadata?: components['schemas']['userMetadata'];
+      maxAttempts?: components['schemas']['maxAttempts'];
     };
     taskResponse: {
       id: components['schemas']['taskId'];
@@ -466,7 +468,8 @@ export type components = {
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
       status: components['schemas']['taskOperationStatus'];
-      attempts?: components['schemas']['attempts'];
+      attempts: components['schemas']['attempts'];
+      maxAttempts: components['schemas']['maxAttempts'];
     };
     createJobResponse: {
       id: components['schemas']['jobId'];
