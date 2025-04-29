@@ -151,7 +151,6 @@ enum TaskOperationStatus {
   FAILED      @map("Failed")
   ABORTED     @map("Aborted")
   PAUSED      @map("Paused")
-  WAITING     @map("Waiting")
   CREATED     @map("Created")
   RETRIED     @map("Retried")
 

@@ -10,6 +10,7 @@ import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownEr
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
 import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
@@ -24,7 +25,10 @@ export class StageManager {
 
   public async addStage(jobId: string, stagePayload: StageCreateWithTasksModel): Promise<StageModel> {
     const createStageActor = createActor(stageStateMachine).start();
-    const persistenceSnapshot = createStageActor.getPersistedSnapshot();
+    const stagePersistenceSnapshot = createStageActor.getPersistedSnapshot();
+
+    const createTaskActor = createActor(taskStateMachine).start();
+    const taskPersistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
     const job = await this.jobManager.getJobEntityById(jobId);
 
@@ -55,14 +59,15 @@ export class StageManager {
           id: jobId,
         },
       },
-      xstate: persistenceSnapshot,
+      xstate: stagePersistenceSnapshot,
     };
 
     // will add also task creation, if exists in request
     if (taskReq !== undefined && taskReq.length > 0) {
       const tasks: TaskCreateModel[] = taskReq;
       const tasksInput = tasks.map((task) => {
-        const taskFull = Object.assign(task, { xstate: persistenceSnapshot, status: TaskOperationStatus.CREATED });
+        const taskFull = { ...task, xstate: taskPersistenceSnapshot, status: TaskOperationStatus.CREATED };
+
         return taskFull;
       });
 

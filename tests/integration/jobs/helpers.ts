@@ -11,12 +11,11 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
   const stagesPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 
   let input = undefined;
-  let stagesInput = undefined;
   const { stages: stagesReq, ...bodyInput } = body;
 
   if (stagesReq !== undefined && stagesReq.length > 0) {
     const stages: StageCreateModel[] = stagesReq;
-    stagesInput = stages.map((stage) => {
+    const stagesInput = stages.map((stage) => {
       const { type, ...rest } = stage;
 
       const stageFull = Object.assign(rest, { xstate: stagesPersistedSnapshot, name: type, status: StageOperationStatus.CREATED });

@@ -6,9 +6,9 @@ import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { stageStateMachine } from '@src/stages/models/stageStateMachine';
-import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
+import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -23,8 +23,7 @@ export class TaskManager {
   ) {}
 
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
-    // todo - use dedicated state machine for task when will be implemented
-    const createTaskActor = createActor(stageStateMachine).start();
+    const createTaskActor = createActor(taskStateMachine).start();
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
     const stage = await this.stageManager.getStageEntityById(stageId);
@@ -34,7 +33,7 @@ export class TaskManager {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
-    const checkStageStatus = createActor(jobStateMachine, { snapshot: stage.xstate }).start();
+    const checkStageStatus = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
 
     // can't add tasks to finite stages (final states)
     if (checkStageStatus.getSnapshot().status === XSTATE_DONE_STATE) {

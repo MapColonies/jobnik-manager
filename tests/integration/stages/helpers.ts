@@ -5,6 +5,7 @@ import { StageCreateWithTasksModel, StageModel, StagePrismaObject } from '@src/s
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { convertPrismaToStageResponse } from '@src/stages/models/helper';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 
 const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
@@ -16,6 +17,9 @@ const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSna
 export const createStageWithJob = async (stagePayload: StageCreateWithTasksModel, prisma: PrismaClient): Promise<StageModel> => {
   const createStageActor = createActor(stageStateMachine).start();
   const persistenceSnapshot = createStageActor.getPersistedSnapshot();
+
+  const createTaskActor = createActor(taskStateMachine).start();
+  const taskPersistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
   const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.DYNAMIC }, prisma);
 
@@ -39,7 +43,8 @@ export const createStageWithJob = async (stagePayload: StageCreateWithTasksModel
   if (taskReq !== undefined && taskReq.length > 0) {
     const tasks: TaskCreateModel[] = taskReq;
     tasksInput = tasks.map((task) => {
-      const taskFull = Object.assign(task, { xstate: persistenceSnapshot, status: TaskOperationStatus.CREATED });
+      const taskFull = Object.assign(task, { xstate: taskPersistenceSnapshot, status: TaskOperationStatus.CREATED });
+
       return taskFull;
     });
 
