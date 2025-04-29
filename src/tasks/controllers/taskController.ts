@@ -83,4 +83,21 @@ export class TaskController {
       return next(err);
     }
   };
+
+  public updateStatus: TypedRequestHandlers['PUT /tasks/{taskId}/status'] = async (req, res, next) => {
+    try {
+      await this.manager.updateStatus(req.params.taskId, req.body.status);
+
+      return res.status(httpStatus.OK).json({ code: successMessages.taskModifiedSuccessfully });
+    } catch (err) {
+      if (err instanceof TaskNotFoundError) {
+        (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.BAD_REQUEST;
+        this.logger.error({ msg: `Task status update failed: invalid status transition`, status: req.body.status, err });
+      }
+
+      return next(err);
+    }
+  };
 }

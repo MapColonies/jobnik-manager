@@ -734,6 +734,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskId}/status:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    put:
+      operationId: updateTaskStatus
+      summary: change task's status
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/taskOperationStatus'
+              required:
+                - status
+      responses:
+        '200':
+          description: Change job and related stages + tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: TASK_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:

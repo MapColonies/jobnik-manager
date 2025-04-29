@@ -2,7 +2,7 @@
 import { setup } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
 
-type changeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
+type changeStatusOperations = 'pend' | 'pause' | 'abort' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
 
 const OperationStatusMapper: { [key in TaskOperationStatus]: changeStatusOperations } = {
   [TaskOperationStatus.PENDING]: 'pend',

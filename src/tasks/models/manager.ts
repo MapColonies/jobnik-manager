@@ -4,9 +4,9 @@ import { createActor } from 'xstate';
 import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
-import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
+import { InvalidUpdateError, prismaKnownErrors, errorMessages as commonErrorMessages } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { OperationStatusMapper, taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
@@ -143,6 +143,37 @@ export class TaskManager {
       }
       throw err;
     }
+  }
+
+  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<void> {
+    const task = await this.getTaskEntityById(taskId);
+
+    if (!task) {
+      throw new TaskNotFoundError(stagesErrorMessages.stageNotFound);
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(taskStateMachine, { snapshot: task.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+    }
+
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
+    const updateQueryBody = {
+      where: {
+        id: taskId,
+      },
+      data: {
+        status,
+        xstate: newPersistedSnapshot,
+      },
+    };
+
+    await this.prisma.task.update(updateQueryBody);
   }
 
   /**
