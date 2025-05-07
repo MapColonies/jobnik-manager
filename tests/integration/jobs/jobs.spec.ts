@@ -11,6 +11,7 @@ import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import { JobCreateModel } from '@src/jobs/models/models';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
 describe('job', function () {
@@ -156,7 +157,7 @@ describe('job', function () {
       it('should return a 400 status code along with a specific validation error message detailing the missing required parameters for job creation', async function () {
         const badRequestBody = {
           name: JobName.DEFAULT,
-        };
+        } as unknown as JobCreateModel;
 
         const response = await requestSender.createJob({
           requestBody: badRequestBody,

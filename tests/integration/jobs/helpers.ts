@@ -6,7 +6,9 @@ import { StageCreateModel } from '@src/stages/models/models';
 import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 
-export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
+type JobTestCreateModel = JobCreateModel & { id?: string };
+
+export const createJobRecord = async (body: JobTestCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
   const stagesPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 

@@ -1017,30 +1017,51 @@ components:
         - creator
         - userMetadata
         - notifications
-      additionalProperties: true
+      additionalProperties: false
     jobResponse:
-      allOf:
-        - $ref: '#/components/schemas/createJobPayload'
-        - type: object
-          required:
-            - id
-            - name
-          description: job Response model
-          properties:
-            id:
-              $ref: '#/components/schemas/jobId'
-            status:
-              $ref: '#/components/schemas/jobOperationStatus'
-            percentage:
-              $ref: '#/components/schemas/percentage'
-            creationTime:
-              $ref: '#/components/schemas/creationTime'
-            updateTime:
-              $ref: '#/components/schemas/updateTime'
-            stages:
-              type: array
-              items:
-                $ref: '#/components/schemas/stageResponse'
+      type: object
+      required:
+        - id
+        - name
+        - data
+        - jobMode
+        - creator
+        - userMetadata
+        - notifications
+      description: job Response model
+      properties:
+        id:
+          $ref: '#/components/schemas/jobId'
+        status:
+          $ref: '#/components/schemas/jobOperationStatus'
+        percentage:
+          $ref: '#/components/schemas/percentage'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
+        jobMode:
+          $ref: '#/components/schemas/jobMode'
+        name:
+          $ref: '#/components/schemas/jobName'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        priority:
+          $ref: '#/components/schemas/priority'
+        expirationTime:
+          $ref: '#/components/schemas/expirationTime'
+        ttl:
+          $ref: '#/components/schemas/ttl'
+        notifications:
+          $ref: '#/components/schemas/notifications'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        creator:
+          $ref: '#/components/schemas/creator'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/stageResponse'
     createStagePayload:
       type: object
       properties:
