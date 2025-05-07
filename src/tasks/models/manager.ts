@@ -1,12 +1,12 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
-import { Actor, createActor } from 'xstate';
+import { createActor } from 'xstate';
 import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
-import { InvalidUpdateError, prismaKnownErrors, errorMessages as commonErrorMessages } from '@src/common/errors';
+import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { type changeStatusOperations, OperationStatusMapper, taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
@@ -70,6 +70,8 @@ export class TaskManager {
 
     try {
       const tasks = await this.prisma.task.createManyAndReturn(queryBody);
+
+      await this.stageManager.updateStageProgress(stageId, job.id);
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -147,50 +149,36 @@ export class TaskManager {
   }
 
   public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<void> {
+    let nextStatus: TaskOperationStatus = status;
+    let dataToUpdate = undefined;
+
     const task = await this.getTaskEntityById(taskId);
 
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
-    const updateActor = createActor(taskStateMachine, { snapshot: task.xstate }).start();
-
-    switch (status) {
-      case TaskOperationStatus.FAILED:
-        await this.updateFailedOrRetry(task, updateActor);
-        break;
-      case TaskOperationStatus.CREATED:
-      case TaskOperationStatus.PENDING:
-      case TaskOperationStatus.PAUSED:
-      case TaskOperationStatus.ABORTED:
-      case TaskOperationStatus.IN_PROGRESS:
-      case TaskOperationStatus.COMPLETED:
-      case TaskOperationStatus.RETRIED:
-      default: {
-        const nextStatusChange = OperationStatusMapper[status];
-        const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
-
-        if (!isValidStatus) {
-          throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
-        }
-
-        updateActor.send({ type: nextStatusChange });
-        const newPersistedSnapshot = updateActor.getPersistedSnapshot();
-
-        const updateQueryBody = {
-          where: {
-            id: taskId,
-          },
-          data: {
-            status,
-            xstate: newPersistedSnapshot,
-          },
-        };
-
-        await this.prisma.task.update(updateQueryBody);
-        break;
-      }
+    if (nextStatus === TaskOperationStatus.FAILED) {
+      nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
+      dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
     }
+
+    const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
+
+    const updateQueryBody = {
+      where: {
+        id: taskId,
+      },
+      data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+    };
+
+    // update task current status
+    await this.prisma.task.update(updateQueryBody);
+
+    // update stage progress data
+    const stage = await this.stageManager.getStageById(task.stageId);
+
+    await this.stageManager.updateStageProgress(task.stageId, stage.jobId);
   }
 
   /**
@@ -208,44 +196,5 @@ export class TaskManager {
     const task = await this.prisma.task.findUnique(queryBody);
 
     return task;
-  }
-
-  /**
-   * This method validate and return the actual failure policy - retry or fail based on attempts
-   * @param task unique identifier of the task.
-   */
-  public async updateFailedOrRetry(task: TaskPrismaObject, actor: Actor<typeof taskStateMachine>): Promise<void> {
-    const maxAttempts = task.maxAttempts;
-    let attempts = task.attempts;
-    let status: TaskOperationStatus = TaskOperationStatus.FAILED;
-    console.log(attempts, maxAttempts, '****************');
-
-    if (attempts < maxAttempts) {
-      console.log(attempts, maxAttempts, '****************');
-      attempts++;
-      status = TaskOperationStatus.RETRIED;
-    }
-
-    const isValidStatus = actor.getSnapshot().can({ type: OperationStatusMapper[status] });
-
-    if (!isValidStatus) {
-      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
-    }
-
-    actor.send({ type: OperationStatusMapper[status] });
-    const newPersistedSnapshot = actor.getPersistedSnapshot();
-
-    const updateQueryBody = {
-      where: {
-        id: task.id,
-      },
-      data: {
-        status,
-        xstate: newPersistedSnapshot,
-        attempts,
-      },
-    };
-
-    await this.prisma.task.update(updateQueryBody);
   }
 }

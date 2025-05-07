@@ -106,7 +106,7 @@ model Stage {
   /// [UserMetadata]
   userMetadata Json                 @default("{}") @map("user_metadata")
   /// [StageSummary]
-  summary      Json                 @default("{}")
+  summary      Json
   status       StageOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json

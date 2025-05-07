@@ -5,7 +5,7 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
 import { Prisma, StageOperationStatus } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { StageCreateModel } from '@src/stages/models/models';
-import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
+import { convertArrayPrismaStageToStageResponse, defaultStatusCounts } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
@@ -55,7 +55,12 @@ export class JobManager {
         const stages: StageCreateModel[] = stagesReq;
         stagesInput = stages.map((stage) => {
           const { type, ...rest } = stage;
-          const stageFull = Object.assign(rest, { xstate: persistenceSnapshot, name: type, status: StageOperationStatus.CREATED });
+          const stageFull = Object.assign(rest, {
+            xstate: persistenceSnapshot,
+            name: type,
+            status: StageOperationStatus.CREATED,
+            summary: defaultStatusCounts,
+          });
           return stageFull;
         });
 

@@ -401,7 +401,14 @@ export type components = {
       [key: string]: unknown;
     };
     summary: {
-      [key: string]: unknown;
+      PENDING: number;
+      IN_PROGRESS: number;
+      COMPLETED: number;
+      FAILED: number;
+      ABORTED: number;
+      PAUSED: number;
+      CREATED: number;
+      RETRIED: number;
     };
     createJobPayload: {
       jobMode: components['schemas']['jobMode'];

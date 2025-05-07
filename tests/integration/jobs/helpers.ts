@@ -5,6 +5,7 @@ import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
 import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { defaultStatusCounts } from '@src/stages/models/helper';
 
 export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
@@ -18,7 +19,12 @@ export const createJobRecord = async (body: JobCreateModel, prisma: PrismaClient
     const stagesInput = stages.map((stage) => {
       const { type, ...rest } = stage;
 
-      const stageFull = Object.assign(rest, { xstate: stagesPersistedSnapshot, name: type, status: StageOperationStatus.CREATED });
+      const stageFull = Object.assign(rest, {
+        summary: defaultStatusCounts,
+        xstate: stagesPersistedSnapshot,
+        name: type,
+        status: StageOperationStatus.CREATED,
+      });
       return stageFull;
     });
     input = { ...bodyInput, xstate: persistedSnapshot, stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;

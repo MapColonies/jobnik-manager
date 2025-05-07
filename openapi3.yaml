@@ -1033,7 +1033,33 @@ components:
       additionalProperties: true
     summary:
       type: object
-      additionalProperties: true
+      properties:
+        PENDING:
+          type: integer
+        IN_PROGRESS:
+          type: integer
+        COMPLETED:
+          type: integer
+        FAILED:
+          type: integer
+        ABORTED:
+          type: integer
+        PAUSED:
+          type: integer
+        CREATED:
+          type: integer
+        RETRIED:
+          type: integer
+      required:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - PAUSED
+        - CREATED
+        - RETRIED
+      additionalProperties: false
     createJobPayload:
       type: object
       properties:

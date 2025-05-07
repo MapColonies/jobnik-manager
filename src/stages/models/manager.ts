@@ -12,7 +12,13 @@ import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/s
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary } from './models';
-import { convertArrayPrismaStageToStageResponse, convertPrismaToStageResponse } from './helper';
+import {
+  aggregateTaskStatusesForStage,
+  convertArrayPrismaStageToStageResponse,
+  convertPrismaToStageResponse,
+  defaultStatusCounts,
+  getCurrentPercentage,
+} from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
 @injectable()
@@ -53,6 +59,7 @@ export class StageManager {
     let input: Prisma.StageCreateInput = {
       ...bodyInput,
       name: type,
+      summary: { ...defaultStatusCounts, [TaskOperationStatus.CREATED]: taskReq ? taskReq.length : 0 },
       status: StageOperationStatus.CREATED,
       job: {
         connect: {
@@ -218,5 +225,25 @@ export class StageManager {
     const stage = await this.prisma.stage.findUnique(queryBody);
 
     return stage;
+  }
+
+  /**
+   * This method is used to update the progress of a stage according tasks metrics.
+   * @param stageId unique identifier of the stage.
+   */
+  public async updateStageProgress(stageId: string, jobId: string): Promise<void> {
+    // calculate stage progress data
+    const currentSummary = await aggregateTaskStatusesForStage(stageId, this.prisma);
+    const completionPercentage = getCurrentPercentage(currentSummary);
+    let stageUpdatedData: Prisma.StageUpdateInput = { summary: currentSummary, percentage: completionPercentage };
+
+    const job = await this.jobManager.getJobById(jobId);
+
+    // eslint-disable-next-line @typescript-eslint/no-magic-numbers
+    if (completionPercentage === 100 && job.jobMode === JobMode.PRE_DEFINED) {
+      stageUpdatedData = { ...stageUpdatedData, status: StageOperationStatus.COMPLETED };
+    }
+
+    await this.prisma.stage.update({ where: { id: stageId }, data: stageUpdatedData });
   }
 }

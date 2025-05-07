@@ -15,6 +15,7 @@ import { StageCreateWithTasksModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
+import { defaultStatusCounts } from '@src/stages/models/helper';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
 import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
 
@@ -90,7 +91,7 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and the matching stage with related tasks', async function () {
-        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+        const job = await createJobRecord({ ...createJobRequestWithStagesBody, id: faker.string.uuid() }, prisma);
         const stageId = job.stage[0]!.id;
 
         await requestSender.addTasks({
@@ -413,7 +414,7 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageSummary({ pathParams: { stageId: stage.id } });
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: {} });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: defaultStatusCounts });
       });
     });
 

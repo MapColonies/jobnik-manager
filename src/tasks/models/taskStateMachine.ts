@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { setup } from 'xstate';
+import { createActor, setup, Snapshot } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
+import { InvalidUpdateError, errorMessages as commonErrorMessages } from '@src/common/errors';
 
 type changeStatusOperations = 'pend' | 'pause' | 'abort' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
 
@@ -81,5 +82,29 @@ const taskStateMachine = setup({
   },
 });
 
-export { taskStateMachine, OperationStatusMapper };
+/**
+ * Updates the task machine state based on the provided status and xstate snapshot.
+ * @param {TaskOperationStatus} status - The new status to set.
+ * @param {PrismaJson.PersistenceSnapshot} xstate - The current xstate snapshot.
+ * @returns {Snapshot<unknown>} - The updated xstate snapshot.
+ * @throws {InvalidUpdateError} - If the status change is invalid.
+ */
+function updateTaskMachineState(status: TaskOperationStatus, xstate: PrismaJson.PersistenceSnapshot): Snapshot<unknown> {
+  const updateActor = createActor(taskStateMachine, { snapshot: xstate }).start();
+
+  const nextStatusChange = OperationStatusMapper[status];
+  const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+  if (!isValidStatus) {
+    throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+  }
+
+  updateActor.send({ type: nextStatusChange });
+  const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+  updateActor.stop();
+
+  return newPersistedSnapshot;
+}
+
+export { taskStateMachine, updateTaskMachineState };
 export type { changeStatusOperations };

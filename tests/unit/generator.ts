@@ -19,6 +19,7 @@ import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { defaultStatusCounts } from '@src/stages/models/helper';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 const taskInitializedPersistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
@@ -64,7 +65,7 @@ export const createStageEntity = (override: Partial<StageWithTasks>): StageWithT
   const stageEntity = {
     data: {},
     name: StageName.DEFAULT,
-    summary: {},
+    summary: defaultStatusCounts,
     jobId: faker.string.uuid(),
     id: faker.string.uuid(),
     status: StageOperationStatus.CREATED,
