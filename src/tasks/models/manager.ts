@@ -9,6 +9,7 @@ import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/s
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { UpdateSummaryCount } from '@src/stages/models/models';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -71,7 +72,13 @@ export class TaskManager {
     try {
       const tasks = await this.prisma.task.createManyAndReturn(queryBody);
 
-      await this.stageManager.updateStageProgress(stageId, job.id);
+      const updateSummaryPayload: UpdateSummaryCount = {
+        add: { status: TaskOperationStatus.CREATED, count: tasks.length },
+      };
+
+      const updatedSummary = await this.stageManager.updateStageSummary(stageId, updateSummaryPayload);
+
+      await this.stageManager.updateStageProgress(stageId, job.id, updatedSummary);
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -153,10 +160,11 @@ export class TaskManager {
     let dataToUpdate = undefined;
 
     const task = await this.getTaskEntityById(taskId);
-
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
+
+    const previousStatus = task.status;
 
     if (nextStatus === TaskOperationStatus.FAILED) {
       nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
@@ -178,7 +186,14 @@ export class TaskManager {
     // update stage progress data
     const stage = await this.stageManager.getStageById(task.stageId);
 
-    await this.stageManager.updateStageProgress(task.stageId, stage.jobId);
+    const updateSummaryPayload: UpdateSummaryCount = {
+      add: { status: nextStatus, count: 1 },
+      remove: { status: previousStatus, count: 1 },
+    };
+
+    const updatedSummary = await this.stageManager.updateStageSummary(task.stageId, updateSummaryPayload);
+
+    await this.stageManager.updateStageProgress(task.stageId, stage.jobId, updatedSummary);
   }
 
   /**

@@ -601,195 +601,195 @@ describe('stage', function () {
 
         expect(getTaskOfStagResponse.body).toMatchObject(createTasksPayload);
       });
+    });
 
-      describe('Bad Path', function () {
-        it('should return status code 400 when supplying bad uuid as part of the request', async function () {
-          await createJobRecord({ ...createJobRequestBody }, prisma);
+    describe('Bad Path', function () {
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+        await createJobRecord({ ...createJobRequestBody }, prisma);
 
-          const addStageResponse = await requestSender.addStage({
-            requestBody: {
-              type: 'DEFAULT',
-              data: {},
-              userMetadata: {},
-            } satisfies StageCreateWithTasksModel,
-            pathParams: { jobId: 'someInvalidJobId' },
-          });
-
-          expect(addStageResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string },
-          });
-        });
-
-        it('should return 400 when the request contains an incorrect body', async function () {
-          const job = await createJobRecord({ ...createJobRequestBody }, prisma);
-
-          const addStageResponse = await requestSender.addStage({
-            pathParams: { jobId: job.id },
-            requestBody: {} as unknown as StageCreateWithTasksModel,
-          });
-
-          expect(addStageResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: expect.stringMatching(/request\/body must have required property 'data'/) as string },
-          });
-        });
-
-        it('should return 400 when the request contains an incorrect task nested body', async function () {
-          const job = await createJobRecord({ ...createJobRequestBody }, prisma);
-
-          const addStageResponse = await requestSender.addStage({
-            pathParams: { jobId: job.id },
-            requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT, tasks: {} } as unknown as StageCreateWithTasksModel,
-          });
-
-          expect(addStageResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: expect.stringMatching(/request\/body\/tasks must be array/) as string },
-          });
-        });
-
-        it('should return 400 when adding stage to a pre-defined job', async function () {
-          const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
-
-          const addStageResponse = await requestSender.addStage({
-            requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
-            pathParams: { jobId: job.id },
-          });
-
-          expect(addStageResponse).toSatisfyApiSpec();
-          expect(addStageResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: jobsErrorMessages.preDefinedJobStageModificationError },
-          });
-        });
-
-        it('should return 400 when attempting to add stage to a finalized job', async function () {
-          const job = await createJobRecord(createJobRequestBody, prisma);
-          // generate some job in finite state (aborted)
-          await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: StageOperationStatus.ABORTED } });
-
-          const addStageResponse = await requestSender.addStage({
-            requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
-            pathParams: { jobId: job.id },
-          });
-
-          expect(addStageResponse).toSatisfyApiSpec();
-          expect(addStageResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
-          });
-        });
-
-        it('should return 404 when attempting to update a non-existent job ID', async function () {
-          const createStagesPayload = {
+        const addStageResponse = await requestSender.addStage({
+          requestBody: {
+            type: 'DEFAULT',
             data: {},
-            type: TaskType.DEFAULT,
             userMetadata: {},
-          } satisfies StageCreateWithTasksModel;
+          } satisfies StageCreateWithTasksModel,
+          pathParams: { jobId: 'someInvalidJobId' },
+        });
 
-          const response = await requestSender.addStage({
-            requestBody: createStagesPayload,
-            pathParams: { jobId: testJobId },
-          });
-
-          if (response.status !== StatusCodes.NOT_FOUND) {
-            throw new Error();
-          }
-
-          expect(response).toSatisfyApiSpec();
-          expect(response).toMatchObject({
-            status: StatusCodes.NOT_FOUND,
-            body: { message: jobsErrorMessages.jobNotFound },
-          });
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string },
         });
       });
 
-      describe('Sad Path', function () {
-        it('should return 500 status code when the database driver throws an error', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+      it('should return 400 when the request contains an incorrect body', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
 
-          const response = await requestSender.addStage({
-            requestBody: { data: {}, type: TaskType.DEFAULT, userMetadata: {} },
-            pathParams: { jobId: testJobId },
-          });
+        const addStageResponse = await requestSender.addStage({
+          pathParams: { jobId: job.id },
+          requestBody: {} as unknown as StageCreateWithTasksModel,
+        });
 
-          expect(response).toSatisfyApiSpec();
-          expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/body must have required property 'data'/) as string },
+        });
+      });
+
+      it('should return 400 when the request contains an incorrect task nested body', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
+
+        const addStageResponse = await requestSender.addStage({
+          pathParams: { jobId: job.id },
+          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT, tasks: {} } as unknown as StageCreateWithTasksModel,
+        });
+
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/body\/tasks must be array/) as string },
+        });
+      });
+
+      it('should return 400 when adding stage to a pre-defined job', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: jobsErrorMessages.preDefinedJobStageModificationError },
+        });
+      });
+
+      it('should return 400 when attempting to add stage to a finalized job', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        // generate some job in finite state (aborted)
+        await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: StageOperationStatus.ABORTED } });
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
+        });
+      });
+
+      it('should return 404 when attempting to update a non-existent job ID', async function () {
+        const createStagesPayload = {
+          data: {},
+          type: TaskType.DEFAULT,
+          userMetadata: {},
+        } satisfies StageCreateWithTasksModel;
+
+        const response = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: testJobId },
+        });
+
+        if (response.status !== StatusCodes.NOT_FOUND) {
+          throw new Error();
+        }
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: jobsErrorMessages.jobNotFound },
         });
       });
     });
 
-    describe('#updateStatus', function () {
-      describe('Happy Path', function () {
-        it("should return 201 status code and modify stages's status", async function () {
-          const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-          if (!job.stage[0]) {
-            throw new Error('Stage was not created');
-          }
-
-          const createdStageId = job.stage[0].id;
-
-          const setStatusResponse = await requestSender.updateStageStatus({
-            pathParams: { stageId: createdStageId },
-            requestBody: { status: StageOperationStatus.PENDING },
-          });
-
-          expect(setStatusResponse).toSatisfyApiSpec();
-          expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
-
-          const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
-
-          expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
+        const response = await requestSender.addStage({
+          requestBody: { data: {}, type: TaskType.DEFAULT, userMetadata: {} },
+          pathParams: { jobId: testJobId },
         });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
+
+  describe('#updateStatus', function () {
+    describe('Happy Path', function () {
+      it("should return 201 status code and modify stages's status", async function () {
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+
+        if (!job.stage[0]) {
+          throw new Error('Stage was not created');
+        }
+
+        const createdStageId = job.stage[0].id;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: createdStageId },
+          requestBody: { status: StageOperationStatus.PENDING },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
+
+        expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('should return 400 with detailed error for invalid status transition', async function () {
+        const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
+
+        if (!job.stage[0]) {
+          throw new Error('Stage was not created');
+        }
+
+        const createdStageId = job.stage[0].id;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: createdStageId },
+          requestBody: { status: StageOperationStatus.COMPLETED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: commonErrorMessages.invalidStatusChange } });
       });
 
-      describe('Bad Path', function () {
-        it('should return 400 with detailed error for invalid status transition', async function () {
-          const job = await createJobRecord(createJobRequestWithStagesBody, prisma);
-
-          if (!job.stage[0]) {
-            throw new Error('Stage was not created');
-          }
-
-          const createdStageId = job.stage[0].id;
-
-          const setStatusResponse = await requestSender.updateStageStatus({
-            pathParams: { stageId: createdStageId },
-            requestBody: { status: StageOperationStatus.COMPLETED },
-          });
-
-          expect(setStatusResponse).toSatisfyApiSpec();
-          expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: commonErrorMessages.invalidStatusChange } });
+      it('should return 404 with specific error message for non-existent stage', async function () {
+        const getStageResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: testStageId },
+          requestBody: { status: StageOperationStatus.COMPLETED },
         });
 
-        it('should return 404 with specific error message for non-existent stage', async function () {
-          const getStageResponse = await requestSender.updateStageStatus({
-            pathParams: { stageId: testStageId },
-            requestBody: { status: StageOperationStatus.COMPLETED },
-          });
-
-          expect(getStageResponse).toSatisfyApiSpec();
-          expect(getStageResponse).toMatchObject({
-            status: StatusCodes.NOT_FOUND,
-            body: { message: stagesErrorMessages.stageNotFound },
-          });
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: stagesErrorMessages.stageNotFound },
         });
       });
+    });
 
-      describe('Sad Path', function () {
-        it('should return 500 status code when the database driver throws an error', async function () {
-          jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-          const response = await requestSender.updateStageStatus({
-            pathParams: { stageId: testStageId },
-            requestBody: { status: StageOperationStatus.PENDING },
-          });
-
-          expect(response).toSatisfyApiSpec();
-          expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        const response = await requestSender.updateStageStatus({
+          pathParams: { stageId: testStageId },
+          requestBody: { status: StageOperationStatus.PENDING },
         });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
       });
     });
   });

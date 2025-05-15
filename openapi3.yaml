@@ -1034,31 +1034,34 @@ components:
     summary:
       type: object
       properties:
-        PENDING:
+        pending:
           type: integer
-        IN_PROGRESS:
+        inProgress:
           type: integer
-        COMPLETED:
+        completed:
           type: integer
-        FAILED:
+        failed:
           type: integer
-        ABORTED:
+        aborted:
           type: integer
-        PAUSED:
+        paused:
           type: integer
-        CREATED:
+        created:
           type: integer
-        RETRIED:
+        retried:
+          type: integer
+        total:
           type: integer
       required:
-        - PENDING
-        - IN_PROGRESS
-        - COMPLETED
-        - FAILED
-        - ABORTED
-        - PAUSED
-        - CREATED
-        - RETRIED
+        - pending
+        - inProgress
+        - completed
+        - failed
+        - aborted
+        - paused
+        - created
+        - retried
+        - total
       additionalProperties: false
     createJobPayload:
       type: object

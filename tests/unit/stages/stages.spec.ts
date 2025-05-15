@@ -1,14 +1,15 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, StageName, JobMode, StageOperationStatus, TaskType } from '@prismaClient';
+import { PrismaClient, Prisma, StageName, JobMode, StageOperationStatus, TaskType, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { StageCreateWithTasksModel } from '@src/stages/models/models';
-import { jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
+import { StageCreateWithTasksModel, UpdateSummaryCount } from '@src/stages/models/models';
+import { defaultStatusCounts } from '@src/stages/models/helper';
+import { inProgressStageXstatePersistentSnapshot, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, createTaskEntity } from '../generator';
 
 let jobManager: JobManager;
@@ -403,6 +404,125 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.updateStatus('someId', StageOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
+        });
+      });
+    });
+
+    describe('#updateStageProgress', () => {
+      describe('#HappyPath', () => {
+        it('should only update partial progress percentage', async function () {
+          const jobId = faker.string.uuid();
+          const stageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId, summary: { ...defaultStatusCounts, total: 2, completed: 1 } });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+
+          await expect(
+            stageManager.updateStageProgress(stageEntity.id, jobEntity.id, { ...defaultStatusCounts, total: 2, completed: 1 })
+          ).toResolve();
+        });
+
+        it('should update 100 progress percentage and stage should be completed', async function () {
+          const jobId = faker.string.uuid();
+          const stageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const stageEntity = createStageEntity({
+            jobId: jobEntity.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            id: stageId,
+            summary: { ...defaultStatusCounts, total: 2, completed: 2 },
+          });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+
+          await expect(
+            stageManager.updateStageProgress(stageEntity.id, jobEntity.id, { ...defaultStatusCounts, total: 2, completed: 2 })
+          ).toResolve();
+        });
+
+        it('should update 100 progress percentage without stage completion', async function () {
+          const jobId = faker.string.uuid();
+          const stageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.DYNAMIC });
+          const stageEntity = createStageEntity({
+            jobId: jobEntity.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            id: stageId,
+            summary: { ...defaultStatusCounts, total: 2, completed: 2 },
+          });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+
+          await expect(
+            stageManager.updateStageProgress(stageEntity.id, jobEntity.id, { ...defaultStatusCounts, total: 2, completed: 2 })
+          ).toResolve();
+        });
+      });
+    });
+
+    describe('#updateStageSummary', () => {
+      describe('#HappyPath', () => {
+        it('should increase total count and created count', async function () {
+          const stageId = faker.string.uuid();
+          const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
+
+          const summaryUpdatePayload = {
+            add: { status: TaskOperationStatus.CREATED, count: 1 },
+          } satisfies UpdateSummaryCount;
+
+          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([{ summary: { defaultStatusCounts, total: 2, created: 2 } }]);
+
+          await expect(stageManager.updateStageSummary(stageEntity.id, summaryUpdatePayload)).toResolve();
+        });
+
+        it('should not increase total count and change counting of other', async function () {
+          const stageId = faker.string.uuid();
+          const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
+
+          const summaryUpdatePayload = {
+            add: { status: TaskOperationStatus.PENDING, count: 1 },
+            remove: { status: TaskOperationStatus.CREATED, count: 1 },
+          } satisfies UpdateSummaryCount;
+
+          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([{ summary: { defaultStatusCounts, total: 1, created: 0, pending: 1 } }]);
+
+          await expect(stageManager.updateStageSummary(stageEntity.id, summaryUpdatePayload)).toResolve();
+        });
+      });
+
+      describe('#SadPath', () => {
+        it('should fail on summary internal failure (result not returned)', async function () {
+          const stageId = faker.string.uuid();
+          const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
+
+          const summaryUpdatePayload = {
+            add: { status: TaskOperationStatus.PENDING, count: 1 },
+            remove: { status: TaskOperationStatus.CREATED, count: 1 },
+          } satisfies UpdateSummaryCount;
+
+          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([]);
+
+          await expect(stageManager.updateStageSummary(stageEntity.id, summaryUpdatePayload)).rejects.toThrow(
+            'Failed to update stage summary: No summary returned from database.'
+          );
+        });
+
+        it('should fail with a database error when updating status', async function () {
+          const summaryUpdatePayload = {
+            add: { status: TaskOperationStatus.PENDING, count: 1 },
+            remove: { status: TaskOperationStatus.CREATED, count: 1 },
+          } satisfies UpdateSummaryCount;
+
+          jest.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('db connection error'));
+
+          await expect(stageManager.updateStageSummary('someId', summaryUpdatePayload)).rejects.toThrow('db connection error');
         });
       });
     });

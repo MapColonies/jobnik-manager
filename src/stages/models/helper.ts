@@ -1,24 +1,28 @@
-import { TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { TaskOperationStatus } from '@prismaClient';
 import { convertArrayPrismaTaskToTaskResponse } from '@src/tasks/models/helper';
+import { createCamelCaseMapper } from '@src/common/utils/formatter';
 import { StageModel, StagePrismaObject, StageSummary } from './models';
 
-export const defaultStatusCounts = {
-  [TaskOperationStatus.PENDING]: 0,
-  [TaskOperationStatus.IN_PROGRESS]: 0,
-  [TaskOperationStatus.COMPLETED]: 0,
-  [TaskOperationStatus.FAILED]: 0,
-  [TaskOperationStatus.ABORTED]: 0,
-  [TaskOperationStatus.PAUSED]: 0,
-  [TaskOperationStatus.CREATED]: 0,
-  [TaskOperationStatus.RETRIED]: 0,
+const taskOperationStatusWithTotal = {
+  ...TaskOperationStatus,
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  TOTAL: 'TOTAL',
 } as const;
+const summaryCountsMapper = createCamelCaseMapper(taskOperationStatusWithTotal);
+// eslint-disable-next-line @typescript-eslint/naming-convention
+type SummaryCountsMapper = typeof summaryCountsMapper & { TOTAL: 'total' };
+
+const defaultStatusCounts = Object.fromEntries(Object.values(summaryCountsMapper).map((value) => [value, 0])) as Record<
+  SummaryCountsMapper[keyof SummaryCountsMapper],
+  0
+>;
 
 /**
  * This function converts a Prisma stage object to a StageModel API object.
  * @param prismaObjects db entity
  * @returns StageModel
  */
-export function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
+function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
   const { data, userMetadata, task, xstate, name, ...rest } = prismaObjects;
 
   const transformedFields = {
@@ -35,45 +39,8 @@ export function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): 
  * @param prismaObjects array of db entities
  * @returns array of StageModel
  */
-export function convertArrayPrismaStageToStageResponse(prismaObjects: StagePrismaObject[]): StageModel[] {
+function convertArrayPrismaStageToStageResponse(prismaObjects: StagePrismaObject[]): StageModel[] {
   return prismaObjects.map((stage) => convertPrismaToStageResponse(stage));
-}
-
-/**
- * This function aggregates task statuses for a given stage ID.
- * @param stageId The ID of the stage to aggregate task statuses for.
- * @param prisma The Prisma client instance.
- * @returns A promise that resolves to an object containing the aggregated task statuses.
- */
-export async function aggregateTaskStatusesForStage(stageId: string, prisma: PrismaClient): Promise<StageSummary> {
-  const taskCounts = await prisma.task.groupBy({
-    by: ['status'],
-    where: {
-      stageId: stageId,
-    },
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    _count: {
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      _all: true,
-    },
-  });
-
-  // Explicitly type the taskCounts array
-  interface TaskCount {
-    status: TaskOperationStatus;
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    _count: { _all: number };
-  }
-
-  const aggregatedCounts = taskCounts.reduce<StageSummary>(
-    (acc, count: TaskCount) => {
-      acc[count.status] = count._count._all;
-      return acc;
-    },
-    { ...defaultStatusCounts }
-  );
-
-  return aggregatedCounts;
 }
 
 /**
@@ -81,10 +48,19 @@ export async function aggregateTaskStatusesForStage(stageId: string, prisma: Pri
  * @param stageSummary summary of the stage
  * @returns percentage of completed tasks
  */
-export function getCurrentPercentage(stageSummary: StageSummary): number {
-  const totalTasks = Object.values(stageSummary).reduce((sum: number, count: number) => sum + count, 0);
-  // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-  const completionPercentage = Math.round((stageSummary[TaskOperationStatus.COMPLETED] / totalTasks) * 100);
+function getCurrentPercentage(stageSummary: StageSummary): number {
+  const completed = stageSummary[summaryCountsMapper.COMPLETED];
+  const total = stageSummary[summaryCountsMapper.TOTAL];
 
-  return completionPercentage;
+  const PERCENTAGE_MULTIPLIER = 100;
+  return Math.floor((completed / total) * PERCENTAGE_MULTIPLIER);
 }
+
+export {
+  getCurrentPercentage,
+  convertArrayPrismaStageToStageResponse,
+  convertPrismaToStageResponse,
+  summaryCountsMapper,
+  defaultStatusCounts,
+  taskOperationStatusWithTotal,
+};

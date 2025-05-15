@@ -9,13 +9,9 @@ import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { TaskManager } from '@src/tasks/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
+import { defaultStatusCounts } from '@src/stages/models/helper';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
-import {
-  abortedStageXstatePersistentSnapshot,
-  inProgressStageXstatePersistentSnapshot,
-  singleStageSummaryCompleted,
-  singleStageSummaryInProgress,
-} from '../data';
+import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot } from '../data';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
@@ -172,11 +168,13 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.DYNAMIC });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
+          const taskEntity = createTaskEntity({ stageId: stageId, id: faker.string.uuid(), userMetadata: {} });
 
-          jest.spyOn(prisma.task, 'groupBy').mockResolvedValue([singleStageSummaryInProgress]);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          jest.spyOn(prisma.task, 'createManyAndReturn').mockResolvedValue([taskEntity]);
+          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, created: 1 });
+          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
 
           const taskPayload = {
             data: {},
@@ -184,9 +182,6 @@ describe('JobManager', () => {
             userMetadata: { someData: '123' },
           } satisfies TaskCreateModel;
 
-          const taskEntity = createTaskEntity({ stageId: stageId, id: faker.string.uuid(), userMetadata: {} });
-
-          jest.spyOn(prisma.task, 'createManyAndReturn').mockResolvedValue([taskEntity]);
           const tasksResponse = await taskManager.addTasks(stageId, [taskPayload]);
 
           // Extract unnecessary fields from the job object and assemble the expected result
@@ -273,9 +268,8 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(prisma.task, 'groupBy').mockResolvedValue([singleStageSummaryCompleted]);
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, completed: 1 });
+          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.COMPLETED)).toResolve();
         });
@@ -299,9 +293,8 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(prisma.task, 'groupBy').mockResolvedValue([singleStageSummaryCompleted]);
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, retried: 1 });
+          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
         });
@@ -325,9 +318,8 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(prisma.task, 'groupBy').mockResolvedValue([singleStageSummaryCompleted]);
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          jest.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, failed: 1 });
+          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
         });

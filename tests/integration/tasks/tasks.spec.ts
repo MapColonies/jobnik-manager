@@ -475,8 +475,8 @@ describe('task', function () {
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
       it("should return 200 status code and change tasks's status to PENDING", async function () {
-        const initialSummary = { ...defaultStatusCounts, CREATED: 1 };
-        const expectedSummary = { ...defaultStatusCounts, PENDING: 1, CREATED: 0 };
+        const initialSummary = { ...defaultStatusCounts, created: 1 };
+        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0 };
         const updateStatusInput = { status: TaskOperationStatus.PENDING };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -496,11 +496,45 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
       });
 
+      it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
+        const initialSummary = { ...defaultStatusCounts, total: 1000, completed: 998, inProgress: 1, pending: 1 };
+        const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+
+        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(updateStatusInput);
+        expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
+      });
+
       it("should return 200 status code and change tasks's status to RETRIED and increase attempts", async function () {
-        const initialSummary = { ...defaultStatusCounts, IN_PROGRESS: 1 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
 
-        const expectedSummary = { ...defaultStatusCounts, RETRIED: 1, IN_PROGRESS: 0, FAILED: 0 };
+        const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0 };
         const expectedStatus = { status: TaskOperationStatus.RETRIED, attempts: 1 };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -533,10 +567,10 @@ describe('task', function () {
       });
 
       it("should return 200 status code and change tasks's status to FAILED", async function () {
-        const initialSummary = { ...defaultStatusCounts, IN_PROGRESS: 1 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
 
-        const expectedSummary = { ...defaultStatusCounts, RETRIED: 0, IN_PROGRESS: 0, FAILED: 1 };
+        const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1 };
         const expectedStatus = { status: TaskOperationStatus.FAILED, attempts: 2 };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -569,10 +603,10 @@ describe('task', function () {
       });
 
       it("should return 200 status code and change tasks's status to COMPLETED", async function () {
-        const initialSummary = { ...defaultStatusCounts, IN_PROGRESS: 2 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 2, total: 2 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
-        const expectedSummary = { ...defaultStatusCounts, IN_PROGRESS: 1, COMPLETED: 1 };
+        const expectedSummary = { ...defaultStatusCounts, inProgress: 1, completed: 1, total: 2 };
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.IN_PROGRESS, percentage: 50, summary: expectedSummary };
 
@@ -609,10 +643,10 @@ describe('task', function () {
       });
 
       it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED stage of pre-defined job", async function () {
-        const initialSummary = { ...defaultStatusCounts, IN_PROGRESS: 1 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
-        const expectedSummary = { ...defaultStatusCounts, IN_PROGRESS: 0, COMPLETED: 1 };
+        const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
 

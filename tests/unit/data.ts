@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { faker } from '@faker-js/faker';
-import { createActor, Snapshot } from 'xstate';
-import { JobOperationStatus, TaskOperationStatus, TaskType } from '@prismaClient';
+import { createActor } from 'xstate';
+import { JobOperationStatus } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { createJobEntity, createStageEntity } from './generator';
@@ -38,41 +37,3 @@ export const jobEntityWithAbortStatus = createJobEntity({
   xstate: abortedXstatePersistentSnapshot,
   status: JobOperationStatus.ABORTED,
 });
-
-export const singleStageSummaryCompleted = {
-  _count: { _all: 5 },
-  status: TaskOperationStatus.COMPLETED,
-  id: faker.string.uuid(),
-  data: {},
-  xstate: {} as unknown as Snapshot<unknown>,
-  type: TaskType.DEFAULT,
-  userMetadata: {},
-  stageId: 'jjj',
-  attempts: 0,
-  maxAttempts: 0,
-  creationTime: new Date(),
-  updateTime: new Date(),
-  _avg: { attempts: null, maxAttempts: null },
-  _max: { attempts: null, maxAttempts: null },
-  _min: { attempts: null, maxAttempts: null },
-  _sum: { attempts: null, maxAttempts: null },
-};
-
-export const singleStageSummaryInProgress = {
-  _count: { _all: 5 },
-  status: TaskOperationStatus.IN_PROGRESS,
-  id: faker.string.uuid(),
-  data: {},
-  xstate: {} as unknown as Snapshot<unknown>,
-  type: TaskType.DEFAULT,
-  userMetadata: {},
-  stageId: faker.string.uuid(),
-  attempts: 0,
-  maxAttempts: 0,
-  creationTime: new Date(),
-  updateTime: new Date(),
-  _avg: { attempts: null, maxAttempts: null },
-  _max: { attempts: null, maxAttempts: null },
-  _min: { attempts: null, maxAttempts: null },
-  _sum: { attempts: null, maxAttempts: null },
-};
