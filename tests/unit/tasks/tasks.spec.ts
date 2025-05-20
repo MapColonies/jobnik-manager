@@ -10,12 +10,14 @@ import { TaskManager } from '@src/tasks/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
+import { StageRepository } from '@src/stages/models/DAL/stageRepository';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot } from '../data';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
 let taskManager: TaskManager;
+let stageRepository: StageRepository;
 
 const prisma = new PrismaClient();
 
@@ -24,7 +26,8 @@ const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND
 describe('JobManager', () => {
   beforeEach(function () {
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, jobManager);
+    stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, stageRepository, jobManager);
     taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, stageManager, jobManager);
   });
 
@@ -173,7 +176,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
           jest.spyOn(prisma.task, 'createManyAndReturn').mockResolvedValue([taskEntity]);
-          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, created: 1 });
+          jest.spyOn(stageRepository, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, created: 1 });
           jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
 
           const taskPayload = {
@@ -268,8 +271,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, completed: 1 });
-          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
+          jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.COMPLETED)).toResolve();
         });
@@ -293,8 +295,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, retried: 1 });
-          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
+          jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
         });
@@ -318,8 +319,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.task, 'update').mockResolvedValue(taskEntity);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-          jest.spyOn(stageManager, 'updateStageSummary').mockResolvedValue({ ...defaultStatusCounts, total: 1, failed: 1 });
-          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValue(undefined);
+          jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
         });

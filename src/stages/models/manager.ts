@@ -11,6 +11,7 @@ import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+
 import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary, UpdateSummaryCount } from './models';
 import {
   convertArrayPrismaStageToStageResponse,
@@ -21,12 +22,14 @@ import {
   taskOperationStatusWithTotal,
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
+import { StageRepository } from './DAL/stageRepository';
 
 @injectable()
 export class StageManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
+    @inject(StageRepository) private readonly stageRepository: StageRepository,
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
@@ -62,8 +65,8 @@ export class StageManager {
       name: type,
       summary: {
         ...defaultStatusCounts,
-        [summaryCountsMapper[taskOperationStatusWithTotal.CREATED]]: taskReq ? taskReq.length : 0,
-        [summaryCountsMapper[taskOperationStatusWithTotal.TOTAL]]: taskReq ? taskReq.length : 0,
+        [summaryCountsMapper[taskOperationStatusWithTotal.CREATED]]: taskReq?.length ?? 0,
+        [summaryCountsMapper[taskOperationStatusWithTotal.TOTAL]]: taskReq?.length ?? 0,
       },
       status: StageOperationStatus.CREATED,
       job: {
@@ -235,6 +238,8 @@ export class StageManager {
   /**
    * This method is used to update the progress of a stage according tasks metrics.
    * @param stageId unique identifier of the stage.
+   * @param jobId unique identifier of the job associated with the stage.
+   * @param summary summary object containing the current progress aggregated task data of the stage.
    */
   public async updateStageProgress(stageId: string, jobId: string, summary: StageSummary): Promise<void> {
     const completionPercentage = getCurrentPercentage(summary);
@@ -249,49 +254,15 @@ export class StageManager {
   }
 
   /**
-   * This method is used to update the progress of a stage according tasks metrics.
+   * This method is used to update the related columns of stage progressing .
    * @param stageId unique identifier of the stage.
+   * @param jobId unique identifier of the job associated with the stage.
+   * @param summary summary object containing the current progress aggregated task data of the stage.
    */
-  public async updateStageSummary(stageId: string, summaryPayload: UpdateSummaryCount): Promise<StageSummary> {
-    const addStatus = summaryCountsMapper[summaryPayload.add.status];
-    const addCount = summaryPayload.add.count;
-
-    let setClause;
-    // // Construct the 'remove' update if it exists
-    if (summaryPayload.remove) {
-      const removeStatus = summaryCountsMapper[summaryPayload.remove.status];
-      const removeCount = summaryPayload.remove.count;
-
-      setClause = Prisma.sql`summary = summary || jsonb_build_object(
-        ${addStatus}::text,
-        ("summary"->>${addStatus}::text)::integer + ${addCount},
-        ${removeStatus}::text,
-        ("summary"->>${removeStatus}::text)::integer - ${removeCount}
-      )`;
-    } else {
-      // Construct the 'add' update (update also the total count)
-      const totalCount = summaryCountsMapper[taskOperationStatusWithTotal.TOTAL];
-      setClause = Prisma.sql`summary = summary || jsonb_build_object(
-        ${addStatus}::text,
-        ("summary"->>${addStatus}::text)::integer + ${addCount},
-        ${totalCount}::text,
-        ("summary"->>${totalCount}::text)::integer + ${addCount}
-      )`;
-    }
-
-    const updateQuery = Prisma.sql`
-      UPDATE "job_manager"."stage"
-      SET ${setClause}
-      WHERE id = ${stageId}
-      RETURNING "summary"
-    `;
-
-    const updatedSummary = await this.prisma.$queryRaw<{ summary: StageSummary }[]>(updateQuery);
-
-    if (!updatedSummary[0]) {
-      throw new Error('Failed to update stage summary: No summary returned from database.');
-    }
-
-    return updatedSummary[0].summary;
+  public async updateStageProgressFromTaskChanges(stageId: string, jobId: string, summaryUpdatePayload: UpdateSummaryCount): Promise<void> {
+    // update stage summary aggregated task data
+    const updatedSummary = await this.stageRepository.updateStageSummary(stageId, summaryUpdatePayload);
+    // update stage progress percentage
+    await this.updateStageProgress(stageId, jobId, updatedSummary);
   }
 }

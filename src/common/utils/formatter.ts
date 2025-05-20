@@ -1,5 +1,5 @@
 import { camelCase } from 'lodash';
-import { CamelCase } from 'type-fest';
+import type { CamelCase } from 'type-fest';
 
 type Prettify<T> = {
   [K in keyof T]: T[K];

@@ -82,14 +82,14 @@ describe('helpers', function () {
         const summary = createSummary(-10, 100);
         const percentage = getCurrentPercentage(summary);
         // Negative percentages should be handled appropriately
-        expect(percentage).toBe(-10); // Or whatever your function should return
+        expect(percentage).toBe(-10);
       });
 
       it('should handle case where completed count exceeds total', function () {
         const summary = createSummary(150, 100);
         const percentage = getCurrentPercentage(summary);
         // Should be capped at 100% or return the actual value
-        expect(percentage).toBe(150); // Or capped at 100 depending on requirements
+        expect(percentage).toBe(150);
       });
     });
 
@@ -98,9 +98,7 @@ describe('helpers', function () {
         const summary = createSummary(0, 0);
         const percentage = getCurrentPercentage(summary);
 
-        // Consider updating your implementation to handle this better
-        // Either return 0, 100, or handle NaN explicitly
-        expect(isNaN(percentage)).toBe(true);
+        expect(percentage).toBe(0);
       });
     });
   });

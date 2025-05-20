@@ -76,9 +76,7 @@ export class TaskManager {
         add: { status: TaskOperationStatus.CREATED, count: tasks.length },
       };
 
-      const updatedSummary = await this.stageManager.updateStageSummary(stageId, updateSummaryPayload);
-
-      await this.stageManager.updateStageProgress(stageId, job.id, updatedSummary);
+      await this.stageManager.updateStageProgressFromTaskChanges(stageId, job.id, updateSummaryPayload);
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -191,9 +189,7 @@ export class TaskManager {
       remove: { status: previousStatus, count: 1 },
     };
 
-    const updatedSummary = await this.stageManager.updateStageSummary(task.stageId, updateSummaryPayload);
-
-    await this.stageManager.updateStageProgress(task.stageId, stage.jobId, updatedSummary);
+    await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, stage.jobId, updateSummaryPayload);
   }
 
   /**

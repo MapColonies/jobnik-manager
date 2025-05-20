@@ -52,6 +52,11 @@ function getCurrentPercentage(stageSummary: StageSummary): number {
   const completed = stageSummary[summaryCountsMapper.COMPLETED];
   const total = stageSummary[summaryCountsMapper.TOTAL];
 
+  // If total is 0, return 0 to avoid division by zero
+  if (total === 0) {
+    return 0;
+  }
+
   const PERCENTAGE_MULTIPLIER = 100;
   return Math.floor((completed / total) * PERCENTAGE_MULTIPLIER);
 }
