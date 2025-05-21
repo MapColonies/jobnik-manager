@@ -106,7 +106,7 @@ model Stage {
   /// [UserMetadata]
   userMetadata Json                 @default("{}") @map("user_metadata")
   /// [StageSummary]
-  summary      Json                 @default("{}")
+  summary      Json
   status       StageOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json
@@ -140,6 +140,7 @@ model Task {
   stage        Stage               @relation(fields: [stageId], references: [id], onDelete: Cascade)
   stageId      String              @map("stage_id") @db.Uuid
   attempts     Int                 @default(0)
+  maxAttempts  Int                 @default(0) @map("max_attempts")
 
   @@map("task")
 }

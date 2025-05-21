@@ -4,7 +4,7 @@ import { JobMode, StageName, StageOperationStatus, TaskOperationStatus, type Pri
 import { StageCreateWithTasksModel, StageModel, StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskCreateModel } from '@src/tasks/models/models';
-import { convertPrismaToStageResponse } from '@src/stages/models/helper';
+import { convertPrismaToStageResponse, defaultStatusCounts } from '@src/stages/models/helper';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 
@@ -30,6 +30,7 @@ export const createStageWithJob = async (stagePayload: StageCreateWithTasksModel
   input = {
     ...bodyInput,
     name: type,
+    summary: defaultStatusCounts,
     status: StageOperationStatus.CREATED,
     job: {
       connect: {
@@ -77,6 +78,7 @@ export const createStageWithoutTaskBody = {
   jobId: faker.string.uuid(),
   name: StageName.DEFAULT,
   data: {},
+  summary: defaultStatusCounts,
   xstate: persistedSnapshot,
   userMetadata: {},
 } satisfies Prisma.StageCreateManyInput;

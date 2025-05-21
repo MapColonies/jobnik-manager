@@ -12,8 +12,11 @@ import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
+import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { StageCreateWithTasksModel } from '@src/stages/models/models';
+import { defaultStatusCounts } from '@src/stages/models/helper';
+import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from '../stages/helpers';
 import { createTaskBody, createTaskRecords } from './helpers';
@@ -460,6 +463,269 @@ describe('task', function () {
           const response = await requestSender.addTasks({
             requestBody: [],
             pathParams: { stageId: faker.string.uuid() },
+          });
+
+          expect(response).toSatisfyApiSpec();
+          expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        });
+      });
+    });
+  });
+
+  describe('#updateStatus', function () {
+    describe('Happy Path', function () {
+      it("should return 200 status code and change tasks's status to PENDING", async function () {
+        const initialSummary = { ...defaultStatusCounts, created: 1 };
+        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0 };
+        const updateStatusInput = { status: TaskOperationStatus.PENDING };
+
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, summary: initialSummary, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(updateStatusInput);
+        expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
+      });
+
+      it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
+        const initialSummary = { ...defaultStatusCounts, total: 1000, completed: 998, inProgress: 1, pending: 1 };
+        const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+
+        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(updateStatusInput);
+        expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
+      });
+
+      it("should return 200 status code and change tasks's status to RETRIED and increase attempts", async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.FAILED };
+
+        const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0 };
+        const expectedStatus = { status: TaskOperationStatus.RETRIED, attempts: 1 };
+
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, summary: initialSummary, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords(
+          [
+            {
+              ...createTaskBody,
+              stageId: stage.id,
+              attempts: 0,
+              maxAttempts: 2,
+              status: TaskOperationStatus.IN_PROGRESS,
+              xstate: inProgressStageXstatePersistentSnapshot,
+            },
+          ],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(expectedStatus);
+        expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
+      });
+
+      it("should return 200 status code and change tasks's status to FAILED", async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.FAILED };
+
+        const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1 };
+        const expectedStatus = { status: TaskOperationStatus.FAILED, attempts: 2 };
+
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord({ ...createStageWithoutTaskBody, summary: initialSummary, jobId: job.id }, prisma);
+        const tasks = await createTaskRecords(
+          [
+            {
+              ...createTaskBody,
+              stageId: stage.id,
+              attempts: 2,
+              maxAttempts: 2,
+              status: TaskOperationStatus.IN_PROGRESS,
+              xstate: inProgressStageXstatePersistentSnapshot,
+            },
+          ],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(expectedStatus);
+        expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
+      });
+
+      it("should return 200 status code and change tasks's status to COMPLETED", async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 2, total: 2 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+
+        const expectedSummary = { ...defaultStatusCounts, inProgress: 1, completed: 1, total: 2 };
+        const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
+        const expectedStageStatus = { status: TaskOperationStatus.IN_PROGRESS, percentage: 50, summary: expectedSummary };
+
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            jobId: job.id,
+          },
+          prisma
+        );
+        const tasks = await createTaskRecords(
+          [
+            { ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+            { ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          ],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
+        expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+      });
+
+      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED stage of pre-defined job", async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+
+        const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
+        const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
+        const expectedStageStatus = { status: TaskOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
+
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            jobId: job.id,
+          },
+          prisma
+        );
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
+        expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('should return 400 with detailed error for invalid status transition', async function () {
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            jobId: job.id,
+          },
+          prisma
+        );
+        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.CREATED }], prisma);
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
+        });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(updateStatusResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: commonErrorMessages.invalidStatusChange },
+        });
+      });
+
+      it('should return a 404 status code along with a message that specifies that a task with the given id was not found', async function () {
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: faker.string.uuid() },
+          requestBody: { status: TaskOperationStatus.PENDING },
+        });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(updateStatusResponse).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: tasksErrorMessages.taskNotFound },
+        });
+      });
+
+      describe('Sad Path', function () {
+        it('should return 500 status code when the database driver throws an error', async function () {
+          jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+
+          const response = await requestSender.updateTaskStatus({
+            pathParams: { taskId: faker.string.uuid() },
+            requestBody: { status: TaskOperationStatus.PENDING },
           });
 
           expect(response).toSatisfyApiSpec();

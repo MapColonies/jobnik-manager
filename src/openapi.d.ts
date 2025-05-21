@@ -312,6 +312,26 @@ export type paths = {
     patch: operations['updateTaskUserMetadata'];
     trace?: never;
   };
+  '/tasks/{taskId}/status': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of requested task */
+        taskId: components['parameters']['taskId'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    /** change task's status */
+    put: operations['updateTaskStatus'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -331,6 +351,7 @@ export type components = {
     };
     percentage: number;
     attempts: number;
+    maxAttempts: number;
     /** Format: uuid */
     stageId: string;
     stagePayload: {
@@ -380,7 +401,15 @@ export type components = {
       [key: string]: unknown;
     };
     summary: {
-      [key: string]: unknown;
+      pending: number;
+      inProgress: number;
+      completed: number;
+      failed: number;
+      aborted: number;
+      paused: number;
+      created: number;
+      retried: number;
+      total: number;
     };
     createJobPayload: {
       jobMode: components['schemas']['jobMode'];
@@ -436,6 +465,7 @@ export type components = {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
       userMetadata?: components['schemas']['userMetadata'];
+      maxAttempts?: components['schemas']['maxAttempts'];
     };
     taskResponse: {
       id: components['schemas']['taskId'];
@@ -446,7 +476,8 @@ export type components = {
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
       status: components['schemas']['taskOperationStatus'];
-      attempts?: components['schemas']['attempts'];
+      attempts: components['schemas']['attempts'];
+      maxAttempts: components['schemas']['maxAttempts'];
     };
     createJobResponse: {
       id: components['schemas']['jobId'];
@@ -1518,6 +1549,62 @@ export interface operations {
         };
       };
       /** @description No such stage on database */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  updateTaskStatus: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description ID of requested task */
+        taskId: components['parameters']['taskId'];
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': {
+          status: components['schemas']['taskOperationStatus'];
+        };
+      };
+    };
+    responses: {
+      /** @description Change job and related stages + tasks */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['defaultOkMessage'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Job not found */
       404: {
         headers: {
           [name: string]: unknown;

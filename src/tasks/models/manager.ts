@@ -6,9 +6,10 @@ import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { UpdateSummaryCount } from '@src/stages/models/models';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -53,6 +54,7 @@ export class TaskManager {
       (taskData) =>
         ({
           attempts: 0,
+          maxAttempts: taskData.maxAttempts,
           data: taskData.data,
           type: taskData.type,
           xstate: persistenceSnapshot,
@@ -69,6 +71,12 @@ export class TaskManager {
 
     try {
       const tasks = await this.prisma.task.createManyAndReturn(queryBody);
+
+      const updateSummaryPayload: UpdateSummaryCount = {
+        add: { status: TaskOperationStatus.CREATED, count: tasks.length },
+      };
+
+      await this.stageManager.updateStageProgressFromTaskChanges(stageId, job.id, updateSummaryPayload);
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -143,6 +151,45 @@ export class TaskManager {
       }
       throw err;
     }
+  }
+
+  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<void> {
+    let nextStatus: TaskOperationStatus = status;
+    let dataToUpdate = undefined;
+
+    const task = await this.getTaskEntityById(taskId);
+    if (!task) {
+      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    }
+
+    const previousStatus = task.status;
+
+    if (nextStatus === TaskOperationStatus.FAILED) {
+      nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
+      dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
+    }
+
+    const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
+
+    const updateQueryBody = {
+      where: {
+        id: taskId,
+      },
+      data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+    };
+
+    // update task current status
+    await this.prisma.task.update(updateQueryBody);
+
+    // update stage progress data
+    const stage = await this.stageManager.getStageById(task.stageId);
+
+    const updateSummaryPayload: UpdateSummaryCount = {
+      add: { status: nextStatus, count: 1 },
+      remove: { status: previousStatus, count: 1 },
+    };
+
+    await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, stage.jobId, updateSummaryPayload);
   }
 
   /**

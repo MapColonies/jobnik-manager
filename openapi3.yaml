@@ -734,6 +734,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskId}/status:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    put:
+      operationId: updateTaskStatus
+      summary: change task's status
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/taskOperationStatus'
+              required:
+                - status
+      responses:
+        '200':
+          description: Change job and related stages + tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: TASK_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
 security: []
 
 components:
@@ -892,6 +938,8 @@ components:
       maximum: 100
     attempts:
       type: integer
+    maxAttempts:
+      type: integer
     stageId:
       type: string
       format: uuid
@@ -985,7 +1033,36 @@ components:
       additionalProperties: true
     summary:
       type: object
-      additionalProperties: true
+      properties:
+        pending:
+          type: integer
+        inProgress:
+          type: integer
+        completed:
+          type: integer
+        failed:
+          type: integer
+        aborted:
+          type: integer
+        paused:
+          type: integer
+        created:
+          type: integer
+        retried:
+          type: integer
+        total:
+          type: integer
+      required:
+        - pending
+        - inProgress
+        - completed
+        - failed
+        - aborted
+        - paused
+        - created
+        - retried
+        - total
+      additionalProperties: false
     createJobPayload:
       type: object
       properties:
@@ -1116,6 +1193,8 @@ components:
           $ref: '#/components/schemas/taskPayload'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
       required:
         - data
         - type
@@ -1141,12 +1220,16 @@ components:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:
           $ref: '#/components/schemas/attempts'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
       required:
         - id
         - type
         - data
         - stageId
         - status
+        - attempts
+        - maxAttempts
       additionalProperties: false
     createJobResponse:
       type: object

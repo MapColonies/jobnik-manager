@@ -36,6 +36,7 @@ export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfi
 export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {
   const adapter = new PrismaPg(poolConfig, { schema });
   const prisma = new PrismaClient({ adapter });
+
   return prisma;
 }
 
