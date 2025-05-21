@@ -3,7 +3,7 @@ import { faker } from '@faker-js/faker';
 import { PrismaClient, TaskOperationStatus } from '@prismaClient';
 import { UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { StageRepository } from '@src/stages/models/DAL/stageRepository';
+import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { createStageEntity } from '../generator';
 
 const prisma = new PrismaClient();

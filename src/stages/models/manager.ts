@@ -11,7 +11,7 @@ import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
-
+import { StageRepository } from '../DAL/stageRepository';
 import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary, UpdateSummaryCount } from './models';
 import {
   convertArrayPrismaStageToStageResponse,
@@ -22,7 +22,6 @@ import {
   taskOperationStatusWithTotal,
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
-import { StageRepository } from './DAL/stageRepository';
 
 @injectable()
 export class StageManager {

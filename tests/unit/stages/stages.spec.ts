@@ -9,7 +9,7 @@ import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownEr
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { StageCreateWithTasksModel } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { StageRepository } from '@src/stages/models/DAL/stageRepository';
+import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { inProgressStageXstatePersistentSnapshot, jobEntityWithAbortStatus, jobEntityWithStages, jobId, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, createTaskEntity } from '../generator';
 

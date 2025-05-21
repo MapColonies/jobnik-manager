@@ -2,8 +2,8 @@ import { inject, Lifecycle, scoped } from 'tsyringe';
 import { type Logger } from '@map-colonies/js-logger';
 import { Prisma, PrismaClient } from '@prismaClient';
 import { SERVICES } from '@src/common/constants';
-import { StageSummary, UpdateSummaryCount } from '../models';
-import { summaryCountsMapper, taskOperationStatusWithTotal } from '../helper';
+import { StageSummary, UpdateSummaryCount } from '../models/models';
+import { summaryCountsMapper, taskOperationStatusWithTotal } from '../models/helper';
 
 @scoped(Lifecycle.ContainerScoped)
 export class StageRepository {
@@ -16,7 +16,7 @@ export class StageRepository {
     const addStatus = summaryCountsMapper[summaryPayload.add.status];
     const addCount = summaryPayload.add.count;
 
-    this.logger.debug({ msg: `Updating stage summary`, stageId: stageId, summaryPayload: JSON.stringify(summaryPayload) });
+    this.logger.debug({ msg: `Updating stage summary`, stageId, summaryPayload });
     let setClause;
     // Construct the 'remove' update if it exists
     if (summaryPayload.remove) {
@@ -50,6 +50,7 @@ export class StageRepository {
     this.logger.debug(`Executing query to update stage summary: ${updateQuery.text}`);
     const updatedSummary = await this.prisma.$queryRaw<{ summary: StageSummary }[]>(updateQuery);
 
+    /* istanbul ignore if */
     if (!updatedSummary[0]) {
       throw new Error('Failed to update stage summary: No summary returned from database.');
     }

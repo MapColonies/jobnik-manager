@@ -10,7 +10,7 @@ import { TaskManager } from '@src/tasks/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { StageRepository } from '@src/stages/models/DAL/stageRepository';
+import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot } from '../data';
 
