@@ -429,7 +429,6 @@ describe('JobManager', () => {
 
             return callback(mockTx);
           });
-          // jest.spyOn(prisma, '$transaction').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(taskManager.updateStatus(faker.string.uuid(), TaskOperationStatus.PENDING)).rejects.toThrow('db connection error');
         });
