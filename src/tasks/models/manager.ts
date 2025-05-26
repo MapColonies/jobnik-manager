@@ -234,7 +234,6 @@ export class TaskManager {
       };
 
       // update task current status
-      // const updatedTask = await this.prisma.$transaction(async (tx) => {
       const updatedTask = await tx.task.update(updateQueryBody);
 
       const updateSummaryPayload: UpdateSummaryCount = {
