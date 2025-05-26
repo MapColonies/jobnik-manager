@@ -332,6 +332,26 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/tasks/{taskType}/dequeue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description type of requested task */
+        taskType: components['parameters']['taskType'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /** Dequeue task by type */
+    patch: operations['dequeueTask'];
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -515,6 +535,8 @@ export type components = {
     stageId: components['schemas']['stageId'];
     /** @description ID of requested task */
     taskId: string;
+    /** @description type of requested task */
+    taskType: components['schemas']['taskType'];
     /** @description The status of the job.
      *      */
     paramsTaskStatus: components['schemas']['taskOperationStatus'];
@@ -1592,7 +1614,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['defaultOkMessage'];
+          'application/json': components['schemas']['taskResponse'];
         };
       };
       /** @description Bad parameters input */
@@ -1605,6 +1627,56 @@ export interface operations {
         };
       };
       /** @description Job not found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  dequeueTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description type of requested task */
+        taskType: components['parameters']['taskType'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Dequeue task by type */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'];
+        };
+      };
+      /** @description Bad parameters input */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No such task in the database */
       404: {
         headers: {
           [name: string]: unknown;

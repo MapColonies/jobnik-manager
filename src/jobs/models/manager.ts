@@ -7,6 +7,7 @@ import { SERVICES } from '@common/constants';
 import { StageCreateModel } from '@src/stages/models/models';
 import { convertArrayPrismaStageToStageResponse, defaultStatusCounts } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
+import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -133,8 +134,10 @@ export class JobManager {
     await this.prisma.job.update(updateQueryBody);
   }
 
-  public async updateStatus(jobId: string, status: JobOperationStatus): Promise<void> {
-    const job = await this.getJobEntityById(jobId);
+  public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
+    const prisma = tx ?? this.prisma;
+
+    const job = await this.getJobEntityById(jobId, false, tx);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -161,7 +164,7 @@ export class JobManager {
       },
     };
 
-    await this.prisma.job.update(updateQueryBody);
+    await prisma.job.update(updateQueryBody);
   }
 
   public async deleteJob(jobId: string): Promise<void> {
@@ -191,7 +194,8 @@ export class JobManager {
    * @param jobId unique identifier of the job.
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string, includeStages?: boolean): Promise<JobPrismaObject | null> {
+  public async getJobEntityById(jobId: string, includeStages?: boolean, tx?: PrismaTransaction): Promise<JobPrismaObject | null> {
+    const prisma = tx ?? this.prisma;
     const queryBody = {
       where: {
         id: jobId,
@@ -199,7 +203,7 @@ export class JobManager {
       include: { stage: includeStages },
     };
 
-    const job = await this.prisma.job.findUnique(queryBody);
+    const job = await prisma.job.findUnique(queryBody);
 
     return job;
   }

@@ -759,7 +759,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/defaultOkMessage'
+                $ref: '#/components/schemas/taskResponse'
               example:
                 code: TASK_MODIFIED_SUCCESSFULLY
         '400':
@@ -780,6 +780,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskType}/dequeue:
+    parameters:
+      - $ref: '#/components/parameters/taskType'
+    patch:
+      operationId: dequeueTask
+      summary: Dequeue task by type
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Dequeue task by type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such task in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
 security: []
 
 components:
@@ -805,6 +839,13 @@ components:
       required: true
       schema:
         type: string
+    taskType:
+      in: path
+      name: taskType
+      description: type of requested task
+      required: true
+      schema:
+        $ref: '#/components/schemas/taskType'
     paramsTaskStatus:
       in: query
       name: status

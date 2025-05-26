@@ -2,6 +2,7 @@ import { inject, Lifecycle, scoped } from 'tsyringe';
 import { type Logger } from '@map-colonies/js-logger';
 import { Prisma, PrismaClient } from '@prismaClient';
 import { SERVICES } from '@src/common/constants';
+import { PrismaTransaction } from '@src/db/types';
 import { StageSummary, UpdateSummaryCount } from '../models/models';
 import { summaryCountsMapper, taskOperationStatusWithTotal } from '../models/helper';
 
@@ -12,7 +13,7 @@ export class StageRepository {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient
   ) {}
 
-  public async updateStageSummary(stageId: string, summaryPayload: UpdateSummaryCount): Promise<StageSummary> {
+  public async updateStageSummary(stageId: string, summaryPayload: UpdateSummaryCount, tx: PrismaTransaction): Promise<StageSummary> {
     const addStatus = summaryCountsMapper[summaryPayload.add.status];
     const addCount = summaryPayload.add.count;
 
@@ -48,7 +49,7 @@ export class StageRepository {
     `;
 
     this.logger.debug(`Executing query to update stage summary: ${updateQuery.text}`);
-    const updatedSummary = await this.prisma.$queryRaw<{ summary: StageSummary }[]>(updateQuery);
+    const updatedSummary = await tx.$queryRaw<{ summary: StageSummary }[]>(updateQuery);
 
     /* istanbul ignore if */
     if (!updatedSummary[0]) {

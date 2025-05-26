@@ -1,7 +1,7 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { JobMode, JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
@@ -10,10 +10,60 @@ import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/task
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { UpdateSummaryCount } from '@src/stages/models/models';
+import { PrismaTransaction } from '@src/db/types';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function generatePrioritizedTaskQuery(taskType: TaskType) {
+  // Define valid states for filtering
+  const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
+  const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
+  const validJobStatuses = [JobOperationStatus.PENDING, JobOperationStatus.IN_PROGRESS];
+
+  const queryBody = {
+    where: {
+      type: taskType,
+      status: {
+        in: validTaskStatuses,
+      },
+      stage: {
+        status: {
+          in: validStageStatuses,
+        },
+        job: {
+          status: {
+            in: validJobStatuses,
+          },
+        },
+      },
+    },
+    include: {
+      stage: {
+        include: {
+          job: {
+            select: {
+              priority: true,
+              id: true,
+              status: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      // We need to use an implicit join to sort by the job's priority
+      stage: {
+        job: {
+          priority: Prisma.SortOrder.asc, // This will order from VERY_HIGH to VERY_LOW
+        },
+      },
+    },
+  } satisfies Prisma.TaskFindFirstArgs;
+
+  return queryBody;
+}
 @injectable()
 export class TaskManager {
   public constructor(
@@ -26,7 +76,6 @@ export class TaskManager {
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
     const createTaskActor = createActor(taskStateMachine).start();
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
-
     const stage = await this.stageManager.getStageEntityById(stageId);
 
     if (!stage) {
@@ -69,14 +118,18 @@ export class TaskManager {
       data: taskInput,
     };
 
+    // type PrismaTransaction = Parameters<Parameters<typeof this.prisma.$transaction>[0]>[0];
     try {
-      const tasks = await this.prisma.task.createManyAndReturn(queryBody);
+      const tasks = await this.prisma.$transaction(async (tx) => {
+        const tasks = await tx.task.createManyAndReturn(queryBody);
 
-      const updateSummaryPayload: UpdateSummaryCount = {
-        add: { status: TaskOperationStatus.CREATED, count: tasks.length },
-      };
+        const updateSummaryPayload: UpdateSummaryCount = {
+          add: { status: TaskOperationStatus.CREATED, count: tasks.length },
+        };
 
-      await this.stageManager.updateStageProgressFromTaskChanges(stageId, job.id, updateSummaryPayload);
+        await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
+        return tasks;
+      });
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -153,43 +206,67 @@ export class TaskManager {
     }
   }
 
-  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<void> {
-    let nextStatus: TaskOperationStatus = status;
-    let dataToUpdate = undefined;
+  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
+    const updatedTask = await this.prisma.$transaction(async (tx) => {
+      const task = await this.getTaskEntityById(taskId, tx);
 
-    const task = await this.getTaskEntityById(taskId);
+      if (!task) {
+        throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+      }
+
+      let nextStatus: TaskOperationStatus = status;
+      let dataToUpdate = undefined;
+
+      const previousStatus = task.status;
+
+      if (nextStatus === TaskOperationStatus.FAILED) {
+        nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
+        dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
+      }
+
+      const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
+
+      const updateQueryBody = {
+        where: {
+          id: taskId,
+        },
+        data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+      };
+
+      // update task current status
+      // const updatedTask = await this.prisma.$transaction(async (tx) => {
+      const updatedTask = await tx.task.update(updateQueryBody);
+
+      const updateSummaryPayload: UpdateSummaryCount = {
+        add: { status: nextStatus, count: 1 },
+        remove: { status: previousStatus, count: 1 },
+      };
+
+      await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, updateSummaryPayload, tx);
+
+      return updatedTask; // Ensure the updated task is returned
+    });
+
+    return convertPrismaToTaskResponse(updatedTask);
+  }
+
+  /**
+   * Dequeues a task of the specified type with highest priority
+   * @param taskType - The type of task to dequeue
+   * @returns The dequeued task model with updated status
+   * @throws TaskNotFoundError when no suitable task is found
+   */
+  public async dequeue(taskType: TaskType): Promise<TaskModel> {
+    const queryBody = generatePrioritizedTaskQuery(taskType);
+
+    const task = await this.prisma.task.findFirst(queryBody);
+
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
-    const previousStatus = task.status;
-
-    if (nextStatus === TaskOperationStatus.FAILED) {
-      nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
-      dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
-    }
-
-    const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
-
-    const updateQueryBody = {
-      where: {
-        id: taskId,
-      },
-      data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
-    };
-
-    // update task current status
-    await this.prisma.task.update(updateQueryBody);
-
-    // update stage progress data
-    const stage = await this.stageManager.getStageById(task.stageId);
-
-    const updateSummaryPayload: UpdateSummaryCount = {
-      add: { status: nextStatus, count: 1 },
-      remove: { status: previousStatus, count: 1 },
-    };
-
-    await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, stage.jobId, updateSummaryPayload);
+    const dequeuedTask = await this.updateStatus(task.id, TaskOperationStatus.IN_PROGRESS);
+    return dequeuedTask;
   }
 
   /**
@@ -197,15 +274,15 @@ export class TaskManager {
    * @param taskId unique identifier of the task.
    * @returns The task entity if found, otherwise null.
    */
-  public async getTaskEntityById(taskId: string): Promise<TaskPrismaObject | null> {
+  public async getTaskEntityById(taskId: string, tx?: PrismaTransaction): Promise<TaskPrismaObject | null> {
+    const prisma = tx ?? this.prisma;
     const queryBody = {
       where: {
         id: taskId,
       },
     };
 
-    const task = await this.prisma.task.findUnique(queryBody);
-
+    const task = await prisma.task.findUnique(queryBody);
     return task;
   }
 }

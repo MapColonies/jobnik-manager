@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobMode, StageName, StageOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -16,8 +16,9 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
+import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
-import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
+import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -743,6 +744,39 @@ describe('stage', function () {
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
 
         expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
+      });
+
+      it("should return 201 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
+        const job = await addJobRecord(
+          { ...createJobRequestBody, id: faker.string.uuid(), xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const createdStageId = stage.id;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: createdStageId },
+          requestBody: { status: StageOperationStatus.IN_PROGRESS },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: createdStageId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+
+        expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.IN_PROGRESS);
+        expect(getJobResponse).toHaveProperty('body.status', JobOperationStatus.IN_PROGRESS);
       });
     });
 
