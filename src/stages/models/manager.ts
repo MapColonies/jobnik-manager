@@ -16,7 +16,7 @@ import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateWithTasksModel,
   StageFindCriteriaArg,
-  StageIncludeJob,
+  StageIncludingJob,
   StageModel,
   StagePrismaObject,
   StageSummary,
@@ -265,7 +265,7 @@ export class StageManager {
    * @param summary summary object containing the current progress aggregated task data of the stage.
    */
   public async updateStageProgressFromTaskChanges(stageId: string, summaryUpdatePayload: UpdateSummaryCount, tx: PrismaTransaction): Promise<void> {
-    const stage = (await this.getStageEntityById(stageId, { includeJob: true, tx })) as StageIncludeJob;
+    const stage = (await this.getStageEntityById(stageId, { includeJob: true, tx })) as StageIncludingJob;
 
     // update stage summary aggregated task data
     const updatedSummary = await this.stageRepository.updateStageSummary(stageId, summaryUpdatePayload, tx);
@@ -285,7 +285,7 @@ export class StageManager {
    * @param stageId unique identifier of the stage.
    * @param summary summary object containing the current progress aggregated task data of the stage.
    */
-  private async updateStageProgress(stage: StageIncludeJob, summary: StageSummary, tx: PrismaTransaction): Promise<void> {
+  private async updateStageProgress(stage: StageIncludingJob, summary: StageSummary, tx: PrismaTransaction): Promise<void> {
     const completionPercentage = getCurrentPercentage(summary);
     const stageUpdatedData: Prisma.StageUpdateInput = { percentage: completionPercentage };
 

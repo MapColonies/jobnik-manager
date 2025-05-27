@@ -34,5 +34,5 @@ export type {
   StagePrismaObject,
   StageCreateBody,
   UpdateSummaryCount,
-  StageIncludeJob,
+  StageIncludingJob,
 };

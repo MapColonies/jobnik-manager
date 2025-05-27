@@ -7,7 +7,7 @@ import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { StageCreateWithTasksModel, StageIncludeJob, UpdateSummaryCount } from '@src/stages/models/models';
+import { StageCreateWithTasksModel, StageIncludingJob, UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
@@ -455,7 +455,7 @@ describe('JobManager', () => {
             jobId: jobEntity.id,
             id: stageId,
             summary: { ...defaultStatusCounts, total: 2, inProgress: 1 },
-          }) as StageIncludeJob;
+          }) as StageIncludingJob;
 
           const mockTx = {
             stage: {
