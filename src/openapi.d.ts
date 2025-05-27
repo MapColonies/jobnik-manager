@@ -348,7 +348,18 @@ export type paths = {
     delete?: never;
     options?: never;
     head?: never;
-    /** Dequeue task by type */
+    /**
+     * Find and claim the highest priority pending task of specified type
+     * @description Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status,
+     *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
+     *     work queue pattern where workers can claim the next available task.
+     *
+     *     The endpoint considers task priority (inherited from the parent job), searches only for tasks
+     *     that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+     *
+     *     If successful, returns the complete task details with status updated to IN_PROGRESS.
+     *
+     */
     patch: operations['dequeueTask'];
     trace?: never;
   };
@@ -1658,7 +1669,7 @@ export interface operations {
     };
     requestBody?: never;
     responses: {
-      /** @description Dequeue task by type */
+      /** @description Task successfully dequeued and status updated to IN_PROGRESS */
       200: {
         headers: {
           [name: string]: unknown;
@@ -1667,7 +1678,7 @@ export interface operations {
           'application/json': components['schemas']['taskResponse'];
         };
       };
-      /** @description Bad parameters input */
+      /** @description Bad taskType parameter or other validation error */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1676,7 +1687,7 @@ export interface operations {
           'application/json': components['schemas']['errorMessage'];
         };
       };
-      /** @description No such task in the database */
+      /** @description No pending tasks of requested type are available */
       404: {
         headers: {
           [name: string]: unknown;
@@ -1685,7 +1696,7 @@ export interface operations {
           'application/json': components['schemas']['errorMessage'];
         };
       };
-      /** @description Internal server error */
+      /** @description Internal server error or invalid state transition */
       500: {
         headers: {
           [name: string]: unknown;
