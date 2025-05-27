@@ -6,16 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import {
-  JobMode,
-  JobOperationStatus,
-  Prisma,
-  StageName,
-  StageOperationStatus,
-  TaskOperationStatus,
-  TaskType,
-  type PrismaClient,
-} from '@prismaClient';
+import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';

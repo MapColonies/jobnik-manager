@@ -11,14 +11,7 @@ import { StageCreateWithTasksModel, StageIncludeJob, UpdateSummaryCount } from '
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
-import {
-  inProgressStageXstatePersistentSnapshot,
-  jobEntityWithAbortStatus,
-  jobEntityWithStages,
-  jobId,
-  pendingStageXstatePersistentSnapshot,
-  stageEntity,
-} from '../data';
+import { jobEntityWithAbortStatus, jobEntityWithStages, jobId, pendingStageXstatePersistentSnapshot, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, createTaskEntity, StageWithTasks } from '../generator';
 
 let jobManager: JobManager;
@@ -423,7 +416,9 @@ describe('JobManager', () => {
         });
 
         it('should fail on invalid status transition', async function () {
-          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+          jest
+            .spyOn(prisma.stage, 'findUnique')
+            .mockResolvedValue({ ...stageEntity, job: { status: JobOperationStatus.IN_PROGRESS } } as unknown as StageWithTasks);
 
           await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
             commonErrorMessages.invalidStatusChange
@@ -437,99 +432,13 @@ describe('JobManager', () => {
 
           await expect(stageManager.updateStatus('someId', StageOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
         });
-      });
-    });
 
-    describe('#updateStageProgress', () => {
-      describe('#HappyPath', () => {
-        it('should only update partial progress percentage', async function () {
-          const mockTx = {
-            stage: {
-              update: jest.fn().mockResolvedValueOnce({}).mockResolvedValueOnce({}),
-              findUnique: jest.fn().mockResolvedValue({}),
-            },
-            job: {
-              update: jest.fn().mockResolvedValue({}),
-              findUnique: jest.fn().mockResolvedValue({}),
-            },
-          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+        it('should fail on invalid stage structure return - missing job property', async function () {
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
 
-          const jobId = faker.string.uuid();
-          const stageId = faker.string.uuid();
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED }) as unknown as JobPrismaObject;
-          const stageEntity = createStageEntity({
-            jobId: jobEntity.id,
-            id: stageId,
-            summary: { ...defaultStatusCounts, total: 2, completed: 1 },
-          }) as StageIncludeJob;
-
-          await expect(stageManager.updateStageProgress(stageEntity, { ...defaultStatusCounts, total: 2, completed: 1 }, mockTx)).toResolve();
-        });
-
-        it('should update 100 progress percentage and stage should be completed', async function () {
-          const jobId = faker.string.uuid();
-          const stageId = faker.string.uuid();
-
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED }) as unknown as JobPrismaObject;
-
-          const stageEntity = createStageEntity({
-            jobId: jobEntity.id,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            id: stageId,
-            summary: { ...defaultStatusCounts, total: 2, completed: 2 },
-          });
-
-          const mockTx = {
-            stage: {
-              update: jest
-                .fn()
-                .mockResolvedValueOnce({ ...stageEntity, job: { id: jobEntity.id, status: JobOperationStatus.IN_PROGRESS } })
-                .mockResolvedValueOnce(stageEntity),
-              findUnique: jest.fn().mockResolvedValue({ ...stageEntity, job: { id: jobEntity.id, status: JobOperationStatus.IN_PROGRESS } }),
-            },
-            job: {
-              update: jest.fn().mockResolvedValue({}),
-              findUnique: jest.fn().mockResolvedValue(jobEntity),
-            },
-          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
-
-          await expect(
-            stageManager.updateStageProgress({ ...stageEntity, job: jobEntity }, { ...defaultStatusCounts, total: 2, completed: 2 }, mockTx)
-          ).toResolve();
-        });
-
-        it('should update 100 progress percentage without stage completion', async function () {
-          const jobId = faker.string.uuid();
-          const stageId = faker.string.uuid();
-
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.DYNAMIC }) as unknown as JobPrismaObject;
-
-          const stageEntity = createStageEntity({
-            jobId: jobEntity.id,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            id: stageId,
-            summary: { ...defaultStatusCounts, total: 2, completed: 2 },
-          });
-
-          const mockTx = {
-            stage: {
-              update: jest
-                .fn()
-                .mockResolvedValueOnce({ ...stageEntity, job: { id: jobEntity.id, status: JobOperationStatus.IN_PROGRESS } })
-                .mockResolvedValueOnce(stageEntity),
-              findUnique: jest.fn().mockResolvedValue({ ...stageEntity, job: { id: jobEntity.id, status: JobOperationStatus.IN_PROGRESS } }),
-            },
-            job: {
-              update: jest.fn().mockResolvedValue({}),
-              findUnique: jest.fn().mockResolvedValue(jobEntity),
-            },
-          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
-
-          await expect(
-            stageManager.updateStageProgress({ ...stageEntity, job: jobEntity }, { ...defaultStatusCounts, total: 2, completed: 2 }, mockTx)
-          ).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
+            stagesErrorMessages.missingJobProperty
+          );
         });
       });
     });
@@ -554,11 +463,11 @@ describe('JobManager', () => {
                 ...stageEntity,
                 job: { ...jobEntity, status: JobOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot },
               }),
+              update: jest.fn().mockResolvedValueOnce(null),
             },
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           jest.spyOn(stageRepository, 'updateStageSummary').mockResolvedValueOnce({ ...defaultStatusCounts, total: 2, inProgress: 1 });
-          jest.spyOn(stageManager, 'updateStageProgress').mockResolvedValueOnce(undefined);
           jest.spyOn(stageManager, 'updateStatus').mockResolvedValueOnce(undefined);
 
           await expect(stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryCount, mockTx)).toResolve();

@@ -16,14 +16,13 @@ interface UpdateSummaryCount {
 }
 
 /**
- * Type definition for Stage with optional Task inclusion
+ * Type definition for Stage with optional Task and Job inclusion
  * @interface StagePrismaObject
  */
 interface StagePrismaObjectBase extends Prisma.StageGetPayload<object> {
   task?: Prisma.TaskGetPayload<object>[];
   job?: Prisma.JobGetPayload<object>;
 }
-
 type StagePrismaObject = StagePrismaObjectBase;
 
 export type {
