@@ -6,7 +6,16 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import {
+  JobMode,
+  JobOperationStatus,
+  Prisma,
+  StageName,
+  StageOperationStatus,
+  TaskOperationStatus,
+  TaskType,
+  type PrismaClient,
+} from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -16,7 +25,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { abortedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
@@ -115,7 +124,7 @@ describe('stage', function () {
         );
 
         const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.ABORTED, xstate: abortedStageXstatePersistentSnapshot }],
           prisma
         );
 

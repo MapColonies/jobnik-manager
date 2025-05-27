@@ -53,7 +53,8 @@ describe('task', function () {
   });
 
   afterEach(async () => {
-    await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
+    // to ensure that the database is clean after each test for dequeue
+    await prisma.$queryRaw(Prisma.sql`DELETE FROM "job_manager"."task" WHERE "status"  = 'Pending' OR "status" = 'In-Progress';`);
     await prisma.$disconnect();
   });
 

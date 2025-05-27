@@ -82,7 +82,7 @@ export class JobManager {
   }
 
   public async getJobById(jobId: string, includeStages?: boolean): Promise<JobModel> {
-    const job = await this.getJobEntityById(jobId, includeStages);
+    const job = await this.getJobEntityById(jobId, { includeStages });
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -137,7 +137,7 @@ export class JobManager {
   public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
     const prisma = tx ?? this.prisma;
 
-    const job = await this.getJobEntityById(jobId, false, tx);
+    const job = await this.getJobEntityById(jobId, { tx });
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
@@ -194,13 +194,13 @@ export class JobManager {
    * @param jobId unique identifier of the job.
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string, includeStages?: boolean, tx?: PrismaTransaction): Promise<JobPrismaObject | null> {
-    const prisma = tx ?? this.prisma;
+  public async getJobEntityById(jobId: string, options: { includeStages?: boolean; tx?: PrismaTransaction } = {}): Promise<JobPrismaObject | null> {
+    const prisma = options.tx ?? this.prisma;
     const queryBody = {
       where: {
         id: jobId,
       },
-      include: { stage: includeStages },
+      include: { stage: options.includeStages },
     };
 
     const job = await prisma.job.findUnique(queryBody);
