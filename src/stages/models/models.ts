@@ -9,7 +9,7 @@ type StageCreateWithTasksModel = components['schemas']['createStageWithTasksPayl
 type StageCreateBody = StageCreateModel & { jobId: string; xstate: Snapshot<unknown> };
 type StageSummary = components['schemas']['summary'];
 type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
-type StageIncludeJob = StagePrismaObject & { job: JobPrismaObject };
+type StageIncludingJob = StagePrismaObject & { job: JobPrismaObject };
 interface UpdateSummaryCount {
   add: { status: TaskOperationStatus; count: number };
   remove?: { status: TaskOperationStatus; count: number };
