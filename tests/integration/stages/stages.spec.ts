@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -18,6 +18,7 @@ import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId, testStageId } from '../jobs/helpers';
+import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
 
 describe('stage', function () {
@@ -92,13 +93,32 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and the matching stage with related tasks', async function () {
-        const job = await createJobRecord({ ...createJobRequestWithStagesBody, id: faker.string.uuid() }, prisma);
-        const stageId = job.stage[0]!.id;
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: pendingStageXstatePersistentSnapshot,
+            status: JobOperationStatus.PENDING,
+          },
+          prisma
+        );
 
-        await requestSender.addTasks({
-          pathParams: { stageId },
-          requestBody: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
-        });
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: { ...defaultStatusCounts, total: 1, pending: 1 },
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
         const response = await requestSender.getStages({ queryParams: { job_id: job.id, should_return_tasks: true } });
 
         if (response.status !== StatusCodes.OK) {
@@ -111,7 +131,7 @@ describe('stage', function () {
           body: createJobRequestWithStagesBody.stages,
         });
 
-        expect(response.body).toMatchObject([{ tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }] }]);
+        expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, type: tasks[0]!.type, userMetadata: tasks[0]!.userMetadata }] }]);
       });
 
       it('should return 200 status code and the matching stage without related tasks', async function () {
