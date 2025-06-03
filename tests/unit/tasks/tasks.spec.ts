@@ -432,7 +432,10 @@ describe('JobManager', () => {
           });
 
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
-
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            return callback(mockTx);
+          });
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(InvalidUpdateError);
         });
       });
