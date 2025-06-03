@@ -10,4 +10,6 @@ export const errorMessages = {
   taskNotFound: 'TASK_NOT_FOUND',
   /**Signifies that the specified task could not be added*/
   addTaskNotAllowed: 'ADD_TASK_NOT_ALLOWED',
+  /**Signifies that the specified task could not be updated*/
+  taskStatusUpdateFailed: 'TASK_STATUS_UPDATE_FAILED',
 } as const;

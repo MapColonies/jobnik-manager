@@ -734,7 +734,7 @@ describe('task', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma, '$transaction').mockRejectedValueOnce(new Error('Database error'));
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.PENDING },
@@ -1148,6 +1148,102 @@ describe('task', function () {
         expect(getTaskResponse.body).toHaveProperty('status', TaskOperationStatus.PENDING);
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.PENDING);
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);
+      });
+
+      it('should handle race conditions by preventing multiple dequeue of the same task', async function () {
+        expect.assertions(4);
+
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        let continueUpdateTaskFirst: (value?: unknown) => void;
+        let continueUpdateTaskSecond: (value?: unknown) => void;
+
+        const updateTaskHolderFirst = new Promise((resolve) => {
+          continueUpdateTaskFirst = resolve;
+        });
+
+        const updateTaskHolderSecond = new Promise((resolve) => {
+          continueUpdateTaskSecond = resolve;
+        });
+
+        const original = prisma.task.findFirst.bind(prisma.task);
+        const spy = jest.spyOn(prisma.task, 'findFirst');
+
+        //@ts-expect-error Error because of the generics, just pass the args to the original function
+        spy.mockImplementationOnce(async (...args) => {
+          const res = await original(...args);
+          await updateTaskHolderFirst; // prevent updating the task until the second dequeue is called
+          // Call the original implementation with the same arguments
+          return res;
+        });
+
+        //@ts-expect-error Error because of the generics, just pass the args to the original function
+        spy.mockImplementationOnce(async (...args) => {
+          const res = await original(...args);
+          continueUpdateTaskFirst(); // release the first dequeue update process
+          await updateTaskHolderSecond; // prevent updating the task until first dequeue release it (after his updating)
+          // Call the original implementation with the same arguments
+          return res;
+        });
+
+        const dequeueFirstPromise = requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+        const dequeueSecondPromise = requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const firstResponse = await dequeueFirstPromise;
+        // @ts-expect-error not recognized initialization
+        continueUpdateTaskSecond(); //release to update second call
+        const secondResponse = await dequeueSecondPromise;
+
+        // first call will success and pull task
+        expect(firstResponse).toSatisfyApiSpec();
+        expect(firstResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasks[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        //second call will fail with 500 status code
+        expect(secondResponse).toSatisfyApiSpec();
+        expect(secondResponse).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: {
+            message: tasksErrorMessages.taskStatusUpdateFailed,
+          },
+        });
       });
     });
   });

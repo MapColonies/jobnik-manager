@@ -454,6 +454,8 @@ describe('JobManager', () => {
           const stageEntity = createStageEntity({
             jobId: jobEntity.id,
             id: stageId,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
             summary: { ...defaultStatusCounts, total: 2, inProgress: 1 },
           }) as StageIncludingJob;
 
@@ -468,6 +470,34 @@ describe('JobManager', () => {
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           jest.spyOn(stageRepository, 'updateStageSummary').mockResolvedValueOnce({ ...defaultStatusCounts, total: 2, inProgress: 1 });
+          jest.spyOn(stageManager, 'updateStatus').mockResolvedValueOnce(undefined);
+
+          await expect(stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryCount, mockTx)).toResolve();
+        });
+
+        it('should update stage data according with auto completed', async function () {
+          const updateSummaryCount = {} as unknown as UpdateSummaryCount;
+
+          const jobId = faker.string.uuid();
+          const stageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED }) as unknown as JobPrismaObject;
+          const stageEntity = createStageEntity({
+            jobId: jobEntity.id,
+            id: stageId,
+            summary: { ...defaultStatusCounts, total: 2, inProgress: 1 },
+          }) as StageIncludingJob;
+
+          const mockTx = {
+            stage: {
+              findUnique: jest.fn().mockResolvedValue({
+                ...stageEntity,
+                job: { ...jobEntity, status: JobOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot },
+              }),
+              update: jest.fn().mockResolvedValueOnce(null),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          jest.spyOn(stageRepository, 'updateStageSummary').mockResolvedValueOnce({ ...defaultStatusCounts, total: 2, completed: 2 });
           jest.spyOn(stageManager, 'updateStatus').mockResolvedValueOnce(undefined);
 
           await expect(stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryCount, mockTx)).toResolve();

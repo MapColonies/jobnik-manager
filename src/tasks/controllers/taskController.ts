@@ -109,6 +109,8 @@ export class TaskController {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof InvalidUpdateError) {
+        (err as HttpError).status = httpStatus.INTERNAL_SERVER_ERROR;
       }
 
       return next(err);

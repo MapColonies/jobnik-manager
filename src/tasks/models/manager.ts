@@ -207,44 +207,12 @@ export class TaskManager {
   }
 
   public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
-    const updatedTask = await this.prisma.$transaction(async (tx) => {
-      const task = await this.getTaskEntityById(taskId, tx);
+    const task = await this.getTaskEntityById(taskId);
 
-      if (!task) {
-        throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
-      }
-
-      let nextStatus: TaskOperationStatus = status;
-      let dataToUpdate = undefined;
-
-      const previousStatus = task.status;
-
-      if (nextStatus === TaskOperationStatus.FAILED) {
-        nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
-        dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
-      }
-
-      const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
-
-      const updateQueryBody = {
-        where: {
-          id: taskId,
-        },
-        data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
-      };
-
-      // update task current status
-      const updatedTask = await tx.task.update(updateQueryBody);
-
-      const updateSummaryPayload: UpdateSummaryCount = {
-        add: { status: nextStatus, count: 1 },
-        remove: { status: previousStatus, count: 1 },
-      };
-
-      await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, updateSummaryPayload, tx);
-
-      return updatedTask; // Ensure the updated task is returned
-    });
+    if (!task) {
+      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    }
+    const updatedTask = await this.updateAndValidateStatus(task, status);
 
     return convertPrismaToTaskResponse(updatedTask);
   }
@@ -258,14 +226,14 @@ export class TaskManager {
   public async dequeue(taskType: TaskType): Promise<TaskModel> {
     const queryBody = generatePrioritizedTaskQuery(taskType);
 
-    const task = await this.prisma.task.findFirst(queryBody);
+    const task = await this.prisma.task.findFirst({ ...queryBody });
 
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
-    const dequeuedTask = await this.updateStatus(task.id, TaskOperationStatus.IN_PROGRESS);
-    return dequeuedTask;
+    const dequeuedTask = await this.updateAndValidateStatus(task, TaskOperationStatus.IN_PROGRESS);
+    return convertPrismaToTaskResponse(dequeuedTask);
   }
 
   /**
@@ -283,5 +251,59 @@ export class TaskManager {
 
     const task = await prisma.task.findUnique(queryBody);
     return task;
+  }
+
+  private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
+    const updatedTask = await this.prisma.$transaction(async (tx) => {
+      let nextStatus: TaskOperationStatus = status;
+      let dataToUpdate = undefined;
+
+      const previousStatus = task.status;
+
+      if (nextStatus === TaskOperationStatus.FAILED) {
+        nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
+        dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
+      }
+
+      const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
+
+      let whereClause: {
+        id: string;
+        status?: TaskOperationStatus;
+      } = {
+        id: task.id,
+      };
+
+      // This should validate race conditions, if the task is already in progress, it should not be updated
+      if (nextStatus === TaskOperationStatus.IN_PROGRESS) {
+        whereClause = {
+          ...whereClause,
+          status: previousStatus,
+        };
+      }
+
+      const updateQueryBody = {
+        where: whereClause,
+        data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+      };
+
+      // update task current status
+      const updatedTask = await tx.task.updateManyAndReturn(updateQueryBody);
+
+      if (updatedTask[0] === undefined) {
+        throw new InvalidUpdateError(tasksErrorMessages.taskStatusUpdateFailed);
+      }
+
+      const updateSummaryPayload: UpdateSummaryCount = {
+        add: { status: nextStatus, count: 1 },
+        remove: { status: previousStatus, count: 1 },
+      };
+
+      await this.stageManager.updateStageProgressFromTaskChanges(task.stageId, updateSummaryPayload, tx);
+
+      return updatedTask[0]; // Ensure the updated task is returned
+    });
+
+    return updatedTask;
   }
 }

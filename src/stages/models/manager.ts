@@ -275,7 +275,7 @@ export class StageManager {
 
     // update stage status if it was initialized by first task
     // and the stage is not already in progress
-    if (updatedSummary.inProgress > 0 && stage.status !== StageOperationStatus.IN_PROGRESS) {
+    if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
     }
   }
