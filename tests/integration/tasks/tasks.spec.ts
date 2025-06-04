@@ -1151,7 +1151,7 @@ describe('task', function () {
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);
       });
 
-      it('should handle race conditions by preventing multiple dequeue of the same task', async function () {
+      it('should prevent multiple dequeue of the same task', async function () {
         expect.assertions(4);
 
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
