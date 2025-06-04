@@ -23,6 +23,8 @@ paths:
         Returns a filtered list of jobs based on the provided query parameters.
         Supports filtering by job mode, name, date range, priority, and creator.
         Optional inclusion of related stage data via the should_return_stages parameter.
+
+        Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
       tags:
         - jobs
       responses:
@@ -135,6 +137,9 @@ paths:
         This operation cascades to delete all child resources and cannot be undone.
 
         The job must exist in the system for this operation to succeed.
+        Jobs can only be deleted when they are in a terminal state (COMPLETED, FAILED, or ABORTED).
+        Attempting to delete a job in any other state will result in a 400 error.
+
         Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
       tags:
         - jobs
@@ -377,7 +382,7 @@ paths:
   /jobs/{jobId}/stage:
     post:
       operationId: addStage
-      summary: AAdd a new stage to a dynamic job
+      summary: Add a new stage to a dynamic job
       description: |
         Appends a new stage to an existing job that has DYNAMIC job mode.
         The stage will be added after any existing stages in the job's workflow sequence.
@@ -1182,7 +1187,9 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-      description: Lifecycle state of a job, indicating its current execution status in the workflow
+      description: |
+        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     stageOperationStatus:
       type: string
       enum:
@@ -1195,7 +1202,9 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-      description: Execution state of a stage within a job's workflow, tracking progress through its lifecycle
+      description: |
+        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     taskOperationStatus:
       type: string
       enum:
@@ -1208,7 +1217,9 @@ components:
         - CREATED
         - RETRIED
       example: CREATED
-      description: Current operational state of a task, including specialized states like RETRIED for task-specific error handling
+      description: |
+        Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
+        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     jobMode:
       type: string
       enum:
