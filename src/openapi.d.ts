@@ -570,71 +570,110 @@ export type components = {
      * @description Unique identifier for a job
      */
     jobId: string;
+    /** @description Custom job configuration data containing job-specific parameters */
     jobPayload: {
       [key: string]: unknown;
     };
+    /** @description Completion percentage of a job, stage, or task (0-100) */
     percentage: number;
+    /** @description Number of times a task has been attempted */
     attempts: number;
+    /** @description Maximum number of retries allowed for a task */
     maxAttempts: number;
-    /** Format: uuid */
+    /**
+     * Format: uuid
+     * @description Unique identifier for a stage
+     */
     stageId: string;
+    /** @description Custom stage configuration data containing stage-specific parameters */
     stagePayload: {
       [key: string]: unknown;
     };
+    /** @description Configuration for notification channels and triggers */
     notifications: Record<string, never>;
     /**
+     * @description Relative importance of the job, affecting processing order
      * @example LOW
      * @enum {string}
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
     /**
+     * @description Standard success message codes used in API responses
      * @example JOB_MODIFIED_SUCCESSFULLY
      * @enum {string}
      */
     successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'TASK_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
-    /** @enum {string} */
+    /**
+     * @description Source or organization responsible for creating the job
+     * @enum {string}
+     */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
+     * @description Lifecycle state of a job, indicating its current execution status in the workflow
      * @example CREATED
      * @enum {string}
      */
     jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
     /**
+     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle
      * @example CREATED
      * @enum {string}
      */
     stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
     /**
+     * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling
      * @example CREATED
      * @enum {string}
      */
     taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED' | 'RETRIED';
     /**
+     * @description Job creation mode determining whether all stages must be defined at creation (PRE_DEFINED) or can be added later (DYNAMIC)
      * @example PRE_DEFINED
      * @enum {string}
      */
     jobMode: 'PRE_DEFINED' | 'DYNAMIC';
     /**
+     * @description Category or type of job processing being performed, used for filtering and system behaviors
      * @example DEFAULT
      * @enum {string}
      */
     jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
+    /** @description Flag indicating whether to include complete stage details in job response payloads */
     returnStage: boolean;
+    /** @description Flag indicating whether to include complete task details in stage response payloads */
     returnTask: boolean;
+    /** @description Application-specific custom data container that can store arbitrary client information without affecting core operations */
     userMetadata: {
       [key: string]: unknown;
     };
+    /** @description Aggregated task statistics grouped by operational status, providing a complete overview of stage progress.
+     *     Used for monitoring progress, generating dashboards, and determining when stages/jobs are complete.
+     *     The total field should always equal the sum of all other status counts.
+     *      */
     summary: {
+      /** @description Number of tasks awaiting execution */
       pending: number;
+      /** @description Number of tasks currently being processed */
       inProgress: number;
+      /** @description Number of tasks that finished successfully */
       completed: number;
+      /** @description Number of tasks that encountered errors and could not be completed */
       failed: number;
+      /** @description Number of tasks manually stopped before completion */
       aborted: number;
+      /** @description Number of tasks temporarily suspended from execution */
       paused: number;
+      /** @description Number of tasks in initial state before becoming pending */
       created: number;
+      /** @description Number of tasks scheduled for re-execution after failure */
       retried: number;
+      /** @description Total count of tasks belonging to the stage */
       total: number;
     };
+    /** @description Input payload for creating a new job in the system.
+     *     Contains all required configuration for job execution, including processing mode,
+     *     custom parameters, metadata, and optionally pre-defined stages.
+     *      */
     createJobPayload: {
       jobMode: components['schemas']['jobMode'];
       name?: components['schemas']['jobName'];
@@ -645,6 +684,7 @@ export type components = {
       notifications: components['schemas']['notifications'];
       userMetadata: components['schemas']['userMetadata'];
       creator: components['schemas']['creator'];
+      /** @description Optional array of stages to create with the job (required for PRE_DEFINED jobs) */
       stages?: components['schemas']['createStagePayload'][];
     } & {
       [key: string]: unknown;
@@ -657,6 +697,10 @@ export type components = {
       updateTime?: components['schemas']['updateTime'];
       stages?: components['schemas']['stageResponse'][];
     };
+    /** @description Input payload for creating a new processing stage.
+     *     Defines the stage type, custom configuration data, and user-defined metadata.
+     *     Used when adding stages to jobs or creating stages as part of job creation.
+     *      */
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
@@ -670,27 +714,47 @@ export type components = {
       jobId: components['schemas']['jobId'];
     };
     getStageResponse: components['schemas']['stageResponse'] & {
+      /** @description Associated tasks belonging to this stage */
       tasks?: components['schemas']['taskResponse'][];
     };
-    /** Format: uuid */
+    /**
+     * Format: uuid
+     * @description Unique identifier for a task, generated by the system upon task creation
+     */
     taskId: string;
     /**
+     * @description Categorization of task functionality, determining the specific operation
+     *     to be performed. Used for routing tasks to appropriate workers and
+     *     for filtering in API requests.
+     *
      * @example DEFAULT
      * @enum {string}
      */
     taskType: 'TILE_SEEDING' | 'TILE_RENDERING' | 'PUBLISH_CATALOG' | 'PUBLISH_LAYER' | 'DEFAULT';
+    /** @description Custom task configuration data containing operation-specific parameters.
+     *     The schema varies based on task type and contains all necessary information
+     *     for task execution by workers.
+     *      */
     taskPayload: {
       [key: string]: unknown;
     };
     createStageWithTasksPayload: components['schemas']['createStagePayload'] & {
       tasks?: components['schemas']['createTaskPayload'][];
     };
+    /** @description Input payload for creating a new task within a stage.
+     *     Contains task type, operational parameters, and optional retry configuration.
+     *     Used when adding tasks to existing stages.
+     *      */
     createTaskPayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['taskPayload'];
       userMetadata?: components['schemas']['userMetadata'];
       maxAttempts?: components['schemas']['maxAttempts'];
     };
+    /** @description Complete task information returned by the API, including all configuration
+     *     data along with execution status, attempt tracking, and associated stage reference.
+     *     Used when retrieving task details or after task creation.
+     *      */
     taskResponse: {
       id: components['schemas']['taskId'];
       type: components['schemas']['taskType'];
@@ -703,6 +767,9 @@ export type components = {
       attempts: components['schemas']['attempts'];
       maxAttempts: components['schemas']['maxAttempts'];
     };
+    /** @description Response returned after successful job creation, containing the complete
+     *     job details including the generated job ID and initial status information.
+     *      */
     createJobResponse: {
       id: components['schemas']['jobId'];
       data?: components['schemas']['jobPayload'];
@@ -720,14 +787,29 @@ export type components = {
       name?: components['schemas']['jobName'];
       stages?: components['schemas']['stageResponse'][];
     };
+    /** @description Standard error response structure used when API operations encounter problems.
+     *     Contains a human-readable message and optional stack trace for debugging.
+     *      */
     errorMessage: {
+      /** @description Human-readable error description explaining what went wrong */
       message: string;
+      /** @description Technical stack trace for debugging purposes, included based on
+       *     server configuration settings
+       *      */
       stacktrace?: string;
     };
+    /** @description Standard success response structure used for operations that don't
+     *     return entity data, providing a standardized confirmation message.
+     *      */
     defaultOkMessage: {
+      /** @description Standardized success code indicating the specific operation completed */
       code: components['schemas']['successMessages'];
     };
+    /** @description Simplified error response format used for common validation and client errors,
+     *     containing just the essential error message without additional debugging data.
+     *      */
     error: {
+      /** @description Human-readable error description explaining what went wrong */
       message: string;
     };
   };
