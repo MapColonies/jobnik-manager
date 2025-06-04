@@ -254,18 +254,18 @@ export class TaskManager {
   private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
     const updatedTask = await this.prisma.$transaction(async (tx) => {
       let nextStatus: TaskOperationStatus = status;
-      let dataToUpdate = undefined;
+      let taskDataToUpdate = undefined;
 
       const previousStatus = task.status;
 
       if (nextStatus === TaskOperationStatus.FAILED) {
         nextStatus = task.attempts < task.maxAttempts ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
-        dataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
+        taskDataToUpdate = nextStatus === TaskOperationStatus.FAILED ? {} : { attempts: task.attempts + 1 };
       }
 
       const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
 
-      let whereClause: {
+      const whereClause: {
         id: string;
         status?: TaskOperationStatus;
       } = {
@@ -274,15 +274,12 @@ export class TaskManager {
 
       // This should validate race conditions, if the task is already in progress, it should not be updated
       if (nextStatus === TaskOperationStatus.IN_PROGRESS) {
-        whereClause = {
-          ...whereClause,
-          status: previousStatus,
-        };
+        whereClause.status = previousStatus;
       }
 
       const updateQueryBody = {
         where: whereClause,
-        data: { ...dataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+        data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
       };
 
       // update task current status

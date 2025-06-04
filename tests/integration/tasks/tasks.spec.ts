@@ -1182,15 +1182,15 @@ describe('task', function () {
           prisma
         );
 
-        let continueUpdateTaskFirst: (value?: unknown) => void;
-        let continueUpdateTaskSecond: (value?: unknown) => void;
+        let continueUpdateFirstTask: (value?: unknown) => void;
+        let continueUpdateSecondTask: (value?: unknown) => void;
 
         const updateTaskHolderFirst = new Promise((resolve) => {
-          continueUpdateTaskFirst = resolve;
+          continueUpdateFirstTask = resolve;
         });
 
         const updateTaskHolderSecond = new Promise((resolve) => {
-          continueUpdateTaskSecond = resolve;
+          continueUpdateSecondTask = resolve;
         });
 
         const original = prisma.task.findFirst.bind(prisma.task);
@@ -1207,7 +1207,7 @@ describe('task', function () {
         //@ts-expect-error Error because of the generics, just pass the args to the original function
         spy.mockImplementationOnce(async (...args) => {
           const res = await original(...args);
-          continueUpdateTaskFirst(); // release the first dequeue update process
+          continueUpdateFirstTask(); // release the first dequeue update process
           await updateTaskHolderSecond; // prevent updating the task until first dequeue release it (after his updating)
           // Call the original implementation with the same arguments
           return res;
@@ -1222,7 +1222,7 @@ describe('task', function () {
 
         const firstResponse = await dequeueFirstPromise;
         // @ts-expect-error not recognized initialization
-        continueUpdateTaskSecond(); //release to update second call
+        continueUpdateSecondTask(); //release to update second call
         const secondResponse = await dequeueSecondPromise;
 
         // first call will success and pull task
