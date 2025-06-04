@@ -199,7 +199,10 @@ describe('stage', function () {
           prisma
         );
 
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+        const getStageResponse = await requestSender.getStageById({
+          pathParams: { stageId: stage.id },
+          queryParams: { should_return_tasks: undefined },
+        });
 
         if (getStageResponse.status !== StatusCodes.OK) {
           throw new Error();

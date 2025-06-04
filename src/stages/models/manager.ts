@@ -12,9 +12,11 @@ import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/s
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { PrismaTransaction } from '@src/db/types';
+import { JobPrismaObject } from '@src/jobs/models/models';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateWithTasksModel,
+  StageEntityOptions,
   StageFindCriteriaArg,
   StageIncludingJob,
   StageModel,
@@ -32,6 +34,7 @@ import {
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
+type StageEntityDetails<T extends StageEntityOptions> = StagePrismaObject & (T['includeJob'] extends true ? { job: JobPrismaObject } : object);
 @injectable()
 export class StageManager {
   public constructor(
@@ -201,10 +204,6 @@ export class StageManager {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
-    if (!stage.job) {
-      throw new StageNotFoundError(stagesErrorMessages.missingJobProperty);
-    }
-
     const nextStatusChange = OperationStatusMapper[status];
     const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
@@ -239,10 +238,7 @@ export class StageManager {
    * @param stageId unique identifier of the stage.
    * @returns The stage entity if found, otherwise null.
    */
-  public async getStageEntityById(
-    stageId: string,
-    options: { includeTasks?: boolean; includeJob?: boolean; tx?: PrismaTransaction } = {}
-  ): Promise<StagePrismaObject | null> {
+  public async getStageEntityById<T extends StageEntityOptions>(stageId: string, options: T = {} as T): Promise<null | StageEntityDetails<T>> {
     const prisma = options.tx ?? this.prisma;
 
     const queryBody = {
@@ -256,7 +252,7 @@ export class StageManager {
     };
 
     const stage = await prisma.stage.findUnique(queryBody);
-    return stage;
+    return stage as StageEntityDetails<T> | null;
   }
 
   /**

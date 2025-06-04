@@ -432,14 +432,6 @@ describe('JobManager', () => {
 
           await expect(stageManager.updateStatus('someId', StageOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
         });
-
-        it('should fail on invalid stage structure return - missing job property', async function () {
-          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
-
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
-            stagesErrorMessages.missingJobProperty
-          );
-        });
       });
     });
 

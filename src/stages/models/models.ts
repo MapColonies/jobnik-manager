@@ -2,6 +2,7 @@ import { Snapshot } from 'xstate';
 import { Prisma, TaskOperationStatus } from '@prismaClient';
 import type { components, operations } from '@src/openapi';
 import { JobPrismaObject } from '@src/jobs/models/models';
+import { PrismaTransaction } from '@src/db/types';
 
 type StageModel = components['schemas']['getStageResponse'];
 type StageCreateModel = components['schemas']['createStagePayload'];
@@ -13,6 +14,16 @@ type StageIncludingJob = StagePrismaObject & { job: JobPrismaObject };
 interface UpdateSummaryCount {
   add: { status: TaskOperationStatus; count: number };
   remove?: { status: TaskOperationStatus; count: number };
+}
+
+/**
+ * Options for retrieving a stage entity
+ * @interface StageEntityOptions
+ */
+interface StageEntityOptions {
+  includeTasks?: boolean;
+  includeJob?: boolean;
+  tx?: PrismaTransaction;
 }
 
 /**
@@ -35,4 +46,5 @@ export type {
   StageCreateBody,
   UpdateSummaryCount,
   StageIncludingJob,
+  StageEntityOptions,
 };

@@ -53,10 +53,9 @@ function generatePrioritizedTaskQuery(taskType: TaskType) {
       },
     },
     orderBy: {
-      // We need to use an implicit join to sort by the job's priority
       stage: {
         job: {
-          priority: Prisma.SortOrder.asc, // This will order from VERY_HIGH to VERY_LOW
+          priority: Prisma.SortOrder.asc,
         },
       },
     },
@@ -118,7 +117,6 @@ export class TaskManager {
       data: taskInput,
     };
 
-    // type PrismaTransaction = Parameters<Parameters<typeof this.prisma.$transaction>[0]>[0];
     try {
       const tasks = await this.prisma.$transaction(async (tx) => {
         const tasks = await tx.task.createManyAndReturn(queryBody);
