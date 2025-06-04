@@ -802,7 +802,6 @@ export type components = {
      *     return entity data, providing a standardized confirmation message.
      *      */
     defaultOkMessage: {
-      /** @description Standardized success code indicating the specific operation completed */
       code: components['schemas']['successMessages'];
     };
     /** @description Simplified error response format used for common validation and client errors,

@@ -1554,7 +1554,6 @@ components:
       properties:
         code:
           $ref: '#/components/schemas/successMessages'
-          description: Standardized success code indicating the specific operation completed
       required:
         - code
     error:
