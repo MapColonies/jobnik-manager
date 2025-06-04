@@ -74,7 +74,8 @@ describe('job', function () {
         }
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body.length).toBeGreaterThan(0);
+        expect(response.body).toBeInstanceOf(Array);
+        expect(response.body).not.toHaveLength(0);
         expect(response.body[0]).toHaveProperty('stages');
         expect(response.body[0]).toHaveProperty('jobMode', JobMode.PRE_DEFINED);
       });

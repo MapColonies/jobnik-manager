@@ -89,7 +89,8 @@ describe('stage', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body.length).toBeGreaterThan(0);
+        expect(response.body).toBeInstanceOf(Array);
+        expect(response.body).not.toHaveLength(0);
       });
 
       it('should return 200 status code and the matching stage with related tasks', async function () {

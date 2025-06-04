@@ -105,7 +105,8 @@ describe('task', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body.length).toBeGreaterThan(0);
+        expect(response.body).toBeInstanceOf(Array);
+        expect(response.body).not.toHaveLength(0);
       });
 
       describe('Bad Path', function () {
@@ -194,7 +195,7 @@ describe('task', function () {
         }
 
         expect(getTasksResponse).toSatisfyApiSpec();
-        expect(getTasksResponse.body.length).toBeGreaterThanOrEqual(2);
+        expect(getTasksResponse.body).toHaveLength(2);
         expect(getTasksResponse).toMatchObject({
           status: StatusCodes.OK,
           body: [
