@@ -1195,7 +1195,7 @@ describe('task', function () {
         const original = prisma.task.findFirst.bind(prisma.task);
         const spy = jest.spyOn(prisma.task, 'findFirst');
 
-        //@ts-expect-error Error because of the generics, just pass the args to the original function
+        //@ts-expect-error Error because of the generics, we just pass the args to the original function
         spy.mockImplementationOnce(async (...args) => {
           const res = await original(...args);
           await updateTaskHolderFirst; // prevent updating the task until the second dequeue is called
