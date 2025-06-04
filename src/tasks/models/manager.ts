@@ -224,7 +224,7 @@ export class TaskManager {
   public async dequeue(taskType: TaskType): Promise<TaskModel> {
     const queryBody = generatePrioritizedTaskQuery(taskType);
 
-    const task = await this.prisma.task.findFirst({ ...queryBody });
+    const task = await this.prisma.task.findFirst(queryBody);
 
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
