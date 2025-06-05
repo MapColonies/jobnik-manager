@@ -34,7 +34,13 @@ import {
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
-type StageEntityDetails<T extends StageEntityOptions> = StagePrismaObject & (T['includeJob'] extends true ? { job: JobPrismaObject } : object);
+type GetStageEntityByIdReturnType<TOptions extends StageEntityOptions> = TOptions extends { includeTasks: true; includeJob: true }
+  ? Prisma.StageGetPayload<{ include: { task: true; job: true } }>
+  : TOptions extends { includeTasks: true }
+    ? Prisma.StageGetPayload<{ include: { task: true } }>
+    : TOptions extends { includeJob: true }
+      ? Prisma.StageGetPayload<{ include: { job: true } }>
+      : Prisma.StageGetPayload<Record<string, never>>;
 @injectable()
 export class StageManager {
   public constructor(
@@ -238,7 +244,17 @@ export class StageManager {
    * @param stageId unique identifier of the stage.
    * @returns The stage entity if found, otherwise null.
    */
-  public async getStageEntityById<T extends StageEntityOptions>(stageId: string, options: T = {} as T): Promise<null | StageEntityDetails<T>> {
+  /**
+   * This method is used to get a stage entity by its id from the database.
+   * @param stageId unique identifier of the stage.
+   * @param options options for including related entities.
+   * @returns The stage entity if found, otherwise null.
+   *
+   */
+  public async getStageEntityById<T extends StageEntityOptions>(
+    stageId: string,
+    options: T = {} as T
+  ): Promise<null | GetStageEntityByIdReturnType<T>> {
     const prisma = options.tx ?? this.prisma;
 
     const queryBody = {
@@ -252,7 +268,7 @@ export class StageManager {
     };
 
     const stage = await prisma.stage.findUnique(queryBody);
-    return stage as StageEntityDetails<T> | null;
+    return stage as null | GetStageEntityByIdReturnType<T>;
   }
 
   /**

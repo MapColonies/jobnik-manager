@@ -105,7 +105,7 @@ describe('task', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body).toBeInstanceOf(Array);
+        expect(response.body).toBeArray();
         expect(response.body).not.toHaveLength(0);
       });
 
