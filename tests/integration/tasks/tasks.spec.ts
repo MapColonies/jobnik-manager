@@ -6,7 +6,17 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobMode, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import {
+  JobMode,
+  JobOperationStatus,
+  Priority,
+  Prisma,
+  StageName,
+  StageOperationStatus,
+  TaskOperationStatus,
+  TaskType,
+  type PrismaClient,
+} from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -16,9 +26,9 @@ import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { StageCreateWithTasksModel } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
-import { addStageRecord, createStageWithJob, createStageWithoutTaskBody } from '../stages/helpers';
+import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from '../stages/helpers';
 import { createTaskBody, createTaskRecords } from './helpers';
 
 describe('task', function () {
@@ -43,6 +53,8 @@ describe('task', function () {
   });
 
   afterEach(async () => {
+    // to ensure that the database is clean after each test for dequeue
+    await prisma.$queryRaw(Prisma.sql`DELETE FROM "job_manager"."task" WHERE "status"  = 'Pending' OR "status" = 'In-Progress';`);
     await prisma.$disconnect();
   });
 
@@ -93,7 +105,8 @@ describe('task', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body.length).toBeGreaterThan(0);
+        expect(response.body).toBeArray();
+        expect(response.body).not.toHaveLength(0);
       });
 
       describe('Bad Path', function () {
@@ -182,7 +195,7 @@ describe('task', function () {
         }
 
         expect(getTasksResponse).toSatisfyApiSpec();
-        expect(getTasksResponse.body.length).toBeGreaterThanOrEqual(2);
+        expect(getTasksResponse.body).toHaveLength(2);
         expect(getTasksResponse).toMatchObject({
           status: StatusCodes.OK,
           body: [
@@ -718,18 +731,519 @@ describe('task', function () {
           body: { message: tasksErrorMessages.taskNotFound },
         });
       });
+    });
 
-      describe('Sad Path', function () {
-        it('should return 500 status code when the database driver throws an error', async function () {
-          jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const response = await requestSender.updateTaskStatus({
+          pathParams: { taskId: faker.string.uuid() },
+          requestBody: { status: TaskOperationStatus.PENDING },
+        });
 
-          const response = await requestSender.updateTaskStatus({
-            pathParams: { taskId: faker.string.uuid() },
-            requestBody: { status: TaskOperationStatus.PENDING },
-          });
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+    });
+  });
 
-          expect(response).toSatisfyApiSpec();
-          expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+  describe('#dequeue', function () {
+    describe('Happy Path', function () {
+      it('should return 200 status code and available task', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasks[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        //validate summary was updated
+        expect(getStageResponse.body).toHaveProperty('summary', { ...initialSummary, pending: 0, inProgress: 1, total: 1 });
+      });
+
+      it('should return 200 status code and available task and move stage only and job to in progress', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasks[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
+      });
+
+      it('should return 200 status code and available task and move stage and job to in progress', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+        const job = await addJobRecord(
+          { ...createJobRequestBody, id: faker.string.uuid(), xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasks[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
+        expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.IN_PROGRESS);
+      });
+
+      it('should return 200 status code and available most prioritized task', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 3, total: 3 };
+        const jobLowPriority = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            priority: Priority.LOW,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stageLowPriority = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: jobLowPriority.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasksLowPriority = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stageLowPriority.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const jobMediumPriority = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            priority: Priority.MEDIUM,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stageMediumPriority = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: jobMediumPriority.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasksMediumPriority = await createTaskRecords(
+          [
+            {
+              ...createTaskBody,
+              stageId: stageMediumPriority.id,
+              status: TaskOperationStatus.PENDING,
+              xstate: pendingStageXstatePersistentSnapshot,
+            },
+          ],
+          prisma
+        );
+
+        const jobHighPriority = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            priority: Priority.HIGH,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stageHighPriority = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: jobHighPriority.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasksHighPriority = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stageHighPriority.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        // Dequeue tasks, should return the task with high priority first
+        const dequeueResponseHigh = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        // Dequeue tasks with medium and low priority, should return the next available task
+        const dequeueResponseMedium = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        // Dequeue tasks with low priority, should return the next available task
+        const dequeueResponseLow = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        expect(dequeueResponseHigh).toSatisfyApiSpec();
+        expect(dequeueResponseHigh).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasksHighPriority[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stageHighPriority.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        expect(dequeueResponseMedium).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasksMediumPriority[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stageMediumPriority.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        expect(dequeueResponseLow).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasksLowPriority[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stageLowPriority.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+      });
+    });
+
+    describe('Bad Path', function () {
+      it('should return 400 with bad taskType request error', async function () {
+        await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
+
+        const taskResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: 'SOME_BAD_TASK_TYPE' as unknown as TaskType },
+        });
+
+        expect(taskResponse).toSatisfyApiSpec();
+        expect(taskResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/params\/taskType must be equal to one of the allowed values/) as string },
+        });
+      });
+
+      it('should return 404 without available task', async function () {
+        await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
+
+        const taskResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        expect(taskResponse).toSatisfyApiSpec();
+        expect(taskResponse).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: tasksErrorMessages.taskNotFound },
+        });
+      });
+
+      it('should return 404 without available PENDING task', async function () {
+        await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
+
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const taskResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        expect(taskResponse).toSatisfyApiSpec();
+        expect(taskResponse).toMatchObject({
+          status: StatusCodes.NOT_FOUND,
+          body: { message: tasksErrorMessages.taskNotFound },
+        });
+      });
+    });
+
+    describe('Sad Path', function () {
+      it('should return 500 status code when the database driver throws an error', async function () {
+        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(new Error('Database error'));
+        const response = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+      });
+
+      it('should return 500 status code when the transaction was failed', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+        const job = await addJobRecord(
+          // synthetic create a job with in-progress state for future failure on update
+          { ...createJobRequestBody, id: faker.string.uuid(), xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const task = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'INVALID_STATUS_CHANGE' } });
+
+        expect(getTaskResponse.body).toHaveProperty('status', TaskOperationStatus.PENDING);
+        expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.PENDING);
+        expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);
+      });
+
+      it('should prevent multiple dequeue of the same task', async function () {
+        expect.assertions(4);
+
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.IN_PROGRESS,
+          },
+          prisma
+        );
+
+        const stage = await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: initialSummary,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        let continueUpdateFirstTask: (value?: unknown) => void;
+        let continueUpdateSecondTask: (value?: unknown) => void;
+
+        const updateTaskHolderFirst = new Promise((resolve) => {
+          continueUpdateFirstTask = resolve;
+        });
+
+        const updateTaskHolderSecond = new Promise((resolve) => {
+          continueUpdateSecondTask = resolve;
+        });
+
+        const original = prisma.task.findFirst.bind(prisma.task);
+        const spy = jest.spyOn(prisma.task, 'findFirst');
+
+        //@ts-expect-error Error because of the generics, we just pass the args to the original function
+        spy.mockImplementationOnce(async (...args) => {
+          const res = await original(...args);
+          await updateTaskHolderFirst; // prevent updating the task until the second dequeue is called
+          // Call the original implementation with the same arguments
+          return res;
+        });
+
+        //@ts-expect-error Error because of the generics, just pass the args to the original function
+        spy.mockImplementationOnce(async (...args) => {
+          const res = await original(...args);
+          continueUpdateFirstTask(); // release the first dequeue update process
+          await updateTaskHolderSecond; // prevent updating the task until first dequeue release it (after his updating)
+          // Call the original implementation with the same arguments
+          return res;
+        });
+
+        const dequeueFirstPromise = requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+        const dequeueSecondPromise = requestSender.dequeueTask({
+          pathParams: { taskType: TaskType.DEFAULT },
+        });
+
+        const firstResponse = await dequeueFirstPromise;
+        // @ts-expect-error not recognized initialization
+        continueUpdateSecondTask(); //release to update second call
+        const secondResponse = await dequeueSecondPromise;
+
+        // first call will success and pull task
+        expect(firstResponse).toSatisfyApiSpec();
+        expect(firstResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: tasks[0]!.id,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+            type: TaskType.DEFAULT,
+          },
+        });
+
+        //second call will fail with 500 status code
+        expect(secondResponse).toSatisfyApiSpec();
+        expect(secondResponse).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: {
+            message: tasksErrorMessages.taskStatusUpdateFailed,
+          },
         });
       });
     });

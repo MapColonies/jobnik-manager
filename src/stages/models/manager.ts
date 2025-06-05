@@ -2,7 +2,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { PrismaClient } from '@prismaClient';
-import { JobMode, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { JobMode, JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
@@ -11,8 +11,19 @@ import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { PrismaTransaction } from '@src/db/types';
+import { JobPrismaObject } from '@src/jobs/models/models';
 import { StageRepository } from '../DAL/stageRepository';
-import type { StageCreateWithTasksModel, StageFindCriteriaArg, StageModel, StagePrismaObject, StageSummary, UpdateSummaryCount } from './models';
+import type {
+  StageCreateWithTasksModel,
+  StageEntityOptions,
+  StageFindCriteriaArg,
+  StageIncludingJob,
+  StageModel,
+  StagePrismaObject,
+  StageSummary,
+  UpdateSummaryCount,
+} from './models';
 import {
   convertArrayPrismaStageToStageResponse,
   convertPrismaToStageResponse,
@@ -23,6 +34,13 @@ import {
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
+type GetStageEntityByIdReturnType<TOptions extends StageEntityOptions> = TOptions extends { includeTasks: true; includeJob: true }
+  ? Prisma.StageGetPayload<{ include: { task: true; job: true } }>
+  : TOptions extends { includeTasks: true }
+    ? Prisma.StageGetPayload<{ include: { task: true } }>
+    : TOptions extends { includeJob: true }
+      ? Prisma.StageGetPayload<{ include: { job: true } }>
+      : Prisma.StageGetPayload<Record<string, never>>;
 @injectable()
 export class StageManager {
   public constructor(
@@ -128,7 +146,7 @@ export class StageManager {
   }
 
   public async getStageById(stageId: string, includeTasks?: boolean): Promise<StageModel> {
-    const stage = await this.getStageEntityById(stageId, includeTasks);
+    const stage = await this.getStageEntityById(stageId, { includeTasks });
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -183,8 +201,10 @@ export class StageManager {
     }
   }
 
-  public async updateStatus(stageId: string, status: StageOperationStatus): Promise<void> {
-    const stage = await this.getStageEntityById(stageId);
+  public async updateStatus(stageId: string, status: StageOperationStatus, tx?: PrismaTransaction): Promise<void> {
+    const prisma = tx ?? this.prisma;
+
+    const stage = await this.getStageEntityById(stageId, { includeJob: true, tx });
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -211,7 +231,12 @@ export class StageManager {
       },
     };
 
-    await this.prisma.stage.update(updateQueryBody);
+    await prisma.stage.update(updateQueryBody);
+
+    if (stage.job.status === JobOperationStatus.PENDING && status === StageOperationStatus.IN_PROGRESS) {
+      // Update job status to IN_PROGRESS
+      await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+    }
   }
 
   /**
@@ -219,49 +244,67 @@ export class StageManager {
    * @param stageId unique identifier of the stage.
    * @returns The stage entity if found, otherwise null.
    */
-  public async getStageEntityById(stageId: string, includeTasks?: boolean): Promise<StagePrismaObject | null> {
+  /**
+   * This method is used to get a stage entity by its id from the database.
+   * @param stageId unique identifier of the stage.
+   * @param options options for including related entities.
+   * @returns The stage entity if found, otherwise null.
+   *
+   */
+  public async getStageEntityById<T extends StageEntityOptions>(
+    stageId: string,
+    options: T = {} as T
+  ): Promise<null | GetStageEntityByIdReturnType<T>> {
+    const prisma = options.tx ?? this.prisma;
+
     const queryBody = {
       where: {
         id: stageId,
       },
       include: {
-        task: includeTasks,
+        job: options.includeJob,
+        task: options.includeTasks,
       },
     };
 
-    const stage = await this.prisma.stage.findUnique(queryBody);
-
-    return stage;
-  }
-
-  /**
-   * This method is used to update the progress of a stage according tasks metrics.
-   * @param stageId unique identifier of the stage.
-   * @param jobId unique identifier of the job associated with the stage.
-   * @param summary summary object containing the current progress aggregated task data of the stage.
-   */
-  public async updateStageProgress(stageId: string, jobId: string, summary: StageSummary): Promise<void> {
-    const completionPercentage = getCurrentPercentage(summary);
-    const stageUpdatedData: Prisma.StageUpdateInput = { percentage: completionPercentage };
-    const job = await this.jobManager.getJobById(jobId);
-
-    await this.prisma.stage.update({ where: { id: stageId }, data: stageUpdatedData });
-
-    if (summary.total === summary.completed && job.jobMode === JobMode.PRE_DEFINED) {
-      await this.updateStatus(stageId, StageOperationStatus.COMPLETED);
-    }
+    const stage = await prisma.stage.findUnique(queryBody);
+    return stage as null | GetStageEntityByIdReturnType<T>;
   }
 
   /**
    * This method is used to update the related columns of stage progressing .
    * @param stageId unique identifier of the stage.
-   * @param jobId unique identifier of the job associated with the stage.
    * @param summary summary object containing the current progress aggregated task data of the stage.
    */
-  public async updateStageProgressFromTaskChanges(stageId: string, jobId: string, summaryUpdatePayload: UpdateSummaryCount): Promise<void> {
+  public async updateStageProgressFromTaskChanges(stageId: string, summaryUpdatePayload: UpdateSummaryCount, tx: PrismaTransaction): Promise<void> {
+    const stage = (await this.getStageEntityById(stageId, { includeJob: true, tx })) as StageIncludingJob;
+
     // update stage summary aggregated task data
-    const updatedSummary = await this.stageRepository.updateStageSummary(stageId, summaryUpdatePayload);
+    const updatedSummary = await this.stageRepository.updateStageSummary(stageId, summaryUpdatePayload, tx);
+
     // update stage progress percentage
-    await this.updateStageProgress(stageId, jobId, updatedSummary);
+    await this.updateStageProgress(stage, updatedSummary, tx);
+
+    // update stage status if it was initialized by first task
+    // and the stage is not already in progress
+    if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
+      await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
+    }
+  }
+
+  /**
+   * This method is used to update the progress of a stage according tasks metrics.
+   * @param stageId unique identifier of the stage.
+   * @param summary summary object containing the current progress aggregated task data of the stage.
+   */
+  private async updateStageProgress(stage: StageIncludingJob, summary: StageSummary, tx: PrismaTransaction): Promise<void> {
+    const completionPercentage = getCurrentPercentage(summary);
+    const stageUpdatedData: Prisma.StageUpdateInput = { percentage: completionPercentage };
+
+    await tx.stage.update({ where: { id: stage.id }, data: stageUpdatedData });
+
+    if (summary.total === summary.completed && stage.job.jobMode === JobMode.PRE_DEFINED) {
+      await this.updateStatus(stage.id, StageOperationStatus.COMPLETED, tx);
+    }
   }
 }

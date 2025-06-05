@@ -11,6 +11,9 @@ deleteActor.send({ type: 'abort' });
 const abortedStageActor = createActor(stageStateMachine).start();
 abortedStageActor.send({ type: 'abort' });
 
+const pendingStageActor = createActor(stageStateMachine).start();
+pendingStageActor.send({ type: 'pend' });
+
 const runningStageActor = createActor(stageStateMachine).start();
 runningStageActor.send({ type: 'pend' });
 runningStageActor.send({ type: 'process' });
@@ -32,6 +35,7 @@ export const jobEntityWithStages = createJobEntity({
 export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot();
 export const inProgressStageXstatePersistentSnapshot = runningStageActor.getPersistedSnapshot();
 export const abortedStageXstatePersistentSnapshot = abortedStageActor.getPersistedSnapshot();
+export const pendingStageXstatePersistentSnapshot = pendingStageActor.getPersistedSnapshot();
 
 export const jobEntityWithAbortStatus = createJobEntity({
   xstate: abortedXstatePersistentSnapshot,

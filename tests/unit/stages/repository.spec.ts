@@ -24,28 +24,31 @@ describe('JobManager', () => {
         it('should increase total count and created count', async function () {
           const stageId = faker.string.uuid();
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
+          const mockTx = {
+            $queryRaw: jest.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 2, created: 2 } }]),
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           const summaryUpdatePayload = {
             add: { status: TaskOperationStatus.CREATED, count: 1 },
           } satisfies UpdateSummaryCount;
 
-          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([{ summary: { defaultStatusCounts, total: 2, created: 2 } }]);
-
-          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload)).toResolve();
+          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload, mockTx)).toResolve();
         });
 
         it('should not increase total count and change counting of other', async function () {
           const stageId = faker.string.uuid();
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
 
+          const mockTx = {
+            $queryRaw: jest.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 1, created: 0, pending: 1 } }]),
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
           const summaryUpdatePayload = {
             add: { status: TaskOperationStatus.PENDING, count: 1 },
             remove: { status: TaskOperationStatus.CREATED, count: 1 },
           } satisfies UpdateSummaryCount;
 
-          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([{ summary: { defaultStatusCounts, total: 1, created: 0, pending: 1 } }]);
-
-          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload)).toResolve();
+          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload, mockTx)).toResolve();
         });
       });
 
@@ -54,14 +57,16 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
 
+          const mockTx = {
+            $queryRaw: jest.fn().mockResolvedValue([]),
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
           const summaryUpdatePayload = {
             add: { status: TaskOperationStatus.PENDING, count: 1 },
             remove: { status: TaskOperationStatus.CREATED, count: 1 },
           } satisfies UpdateSummaryCount;
 
-          jest.spyOn(prisma, '$queryRaw').mockResolvedValue([]);
-
-          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload)).rejects.toThrow(
+          await expect(stageRepository.updateStageSummary(stageEntity.id, summaryUpdatePayload, mockTx)).rejects.toThrow(
             'Failed to update stage summary: No summary returned from database.'
           );
         });
@@ -72,9 +77,11 @@ describe('JobManager', () => {
             remove: { status: TaskOperationStatus.CREATED, count: 1 },
           } satisfies UpdateSummaryCount;
 
-          jest.spyOn(prisma, '$queryRaw').mockRejectedValueOnce(new Error('db connection error'));
+          const mockTx = {
+            $queryRaw: jest.fn().mockRejectedValueOnce(new Error('db connection error')),
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
-          await expect(stageRepository.updateStageSummary('someId', summaryUpdatePayload)).rejects.toThrow('db connection error');
+          await expect(stageRepository.updateStageSummary('someId', summaryUpdatePayload, mockTx)).rejects.toThrow('db connection error');
         });
       });
     });

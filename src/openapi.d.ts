@@ -332,6 +332,37 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/tasks/{taskType}/dequeue': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description type of requested task */
+        taskType: components['parameters']['taskType'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Find and claim the highest priority pending task of specified type
+     * @description Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status,
+     *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
+     *     work queue pattern where workers can claim the next available task.
+     *
+     *     The endpoint considers task priority (inherited from the parent job), searches only for tasks
+     *     that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+     *
+     *     If successful, returns the complete task details with status updated to IN_PROGRESS.
+     *
+     */
+    patch: operations['dequeueTask'];
+    trace?: never;
+  };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -515,6 +546,8 @@ export type components = {
     stageId: components['schemas']['stageId'];
     /** @description ID of requested task */
     taskId: string;
+    /** @description type of requested task */
+    taskType: components['schemas']['taskType'];
     /** @description The status of the job.
      *      */
     paramsTaskStatus: components['schemas']['taskOperationStatus'];
@@ -1592,7 +1625,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['defaultOkMessage'];
+          'application/json': components['schemas']['taskResponse'];
         };
       };
       /** @description Bad parameters input */
@@ -1614,6 +1647,56 @@ export interface operations {
         };
       };
       /** @description Internal server error */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
+  dequeueTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description type of requested task */
+        taskType: components['parameters']['taskType'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Task successfully dequeued and status updated to IN_PROGRESS */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'];
+        };
+      };
+      /** @description Bad taskType parameter or other validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No pending tasks of requested type are available */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error or invalid state transition */
       500: {
         headers: {
           [name: string]: unknown;

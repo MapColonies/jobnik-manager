@@ -4,13 +4,17 @@ import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import type { MatcherContext } from '@jest/expect';
+import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
-import { JobMode, JobName, JobOperationStatus, Priority, type PrismaClient } from '@prismaClient';
+import { JobMode, JobName, JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import { defaultStatusCounts } from '@src/stages/models/helper';
+import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { addJobRecord, addStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
 describe('job', function () {
@@ -41,11 +45,27 @@ describe('job', function () {
   describe('#FindJobs', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching job with stages when stages flag is true', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
+        const job = await addJobRecord(
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: pendingStageXstatePersistentSnapshot,
+            status: JobOperationStatus.PENDING,
+            jobMode: JobMode.PRE_DEFINED,
+          },
+          prisma
+        );
 
-        await requestSender.createJob({
-          requestBody: preDefinedJobRequestBody,
-        });
+        await addStageRecord(
+          {
+            ...createStageWithoutTaskBody,
+            summary: { ...defaultStatusCounts, total: 1, pending: 1 },
+            jobId: job.id,
+            status: StageOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
 
         const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED, should_return_stages: true } });
 
@@ -54,8 +74,10 @@ describe('job', function () {
         }
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.OK, body: [preDefinedJobRequestBody] });
+        expect(response.body).toBeArray();
+        expect(response.body).not.toHaveLength(0);
         expect(response.body[0]).toHaveProperty('stages');
+        expect(response.body[0]).toHaveProperty('jobMode', JobMode.PRE_DEFINED);
       });
 
       it('should return 200 status code and the matching job with stages when stages flag is false', async function () {

@@ -759,9 +759,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/defaultOkMessage'
-              example:
-                code: TASK_MODIFIED_SUCCESSFULLY
+                $ref: '#/components/schemas/taskResponse'
         '400':
           description: Bad parameters input
           content:
@@ -780,6 +778,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskType}/dequeue:
+    parameters:
+      - $ref: '#/components/parameters/taskType'
+    patch:
+      operationId: dequeueTask
+      summary: Find and claim the highest priority pending task of specified type
+      description: |
+        Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status, 
+        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+        work queue pattern where workers can claim the next available task.
+
+        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
+        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+
+        If successful, returns the complete task details with status updated to IN_PROGRESS.
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Task successfully dequeued and status updated to IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad taskType parameter or other validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No pending tasks of requested type are available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
 security: []
 
 components:
@@ -805,6 +846,13 @@ components:
       required: true
       schema:
         type: string
+    taskType:
+      in: path
+      name: taskType
+      description: type of requested task
+      required: true
+      schema:
+        $ref: '#/components/schemas/taskType'
     paramsTaskStatus:
       in: query
       name: status
