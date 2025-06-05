@@ -137,7 +137,7 @@ paths:
         This operation cascades to delete all child resources and cannot be undone.
 
         The job must exist in the system for this operation to succeed.
-        Jobs can only be deleted when they are in a terminal state (COMPLETED, FAILED, or ABORTED).
+        Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
         Attempting to delete a job in any other state will result in a 400 error.
 
         Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
@@ -1189,7 +1189,7 @@ components:
       example: CREATED
       description: |
         Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     stageOperationStatus:
       type: string
       enum:
@@ -1204,7 +1204,7 @@ components:
       example: CREATED
       description: |
         Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     taskOperationStatus:
       type: string
       enum:
@@ -1219,7 +1219,7 @@ components:
       example: CREATED
       description: |
         Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
-        Terminal states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     jobMode:
       type: string
       enum:

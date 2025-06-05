@@ -14,6 +14,8 @@ export type paths = {
      *     Supports filtering by job mode, name, date range, priority, and creator.
      *     Optional inclusion of related stage data via the should_return_stages parameter.
      *
+     *     Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
+     *
      */
     get: operations['findJobs'];
     put?: never;
@@ -65,6 +67,9 @@ export type paths = {
      *     This operation cascades to delete all child resources and cannot be undone.
      *
      *     The job must exist in the system for this operation to succeed.
+     *     Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
+     *     Attempting to delete a job in any other state will result in a 400 error.
+     *
      *     Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
      *
      */
@@ -200,7 +205,7 @@ export type paths = {
     get?: never;
     put?: never;
     /**
-     * AAdd a new stage to a dynamic job
+     * Add a new stage to a dynamic job
      * @description Appends a new stage to an existing job that has DYNAMIC job mode.
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *
@@ -609,19 +614,25 @@ export type components = {
      */
     creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
-     * @description Lifecycle state of a job, indicating its current execution status in the workflow
+     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     *
      * @example CREATED
      * @enum {string}
      */
     jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
     /**
-     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle
+     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     *
      * @example CREATED
      * @enum {string}
      */
     stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
     /**
-     * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling
+     * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
+     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     *
      * @example CREATED
      * @enum {string}
      */
