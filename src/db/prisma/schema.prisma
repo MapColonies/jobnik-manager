@@ -23,13 +23,9 @@ model Job {
   percentage     Int                @default(0)
   creationTime   DateTime           @default(now()) @map("creation_time")
   updateTime     DateTime           @updatedAt @map("update_time")
-  expirationTime DateTime?          @map("expiration_time")
   jobMode        JobMode            @default(PRE_DEFINED) @map("job_mode")
   userMetadata   Json               @default("{}") @map("user_metadata")
   priority       Priority           @default(VERY_LOW)
-  creator        Creator            @default(UNKNOWN)
-  ttl            DateTime?
-  notifications  Json               @default("{}")
   name           JobName            @default(DEFAULT)
   stage          Stage[]
 
@@ -77,13 +73,6 @@ enum JobMode {
   DYNAMIC     @map("Dynamic")
 
   @@map("job_mode_enum")
-}
-
-enum Creator {
-  MAP_COLONIES @map("Map-Colonies")
-  UNKNOWN      @map("Unknown")
-
-  @@map("creator")
 }
 
 enum JobName {

@@ -11,7 +11,7 @@ export type paths = {
     /**
      * Retrieve jobs matching specified criteria
      * @description Returns a filtered list of jobs based on the provided query parameters.
-     *     Supports filtering by job mode, name, date range, priority, and creator.
+     *     Supports filtering by job mode, name, date range, priority.
      *     Optional inclusion of related stage data via the should_return_stages parameter.
      *
      *     Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
@@ -22,8 +22,7 @@ export type paths = {
     /**
      * Create a new job with optional stages
      * @description Creates a new job in the system with user-defined configuration.
-     *     Supports both pre-defined and dynamic job modes, with customizable priorities,
-     *     expiration settings, and notification hooks.
+     *     Supports both pre-defined and dynamic job modes, with customizable priorities.
      *
      *     Pre-defined jobs require all stages to be defined at creation time, while
      *     dynamic jobs allow stages to be added later via the /jobs/{jobId}/stage endpoint.
@@ -561,16 +560,6 @@ export type components = {
      */
     updateTime: string;
     /**
-     * Format: date-time
-     * @description Optional timestamp indicating when the job will expire if not completed
-     */
-    expirationTime: string | null;
-    /**
-     * Format: date-time
-     * @description Optional timestamp indicating when the job will be automatically deleted
-     */
-    ttl: string | null;
-    /**
      * Format: uuid
      * @description Unique identifier for a job
      */
@@ -594,8 +583,6 @@ export type components = {
     stagePayload: {
       [key: string]: unknown;
     };
-    /** @description Configuration for notification channels and triggers */
-    notifications: Record<string, never>;
     /**
      * @description Relative importance of the job, affecting processing order
      * @example LOW
@@ -608,11 +595,6 @@ export type components = {
      * @enum {string}
      */
     successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'TASK_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
-    /**
-     * @description Source or organization responsible for creating the job
-     * @enum {string}
-     */
-    creator: 'MAP_COLONIES' | 'UNKNOWN';
     /**
      * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
      *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
@@ -690,11 +672,7 @@ export type components = {
       name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
-      expirationTime?: components['schemas']['expirationTime'];
-      ttl?: components['schemas']['ttl'];
-      notifications: components['schemas']['notifications'];
       userMetadata: components['schemas']['userMetadata'];
-      creator: components['schemas']['creator'];
       /** @description Optional array of stages to create with the job (required for PRE_DEFINED jobs) */
       stages?: components['schemas']['createStagePayload'][];
     };
@@ -709,11 +687,7 @@ export type components = {
       name: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
-      expirationTime?: components['schemas']['expirationTime'];
-      ttl?: components['schemas']['ttl'];
-      notifications: components['schemas']['notifications'];
       userMetadata: components['schemas']['userMetadata'];
-      creator: components['schemas']['creator'];
       stages?: components['schemas']['stageResponse'][];
     };
     /** @description Input payload for creating a new processing stage.
@@ -796,13 +770,9 @@ export type components = {
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      expirationTime?: components['schemas']['expirationTime'];
       jobMode?: components['schemas']['jobMode'];
       userMetadata?: components['schemas']['userMetadata'];
       priority?: components['schemas']['priority'];
-      creator?: components['schemas']['creator'];
-      ttl?: components['schemas']['ttl'];
-      notifications?: components['schemas']['notifications'];
       name?: components['schemas']['jobName'];
       stages?: components['schemas']['stageResponse'][];
     };
@@ -849,8 +819,6 @@ export type components = {
     jobNameQueryParam: components['schemas']['jobName'];
     /** @description Filter jobs by their priority level */
     priority: components['schemas']['priority'];
-    /** @description Filter jobs by their creator */
-    creator: components['schemas']['creator'];
     /** @description Filter results by update time, starting from this date/time */
     fromDate: string;
     /** @description Filter results by update time, ending at this date/time */
@@ -893,8 +861,6 @@ export interface operations {
         till_date?: components['parameters']['tillDate'];
         /** @description Filter jobs by their priority level */
         priority?: components['parameters']['priority'];
-        /** @description Filter jobs by their creator */
-        creator?: components['parameters']['creator'];
         /** @description When true, includes stage data in the response */
         should_return_stages?: components['parameters']['includeStages'];
       };
