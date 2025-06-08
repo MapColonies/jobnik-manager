@@ -427,6 +427,31 @@ describe('task', function () {
           });
         });
 
+        it('should return 400 when attempting to add tasks to a running stage', async function () {
+          const job = await addJobRecord(
+            {
+              ...createJobRequestBody,
+              id: faker.string.uuid(),
+              xstate: inProgressStageXstatePersistentSnapshot,
+              status: JobOperationStatus.IN_PROGRESS,
+            },
+            prisma
+          );
+          const stage = await addStageRecord(
+            { ...createStageWithoutTaskBody, xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.IN_PROGRESS, jobId: job.id },
+
+            prisma
+          );
+
+          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+          console.log(`addTasksResponse: ${JSON.stringify(addTasksResponse.body)}`);
+          expect(addTasksResponse).toSatisfyApiSpec();
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: tasksErrorMessages.addTaskNotAllowed },
+          });
+        });
+
         it('should return 404 when attempting to update a non-existent stage ID', async function () {
           const createStagesPayload = {
             data: {},
