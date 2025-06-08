@@ -14,6 +14,7 @@ import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { JobCreateModel } from '@src/jobs/models/models';
 import { addJobRecord, addStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
 import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
 
@@ -178,7 +179,7 @@ describe('job', function () {
       it('should return a 400 status code along with a specific validation error message detailing the missing required parameters for job creation', async function () {
         const badRequestBody = {
           name: JobName.DEFAULT,
-        };
+        } as unknown as JobCreateModel;
 
         const response = await requestSender.createJob({
           requestBody: badRequestBody,
