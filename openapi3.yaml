@@ -16,12 +16,11 @@ paths:
         - $ref: '#/components/parameters/fromDate'
         - $ref: '#/components/parameters/tillDate'
         - $ref: '#/components/parameters/priority'
-        - $ref: '#/components/parameters/creator'
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve jobs matching specified criteria
       description: |
         Returns a filtered list of jobs based on the provided query parameters.
-        Supports filtering by job mode, name, date range, priority, and creator.
+        Supports filtering by job mode, name, date range, priority.
         Optional inclusion of related stage data via the should_return_stages parameter.
 
         Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
@@ -53,8 +52,7 @@ paths:
       summary: Create a new job with optional stages
       description: |
         Creates a new job in the system with user-defined configuration.
-        Supports both pre-defined and dynamic job modes, with customizable priorities,
-        expiration settings, and notification hooks.
+        Supports both pre-defined and dynamic job modes, with customizable priorities.
 
         Pre-defined jobs require all stages to be defined at creation time, while
         dynamic jobs allow stages to be added later via the /jobs/{jobId}/stage endpoint.
@@ -1025,13 +1023,6 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/priority'
-    creator:
-      in: query
-      name: creator
-      description: Filter jobs by their creator
-      required: false
-      schema:
-        $ref: '#/components/schemas/creator'
     fromDate:
       in: query
       name: from_date
@@ -1110,16 +1101,6 @@ components:
       type: string
       format: date-time
       description: Timestamp indicating when the resource was last updated
-    expirationTime:
-      type: string
-      format: date-time
-      nullable: true
-      description: Optional timestamp indicating when the job will expire if not completed
-    ttl:
-      type: string
-      format: date-time
-      nullable: true
-      description: Optional timestamp indicating when the job will be automatically deleted
     jobId:
       type: string
       format: uuid
@@ -1147,9 +1128,6 @@ components:
       type: object
       additionalProperties: true
       description: Custom stage configuration data containing stage-specific parameters
-    notifications:
-      type: object
-      description: Configuration for notification channels and triggers
     priority:
       type: string
       enum:
@@ -1169,12 +1147,6 @@ components:
         - JOB_DELETED_SUCCESSFULLY
       example: JOB_MODIFIED_SUCCESSFULLY
       description: Standard success message codes used in API responses
-    creator:
-      type: string
-      enum:
-        - MAP_COLONIES
-        - UNKNOWN
-      description: Source or organization responsible for creating the job
     jobOperationStatus:
       type: string
       enum:
@@ -1301,16 +1273,8 @@ components:
           $ref: '#/components/schemas/jobPayload'
         priority:
           $ref: '#/components/schemas/priority'
-        expirationTime:
-          $ref: '#/components/schemas/expirationTime'
-        ttl:
-          $ref: '#/components/schemas/ttl'
-        notifications:
-          $ref: '#/components/schemas/notifications'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
-        creator:
-          $ref: '#/components/schemas/creator'
         stages:
           type: array
           description: Optional array of stages to create with the job (required for PRE_DEFINED jobs)
@@ -1319,9 +1283,7 @@ components:
       required:
         - data
         - jobMode
-        - creator
         - userMetadata
-        - notifications
       additionalProperties: false
       description: |
         Input payload for creating a new job in the system.
@@ -1334,9 +1296,7 @@ components:
         - name
         - data
         - jobMode
-        - creator
         - userMetadata
-        - notifications
       description: job Response model
       properties:
         id:
@@ -1357,16 +1317,8 @@ components:
           $ref: '#/components/schemas/jobPayload'
         priority:
           $ref: '#/components/schemas/priority'
-        expirationTime:
-          $ref: '#/components/schemas/expirationTime'
-        ttl:
-          $ref: '#/components/schemas/ttl'
-        notifications:
-          $ref: '#/components/schemas/notifications'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
-        creator:
-          $ref: '#/components/schemas/creator'
         stages:
           type: array
           items:
@@ -1536,20 +1488,12 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
-        expirationTime:
-          $ref: '#/components/schemas/expirationTime'
         jobMode:
           $ref: '#/components/schemas/jobMode'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
         priority:
           $ref: '#/components/schemas/priority'
-        creator:
-          $ref: '#/components/schemas/creator'
-        ttl:
-          $ref: '#/components/schemas/ttl'
-        notifications:
-          $ref: '#/components/schemas/notifications'
         name:
           $ref: '#/components/schemas/jobName'
         stages:

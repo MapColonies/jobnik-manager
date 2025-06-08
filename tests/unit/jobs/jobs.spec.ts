@@ -1,5 +1,5 @@
 import jsLogger from '@map-colonies/js-logger';
-import { PrismaClient, Prisma, JobOperationStatus, Creator, Priority } from '@prismaClient';
+import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -31,10 +31,8 @@ describe('JobManager', () => {
 
           const createJobParams = {
             name: jobEntityWithStages.name,
-            creator: jobEntityWithStages.creator,
             data: jobEntityWithStages.data,
             jobMode: jobEntityWithStages.jobMode,
-            notifications: jobEntityWithStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
             stages: [stagePayload],
           } satisfies JobCreateModel;
@@ -49,10 +47,8 @@ describe('JobManager', () => {
 
           const createJobParams = {
             name: jobEntityWithoutStages.name,
-            creator: jobEntityWithoutStages.creator,
             data: jobEntityWithoutStages.data,
             jobMode: jobEntityWithoutStages.jobMode,
-            notifications: jobEntityWithoutStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithoutStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;
 
@@ -69,10 +65,8 @@ describe('JobManager', () => {
 
           const createJobParams = {
             name: jobEntityWithStages.name,
-            creator: jobEntityWithStages.creator,
             data: jobEntityWithStages.data,
             jobMode: jobEntityWithStages.jobMode,
-            notifications: jobEntityWithStages.notifications as Record<string, never>,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;
 
@@ -84,11 +78,12 @@ describe('JobManager', () => {
     describe('#findJobs', () => {
       describe('#HappyPath', () => {
         it('should return formatted jobs matching the search criteria', async function () {
-          jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntityWithoutStages]);
+          const mediumPriorityJob = { ...jobEntityWithoutStages, priority: Priority.MEDIUM };
+          jest.spyOn(prisma.job, 'findMany').mockResolvedValue([mediumPriorityJob]);
 
-          const jobs = await jobManager.getJobs({ creator: Creator.UNKNOWN });
+          const jobs = await jobManager.getJobs({ priority: Priority.MEDIUM });
 
-          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const { xstate, stage, ...rest } = mediumPriorityJob;
           const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);
@@ -99,7 +94,7 @@ describe('JobManager', () => {
         it('should fail with a database error when finding jobs', async function () {
           jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.getJobs({ creator: Creator.UNKNOWN })).rejects.toThrow('db connection error');
+          await expect(jobManager.getJobs({ priority: Priority.MEDIUM })).rejects.toThrow('db connection error');
         });
       });
     });
@@ -107,11 +102,11 @@ describe('JobManager', () => {
     describe('#getJobById', () => {
       describe('#HappyPath', () => {
         it('should return a job matching the provided id', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, ttl: null, expirationTime: null });
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
-          const { xstate, stage, ttl, expirationTime, ...rest } = jobEntityWithoutStages;
+          const { xstate, stage, ...rest } = jobEntityWithoutStages;
           const expectedJob = { ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
 
           expect(jobs).toMatchObject(expectedJob);

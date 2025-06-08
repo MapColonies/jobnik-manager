@@ -29,7 +29,6 @@ export class JobManager {
             jobMode: { equals: params.job_mode },
             name: { equals: params.job_name },
             priority: { equals: params.priority },
-            creator: { equals: params.creator },
             creationTime: { gte: params.from_date, lte: params.till_date },
           },
         },
@@ -209,15 +208,12 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
-    const { data, creationTime, userMetadata, expirationTime, notifications, updateTime, ttl, xstate, stage, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
       userMetadata: userMetadata as { [key: string]: unknown },
-      expirationTime: expirationTime ? expirationTime.toISOString() : undefined,
-      notifications: notifications as Record<string, never>,
       updateTime: updateTime.toISOString(),
-      ttl: ttl ? ttl.toISOString() : undefined,
       stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
     };
 
