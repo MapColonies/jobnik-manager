@@ -22,10 +22,7 @@ export type paths = {
     /**
      * Create a new job with optional stages
      * @description Creates a new job in the system with user-defined configuration.
-     *     Supports both pre-defined and dynamic job modes, with customizable priorities.
-     *
-     *     Pre-defined jobs require all stages to be defined at creation time, while
-     *     dynamic jobs allow stages to be added later via the /jobs/{jobId}/stage endpoint.
+     *     Supports customizable priorities.
      *
      *     The job will be created with an initial default status of PENDING and can be tracked
      *     throughout its lifecycle using the returned job ID.
@@ -204,15 +201,14 @@ export type paths = {
     get?: never;
     put?: never;
     /**
-     * Add a new stage to a dynamic job
-     * @description Appends a new stage to an existing job that has DYNAMIC job mode.
+     * Add a new stage to a job
+     * @description Appends a new stage to an existing job.
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *
      *     This endpoint allows for extending job workflows at runtime by adding new processing steps.
      *     Optionally, tasks can be defined within the new stage during creation.
      *
      *     The job must exist and be in a valid state to accept new stages.
-     *     Only jobs with DYNAMIC mode can have stages added after creation.
      *
      */
     post: operations['addStage'];
@@ -659,7 +655,7 @@ export type components = {
     };
     /** @description Input payload for creating a new job in the system.
      *     Contains all required configuration for job execution, including processing mode,
-     *     custom parameters, metadata, and optionally pre-defined stages.
+     *     custom parameters, metadata.
      *      */
     createJobPayload: {
       name?: components['schemas']['jobName'];
@@ -1284,7 +1280,7 @@ export interface operations {
           'application/json': components['schemas']['stageResponse'];
         };
       };
-      /** @description Invalid request format or job not in DYNAMIC mode */
+      /** @description Invalid request format. */
       400: {
         headers: {
           [name: string]: unknown;

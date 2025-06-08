@@ -662,7 +662,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED stage of pre-defined job", async function () {
+      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 

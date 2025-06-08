@@ -210,7 +210,7 @@ describe('JobManager', () => {
           await expect(taskManager.addTasks('someId', [])).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
 
-        it('should reject adding tasks to a PRE-DEFINED job with IN_PROGRESS stage', async function () {
+        it('should reject adding tasks to job with IN_PROGRESS stage', async function () {
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
 
