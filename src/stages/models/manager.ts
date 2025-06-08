@@ -12,7 +12,6 @@ import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/s
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { PrismaTransaction } from '@src/db/types';
-import { JobPrismaObject } from '@src/jobs/models/models';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateWithTasksModel,
@@ -20,7 +19,6 @@ import type {
   StageFindCriteriaArg,
   StageIncludingJob,
   StageModel,
-  StagePrismaObject,
   StageSummary,
   UpdateSummaryCount,
 } from './models';
