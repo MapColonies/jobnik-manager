@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
 import {
-  JobMode,
   JobName,
   JobOperationStatus,
   Priority,
@@ -34,7 +33,6 @@ export interface StageWithTasks extends Prisma.StageGetPayload<Record<string, un
 export const createJobParams = {
   name: JobName.DEFAULT,
   data: { stages: [] },
-  jobMode: JobMode.PRE_DEFINED,
   userMetadata: {},
 } satisfies JobCreateModel;
 
@@ -47,7 +45,6 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     percentage: 0,
     priority: Priority.HIGH,
     status: JobOperationStatus.PENDING,
-    jobMode: JobMode.DYNAMIC,
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),

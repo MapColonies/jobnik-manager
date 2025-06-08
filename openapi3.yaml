@@ -11,7 +11,6 @@ paths:
     get:
       operationId: findJobs
       parameters:
-        - $ref: '#/components/parameters/jobModeQueryParam'
         - $ref: '#/components/parameters/jobNameQueryParam'
         - $ref: '#/components/parameters/fromDate'
         - $ref: '#/components/parameters/tillDate'
@@ -1002,13 +1001,6 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/taskOperationStatus'
-    jobModeQueryParam:
-      in: query
-      name: job_mode
-      description: Filter jobs by their mode (PRE_DEFINED or DYNAMIC)
-      required: false
-      schema:
-        $ref: '#/components/schemas/jobMode'
     jobNameQueryParam:
       in: query
       name: job_name
@@ -1192,13 +1184,6 @@ components:
       description: |
         Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
         Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
-    jobMode:
-      type: string
-      enum:
-        - PRE_DEFINED
-        - DYNAMIC
-      description: Job creation mode determining whether all stages must be defined at creation (PRE_DEFINED) or can be added later (DYNAMIC)
-      example: PRE_DEFINED
     jobName:
       type: string
       enum:
@@ -1265,8 +1250,6 @@ components:
     createJobPayload:
       type: object
       properties:
-        jobMode:
-          $ref: '#/components/schemas/jobMode'
         name:
           $ref: '#/components/schemas/jobName'
         data:
@@ -1282,7 +1265,6 @@ components:
             $ref: '#/components/schemas/createStagePayload'
       required:
         - data
-        - jobMode
         - userMetadata
       additionalProperties: false
       description: |
@@ -1295,7 +1277,6 @@ components:
         - id
         - name
         - data
-        - jobMode
         - userMetadata
       description: job Response model
       properties:
@@ -1309,8 +1290,6 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
-        jobMode:
-          $ref: '#/components/schemas/jobMode'
         name:
           $ref: '#/components/schemas/jobName'
         data:
@@ -1488,8 +1467,6 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
-        jobMode:
-          $ref: '#/components/schemas/jobMode'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
         priority:

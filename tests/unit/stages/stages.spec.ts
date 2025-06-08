@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, StageName, JobMode, StageOperationStatus, TaskType, JobOperationStatus } from '@prismaClient';
+import { PrismaClient, Prisma, StageName, StageOperationStatus, TaskType, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -243,7 +243,7 @@ describe('JobManager', () => {
         it('should add new stage to existing job stage', async function () {
           const uniqueJobId = faker.string.uuid();
           const uniqueStageId = faker.string.uuid();
-          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {}, jobMode: JobMode.DYNAMIC });
+          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
@@ -274,7 +274,7 @@ describe('JobManager', () => {
           const uniqueJobId = faker.string.uuid();
           const uniqueStageId = faker.string.uuid();
 
-          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {}, jobMode: JobMode.DYNAMIC });
+          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
           const taskEntity = createTaskEntity({ id: uniqueStageId, type: TaskType.DEFAULT });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
@@ -308,7 +308,7 @@ describe('JobManager', () => {
           const uniqueJobId = faker.string.uuid();
           const uniqueStageId = faker.string.uuid();
 
-          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {}, jobMode: JobMode.DYNAMIC });
+          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
 
@@ -345,18 +345,8 @@ describe('JobManager', () => {
           await expect(stageManager.addStage('someId', {} as unknown as StageCreateWithTasksModel)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
 
-        it('should reject adding stage to a PRE-DEFINED type job', async function () {
-          const jobWithOneStageEntity = createJobEntity({ id: jobId, data: {}, jobMode: JobMode.PRE_DEFINED });
-
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
-
-          await expect(stageManager.addStage('someId', {} as unknown as StageCreateWithTasksModel)).rejects.toThrow(
-            new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError)
-          );
-        });
-
         it('should reject adding stage to a finite job', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus, jobMode: JobMode.DYNAMIC });
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus });
 
           await expect(stageManager.addStage('someId', {} as unknown as StageCreateWithTasksModel)).rejects.toThrow(
             new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError)
@@ -366,7 +356,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when adding stage', async function () {
-          const jobEntity = createJobEntity({ jobMode: JobMode.DYNAMIC });
+          const jobEntity = createJobEntity({});
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
           jest.spyOn(prisma.stage, 'create').mockRejectedValueOnce(new Error('db connection error'));
 
@@ -442,7 +432,7 @@ describe('JobManager', () => {
 
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED }) as unknown as JobPrismaObject;
+          const jobEntity = createJobEntity({ id: jobId }) as unknown as JobPrismaObject;
           const stageEntity = createStageEntity({
             jobId: jobEntity.id,
             id: stageId,
@@ -472,7 +462,7 @@ describe('JobManager', () => {
 
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED }) as unknown as JobPrismaObject;
+          const jobEntity = createJobEntity({ id: jobId }) as unknown as JobPrismaObject;
           const stageEntity = createStageEntity({
             jobId: jobEntity.id,
             id: stageId,

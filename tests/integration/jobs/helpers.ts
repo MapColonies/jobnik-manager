@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
-import { JobMode, JobName, StageName, StageOperationStatus, type Prisma, type PrismaClient } from '@prismaClient';
+import { JobName, StageName, StageOperationStatus, type Prisma, type PrismaClient } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { StageCreateModel } from '@src/stages/models/models';
 import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
@@ -41,14 +41,12 @@ export const createJobRecord = async (body: JobTestCreateModel, prisma: PrismaCl
 export const createJobRequestBody = {
   name: JobName.DEFAULT,
   data: {},
-  jobMode: JobMode.DYNAMIC,
   userMetadata: {},
 } satisfies JobCreateModel;
 
 export const createJobRequestWithStagesBody = {
   name: JobName.DEFAULT,
   data: {},
-  jobMode: JobMode.DYNAMIC,
   userMetadata: {},
   stages: [
     {

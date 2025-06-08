@@ -14,20 +14,19 @@ datasource db {
 }
 
 model Job {
-  id             String             @id @default(uuid()) @db.Uuid
+  id           String             @id @default(uuid()) @db.Uuid
   /// [JobData]
-  data           Json               @default("{}")
-  status         JobOperationStatus @default(CREATED)
+  data         Json               @default("{}")
+  status       JobOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
-  xstate         Json
-  percentage     Int                @default(0)
-  creationTime   DateTime           @default(now()) @map("creation_time")
-  updateTime     DateTime           @updatedAt @map("update_time")
-  jobMode        JobMode            @default(PRE_DEFINED) @map("job_mode")
-  userMetadata   Json               @default("{}") @map("user_metadata")
-  priority       Priority           @default(VERY_LOW)
-  name           JobName            @default(DEFAULT)
-  stage          Stage[]
+  xstate       Json
+  percentage   Int                @default(0)
+  creationTime DateTime           @default(now()) @map("creation_time")
+  updateTime   DateTime           @updatedAt @map("update_time")
+  userMetadata Json               @default("{}") @map("user_metadata")
+  priority     Priority           @default(VERY_LOW)
+  name         JobName            @default(DEFAULT)
+  stage        Stage[]
 
   @@map("job")
 }
@@ -66,13 +65,6 @@ enum Priority {
   VERY_LOW  @map("Very-Low")
 
   @@map("priority_enum")
-}
-
-enum JobMode {
-  PRE_DEFINED @map("Pre-Defined")
-  DYNAMIC     @map("Dynamic")
-
-  @@map("job_mode_enum")
 }
 
 enum JobName {

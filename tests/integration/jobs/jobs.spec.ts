@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import type { MatcherContext } from '@jest/expect';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
-import { JobMode, JobName, JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
+import { JobName, JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -52,7 +52,6 @@ describe('job', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
-            jobMode: JobMode.PRE_DEFINED,
           },
           prisma
         );
@@ -68,7 +67,7 @@ describe('job', function () {
           prisma
         );
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED, should_return_stages: true } });
+        const response = await requestSender.findJobs({ queryParams: { should_return_stages: true } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
@@ -78,49 +77,48 @@ describe('job', function () {
         expect(response.body).toBeArray();
         expect(response.body).not.toHaveLength(0);
         expect(response.body[0]).toHaveProperty('stages');
-        expect(response.body[0]).toHaveProperty('jobMode', JobMode.PRE_DEFINED);
       });
 
       it('should return 200 status code and the matching job with stages when stages flag is false', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
+        const jobRequestBody = createJobRequestBody;
 
         await requestSender.createJob({
-          requestBody: preDefinedJobRequestBody,
+          requestBody: jobRequestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED, should_return_stages: false } });
+        const response = await requestSender.findJobs({ queryParams: { should_return_stages: false } });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body[0]).toMatchObject(preDefinedJobRequestBody);
+        expect(response.body[0]).toMatchObject(jobRequestBody);
         expect(response.body[0]).not.toHaveProperty('stages');
       });
 
       it('should return 200 status code and return the job without stages when stages flag is omitted', async function () {
-        const preDefinedJobRequestBody = { ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED };
+        const jobRequestBody = createJobRequestBody;
 
         await requestSender.createJob({
-          requestBody: preDefinedJobRequestBody,
+          requestBody: jobRequestBody,
         });
 
-        const response = await requestSender.findJobs({ queryParams: { job_mode: JobMode.PRE_DEFINED } });
+        const response = await requestSender.findJobs({ queryParams: {} });
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
         }
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body[0]).toMatchObject(preDefinedJobRequestBody);
+        expect(response.body[0]).toMatchObject(jobRequestBody);
         expect(response.body[0]).not.toHaveProperty('stages');
       });
     });
 
     describe('Bad Path', function () {
       it('should return 400 status code and a relevant validation error message when the job mode is incorrect', async function () {
-        const response = await requestSender.findJobs({ queryParams: { job_mode: 'WRONG_VALUE' as JobMode } });
+        const response = await requestSender.findJobs({ queryParams: { priority: 'BAD_PRIORITY' as Priority } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
@@ -129,7 +127,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/job_mode must be equal to one of the allowed values/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/query\/priority must be equal to one of the allowed values/) as MatcherContext },
         });
       });
     });
