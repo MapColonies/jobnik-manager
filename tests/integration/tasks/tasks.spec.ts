@@ -444,7 +444,7 @@ describe('task', function () {
           );
 
           const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
-          console.log(`addTasksResponse: ${JSON.stringify(addTasksResponse.body)}`);
+
           expect(addTasksResponse).toSatisfyApiSpec();
           expect(addTasksResponse).toMatchObject({
             status: StatusCodes.BAD_REQUEST,
