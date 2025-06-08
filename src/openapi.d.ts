@@ -697,15 +697,23 @@ export type components = {
       creator: components['schemas']['creator'];
       /** @description Optional array of stages to create with the job (required for PRE_DEFINED jobs) */
       stages?: components['schemas']['createStagePayload'][];
-    } & {
-      [key: string]: unknown;
     };
-    jobResponse: components['schemas']['createJobPayload'] & {
+    /** @description job Response model */
+    jobResponse: {
       id: components['schemas']['jobId'];
       status?: components['schemas']['jobOperationStatus'];
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
+      jobMode: components['schemas']['jobMode'];
+      name: components['schemas']['jobName'];
+      data: components['schemas']['jobPayload'];
+      priority?: components['schemas']['priority'];
+      expirationTime?: components['schemas']['expirationTime'];
+      ttl?: components['schemas']['ttl'];
+      notifications: components['schemas']['notifications'];
+      userMetadata: components['schemas']['userMetadata'];
+      creator: components['schemas']['creator'];
       stages?: components['schemas']['stageResponse'][];
     };
     /** @description Input payload for creating a new processing stage.
