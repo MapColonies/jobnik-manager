@@ -32,7 +32,6 @@ describe('JobManager', () => {
           const createJobParams = {
             name: jobEntityWithStages.name,
             data: jobEntityWithStages.data,
-            jobMode: jobEntityWithStages.jobMode,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
             stages: [stagePayload],
           } satisfies JobCreateModel;
@@ -48,7 +47,6 @@ describe('JobManager', () => {
           const createJobParams = {
             name: jobEntityWithoutStages.name,
             data: jobEntityWithoutStages.data,
-            jobMode: jobEntityWithoutStages.jobMode,
             userMetadata: jobEntityWithoutStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;
 
@@ -66,7 +64,6 @@ describe('JobManager', () => {
           const createJobParams = {
             name: jobEntityWithStages.name,
             data: jobEntityWithStages.data,
-            jobMode: jobEntityWithStages.jobMode,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
           } satisfies JobCreateModel;
 

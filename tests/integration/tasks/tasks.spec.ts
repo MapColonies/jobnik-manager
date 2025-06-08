@@ -7,7 +7,6 @@ import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import {
-  JobMode,
   JobOperationStatus,
   Priority,
   Prisma,
@@ -412,25 +411,8 @@ describe('task', function () {
           });
         });
 
-        it('should return 400 when adding tasks to a pre-defined job with running stage', async function () {
-          const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
-          const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
-
-          // generate some stage in running mode (in-progress)
-          await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.PENDING } });
-          await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.IN_PROGRESS } });
-
-          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
-
-          expect(addTasksResponse).toSatisfyApiSpec();
-          expect(addTasksResponse).toMatchObject({
-            status: StatusCodes.BAD_REQUEST,
-            body: { message: tasksErrorMessages.addTaskNotAllowed },
-          });
-        });
-
         it('should return 400 when attempting to add tasks to a finalized stage', async function () {
-          const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
+          const job = await createJobRecord(createJobRequestBody, prisma);
           const stage = await addStageRecord({ ...createStageWithoutTaskBody, jobId: job.id }, prisma);
 
           // generate some stage in finite state (aborted)
@@ -442,6 +424,31 @@ describe('task', function () {
           expect(addTasksResponse).toMatchObject({
             status: StatusCodes.BAD_REQUEST,
             body: { message: stagesErrorMessages.stageAlreadyFinishedTasksError },
+          });
+        });
+
+        it('should return 400 when attempting to add tasks to a running stage', async function () {
+          const job = await addJobRecord(
+            {
+              ...createJobRequestBody,
+              id: faker.string.uuid(),
+              xstate: inProgressStageXstatePersistentSnapshot,
+              status: JobOperationStatus.IN_PROGRESS,
+            },
+            prisma
+          );
+          const stage = await addStageRecord(
+            { ...createStageWithoutTaskBody, xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.IN_PROGRESS, jobId: job.id },
+
+            prisma
+          );
+
+          const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+
+          expect(addTasksResponse).toSatisfyApiSpec();
+          expect(addTasksResponse).toMatchObject({
+            status: StatusCodes.BAD_REQUEST,
+            body: { message: tasksErrorMessages.addTaskNotAllowed },
           });
         });
 
@@ -488,8 +495,8 @@ describe('task', function () {
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
       it("should return 200 status code and change tasks's status to PENDING", async function () {
-        const initialSummary = { ...defaultStatusCounts, created: 1 };
-        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0 };
+        const initialSummary = { ...defaultStatusCounts, created: 1, total: 1 };
+        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.PENDING };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -514,7 +521,7 @@ describe('task', function () {
         const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
-        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED, id: faker.string.uuid() }, prisma);
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord(
           {
             ...createStageWithoutTaskBody,
@@ -544,10 +551,10 @@ describe('task', function () {
       });
 
       it("should return 200 status code and change tasks's status to RETRIED and increase attempts", async function () {
-        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
 
-        const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0 };
+        const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0, total: 1 };
         const expectedStatus = { status: TaskOperationStatus.RETRIED, attempts: 1 };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -580,10 +587,10 @@ describe('task', function () {
       });
 
       it("should return 200 status code and change tasks's status to FAILED", async function () {
-        const initialSummary = { ...defaultStatusCounts, inProgress: 1 };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
 
-        const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1 };
+        const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1, total: 1 };
         const expectedStatus = { status: TaskOperationStatus.FAILED, attempts: 2 };
 
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
@@ -623,7 +630,7 @@ describe('task', function () {
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.IN_PROGRESS, percentage: 50, summary: expectedSummary };
 
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord(
           {
             ...createStageWithoutTaskBody,
@@ -655,7 +662,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED stage of pre-defined job", async function () {
+      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
@@ -663,7 +670,7 @@ describe('task', function () {
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
 
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord(
           {
             ...createStageWithoutTaskBody,
@@ -695,7 +702,7 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 400 with detailed error for invalid status transition', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid(), jobMode: JobMode.PRE_DEFINED }, prisma);
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord(
           {
             ...createStageWithoutTaskBody,

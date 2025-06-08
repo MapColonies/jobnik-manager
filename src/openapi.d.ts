@@ -22,10 +22,7 @@ export type paths = {
     /**
      * Create a new job with optional stages
      * @description Creates a new job in the system with user-defined configuration.
-     *     Supports both pre-defined and dynamic job modes, with customizable priorities.
-     *
-     *     Pre-defined jobs require all stages to be defined at creation time, while
-     *     dynamic jobs allow stages to be added later via the /jobs/{jobId}/stage endpoint.
+     *     Supports customizable priorities.
      *
      *     The job will be created with an initial default status of PENDING and can be tracked
      *     throughout its lifecycle using the returned job ID.
@@ -204,15 +201,14 @@ export type paths = {
     get?: never;
     put?: never;
     /**
-     * Add a new stage to a dynamic job
-     * @description Appends a new stage to an existing job that has DYNAMIC job mode.
+     * Add a new stage to a job
+     * @description Appends a new stage to an existing job.
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *
      *     This endpoint allows for extending job workflows at runtime by adding new processing steps.
      *     Optionally, tasks can be defined within the new stage during creation.
      *
      *     The job must exist and be in a valid state to accept new stages.
-     *     Only jobs with DYNAMIC mode can have stages added after creation.
      *
      */
     post: operations['addStage'];
@@ -620,12 +616,6 @@ export type components = {
      */
     taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED' | 'RETRIED';
     /**
-     * @description Job creation mode determining whether all stages must be defined at creation (PRE_DEFINED) or can be added later (DYNAMIC)
-     * @example PRE_DEFINED
-     * @enum {string}
-     */
-    jobMode: 'PRE_DEFINED' | 'DYNAMIC';
-    /**
      * @description Category or type of job processing being performed, used for filtering and system behaviors
      * @example DEFAULT
      * @enum {string}
@@ -665,10 +655,9 @@ export type components = {
     };
     /** @description Input payload for creating a new job in the system.
      *     Contains all required configuration for job execution, including processing mode,
-     *     custom parameters, metadata, and optionally pre-defined stages.
+     *     custom parameters, metadata.
      *      */
     createJobPayload: {
-      jobMode: components['schemas']['jobMode'];
       name?: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
@@ -683,7 +672,6 @@ export type components = {
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      jobMode: components['schemas']['jobMode'];
       name: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
@@ -770,7 +758,6 @@ export type components = {
       percentage?: components['schemas']['percentage'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
-      jobMode?: components['schemas']['jobMode'];
       userMetadata?: components['schemas']['userMetadata'];
       priority?: components['schemas']['priority'];
       name?: components['schemas']['jobName'];
@@ -813,8 +800,6 @@ export type components = {
     taskType: components['schemas']['taskType'];
     /** @description Filter tasks by their operational status */
     paramsTaskStatus: components['schemas']['taskOperationStatus'];
-    /** @description Filter jobs by their mode (PRE_DEFINED or DYNAMIC) */
-    jobModeQueryParam: components['schemas']['jobMode'];
     /** @description Filter jobs by their name/type */
     jobNameQueryParam: components['schemas']['jobName'];
     /** @description Filter jobs by their priority level */
@@ -851,8 +836,6 @@ export interface operations {
   findJobs: {
     parameters: {
       query?: {
-        /** @description Filter jobs by their mode (PRE_DEFINED or DYNAMIC) */
-        job_mode?: components['parameters']['jobModeQueryParam'];
         /** @description Filter jobs by their name/type */
         job_name?: components['parameters']['jobNameQueryParam'];
         /** @description Filter results by update time, starting from this date/time */
@@ -1297,7 +1280,7 @@ export interface operations {
           'application/json': components['schemas']['stageResponse'];
         };
       };
-      /** @description Invalid request format or job not in DYNAMIC mode */
+      /** @description Invalid request format. */
       400: {
         headers: {
           [name: string]: unknown;

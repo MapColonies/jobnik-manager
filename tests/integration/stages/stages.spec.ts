@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobMode, JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -672,21 +672,6 @@ describe('stage', function () {
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/body\/tasks must be array/) as string },
-        });
-      });
-
-      it('should return 400 when adding stage to a pre-defined job', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.PRE_DEFINED }, prisma);
-
-        const addStageResponse = await requestSender.addStage({
-          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
-          pathParams: { jobId: job.id },
-        });
-
-        expect(addStageResponse).toSatisfyApiSpec();
-        expect(addStageResponse).toMatchObject({
-          status: StatusCodes.BAD_REQUEST,
-          body: { message: jobsErrorMessages.preDefinedJobStageModificationError },
         });
       });
 

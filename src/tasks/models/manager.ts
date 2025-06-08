@@ -1,7 +1,7 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import { JobMode, JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
@@ -90,11 +90,8 @@ export class TaskManager {
       throw new InvalidUpdateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
     }
 
-    // can't add tasks on running stage of pre-defined job
-    const job = await this.jobManager.getJobById(stage.jobId);
-
-    if (job.jobMode === JobMode.PRE_DEFINED && checkStageStatus.getSnapshot().value === StageOperationStatus.IN_PROGRESS) {
-      this.logger.error(`Failed adding tasks to stage, not allowed on running stage of pre-defined job`);
+    if (checkStageStatus.getSnapshot().value === StageOperationStatus.IN_PROGRESS) {
+      this.logger.error(`Failed adding tasks to stage, not allowed on running stage`);
       throw new InvalidUpdateError(tasksErrorMessages.addTaskNotAllowed);
     }
 

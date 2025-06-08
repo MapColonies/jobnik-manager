@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
-import { JobMode, StageName, StageOperationStatus, TaskOperationStatus, type Prisma, type PrismaClient } from '@prismaClient';
+import { StageName, StageOperationStatus, TaskOperationStatus, type Prisma, type PrismaClient } from '@prismaClient';
 import { StageCreateWithTasksModel, StageModel, StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskCreateModel } from '@src/tasks/models/models';
@@ -22,7 +22,7 @@ export const createStageWithJob = async (stagePayload: StageCreateWithTasksModel
   const createTaskActor = createActor(taskStateMachine).start();
   const taskPersistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
-  const job = await createJobRecord({ ...createJobRequestBody, jobMode: JobMode.DYNAMIC }, prisma);
+  const job = await createJobRecord(createJobRequestBody, prisma);
 
   let input = undefined;
   let tasksInput = undefined;

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, TaskType, JobMode, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { PrismaClient, Prisma, TaskType, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -169,7 +169,7 @@ describe('JobManager', () => {
         it("should add new tasks to existing stage's tasks", async function () {
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.DYNAMIC });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({ stageId: stageId, id: faker.string.uuid(), userMetadata: {} });
 
@@ -210,7 +210,7 @@ describe('JobManager', () => {
           await expect(taskManager.addTasks('someId', [])).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
 
-        it('should reject adding tasks to a PRE-DEFINED job with IN_PROGRESS stage', async function () {
+        it('should reject adding tasks to job with IN_PROGRESS stage', async function () {
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
 
@@ -220,7 +220,7 @@ describe('JobManager', () => {
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           });
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED, stage: [stageEntity] });
+          const jobEntity = createJobEntity({ id: jobId, stage: [stageEntity] });
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
@@ -248,7 +248,7 @@ describe('JobManager', () => {
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.DYNAMIC });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
@@ -276,7 +276,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -309,7 +309,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -344,7 +344,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -379,7 +379,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -422,7 +422,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -456,7 +456,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
@@ -505,7 +505,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId, jobMode: JobMode.PRE_DEFINED });
+          const jobEntity = createJobEntity({ id: jobId });
           const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,

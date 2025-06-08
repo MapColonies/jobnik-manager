@@ -2,7 +2,7 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { PrismaClient } from '@prismaClient';
-import { JobMode, JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
@@ -59,11 +59,6 @@ export class StageManager {
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
-    }
-
-    // can add stages only on dynamic jobs
-    if (job.jobMode !== JobMode.DYNAMIC) {
-      throw new InvalidUpdateError(jobsErrorMessages.preDefinedJobStageModificationError);
     }
 
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
@@ -301,7 +296,7 @@ export class StageManager {
 
     await tx.stage.update({ where: { id: stage.id }, data: stageUpdatedData });
 
-    if (summary.total === summary.completed && stage.job.jobMode === JobMode.PRE_DEFINED) {
+    if (summary.total === summary.completed) {
       await this.updateStatus(stage.id, StageOperationStatus.COMPLETED, tx);
     }
   }
