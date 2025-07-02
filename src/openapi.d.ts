@@ -598,7 +598,7 @@ export type components = {
      * @example CREATED
      * @enum {string}
      */
-    jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
+    jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED';
     /**
      * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
      *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.

@@ -1144,7 +1144,6 @@ components:
         - FAILED
         - ABORTED
         - PAUSED
-        - WAITING
         - CREATED
       example: CREATED
       description: |
