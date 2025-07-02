@@ -1,92 +1,1514 @@
 openapi: 3.0.1
 info:
-  title: service-name
-  description: basic template for map colonies service
+  title: Job Manager Service
+  description: Job Manager Service
   version: 1.0.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 paths:
-  /anotherResource:
+  /jobs:
     get:
-      operationId: getAnotherResource
+      operationId: findJobs
+      parameters:
+        - $ref: '#/components/parameters/jobNameQueryParam'
+        - $ref: '#/components/parameters/fromDate'
+        - $ref: '#/components/parameters/tillDate'
+        - $ref: '#/components/parameters/priority'
+        - $ref: '#/components/parameters/includeStages'
+      summary: Retrieve jobs matching specified criteria
+      description: |
+        Returns a filtered list of jobs based on the provided query parameters.
+        Supports filtering by job mode, name, date range, priority.
+        Optional inclusion of related stage data via the should_return_stages parameter.
+
+        Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
       tags:
-        - anotherResource
-      summary: gets the resource
+        - jobs
       responses:
-        200:
-          description: OK
+        '200':
+          description: Successfully retrieved matching jobs
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/anotherResource'
-  /resourceName:
-    get:
-      operationId: getResourceName
-      tags:
-        - resourceName
-      summary: gets the resource
-      responses:
-        200:
-          description: OK
+                type: array
+                items:
+                  $ref: '#/components/schemas/jobResponse'
+        '400':
+          description: Invalid query parameters
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/resource'
+                $ref: '#/components/schemas/error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
     post:
-      operationId: createResource
+      operationId: createJob
+      summary: Create a new job with optional stages
+      description: |
+        Creates a new job in the system with user-defined configuration.
+        Supports customizable priorities.
+
+        The job will be created with an initial default status of PENDING and can be tracked
+        throughout its lifecycle using the returned job ID.
       tags:
-        - resourceName
-      summary: creates a new record of type resource
+        - jobs
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/resource'
+              $ref: '#/components/schemas/createJobPayload'
       responses:
-        201:
-          description: created
+        '201':
+          description: Job created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/resource'
-        400:
-          description: Bad Request
+                $ref: '#/components/schemas/createJobResponse'
+        '400':
+          description: Invalid request, could not create job
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/error'
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    get:
+      operationId: getJobById
+      parameters:
+        - $ref: '#/components/parameters/includeStages'
+      summary: Retrieve a specific job by its ID
+      description: |
+        Fetches detailed information about a job using its unique identifier.
+        Includes job configuration, status, metadata, and completion percentage.
+
+        Optional inclusion of related stage data via the should_return_stages parameter,
+        which allows clients to retrieve the complete job hierarchy in a single request.
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Job data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobResponse'
+        '400':
+          description: Invalid request, could not get job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+    delete:
+      operationId: deleteJob
+      summary: Delete a job and all its associated resources (stages, tasks)
+      description: |
+        Permanently removes a job and all its associated stages and tasks from the system.
+        This operation cascades to delete all child resources and cannot be undone.
+
+        The job must exist in the system for this operation to succeed.
+        Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
+        Attempting to delete a job in any other state will result in a 400 error.
+
+        Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Job deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_DELETED_SUCCESSFULLY
+        '400':
+          description: Bad parameters input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/user-metadata:
+    patch:
+      operationId: updateUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      summary: Update job's custom metadata
+      description: |
+        Updates the user-defined metadata object for a specific job.
+        This endpoint allows clients to attach or modify arbitrary data related to a job
+        without affecting the job's core properties or execution status.
+
+        User metadata is useful for storing application-specific context, tracking information,
+        or any custom data needed by client applications.
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: User metadata successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Invalid metadata format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/priority:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    patch:
+      operationId: updateJobPriority
+      summary: Modify job's priority level
+      description: |
+        Updates the priority level for a specific job.
+        This affects how the job is scheduled relative to other jobs in the system.
+
+        Higher priority jobs will be processed before lower priority ones when resources
+        are constrained. Priority changes take effect immediately and apply to all 
+        pending tasks associated with the job.
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                priority:
+                  $ref: '#/components/schemas/priority'
+              required:
+                - priority
+      responses:
+        '200':
+          description: Job priority successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_MODIFIED_SUCCESSFULLY
+        '204':
+          description: No change made - requested priority equals current priority
+          headers:
+            Reason:
+              description: Won't change priority if equal to current
+              schema:
+                type: string
+          content: {}
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '400':
+          description: Invalid priority value or other request error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/status:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    put:
+      operationId: updateStatus
+      summary: Change job's operational status
+      description: |
+        Updates the operational status of a job, which may cascade changes to all 
+        related stages and tasks. This endpoint can be used to pause, resume, abort,
+        or otherwise control the execution flow of a job.
+
+        Status changes follow a state machine that enforces valid transitions, preventing
+        operations like resuming a completed job or completing a failed job without
+        proper remediation.
+
+        When a job's status is changed, the system will automatically update timestamps
+        and completion percentages as appropriate.
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/jobOperationStatus'
+              required:
+                - status
+      responses:
+        '200':
+          description: Job status successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: JOB_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Invalid status or illegal state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/stages:
+    parameters:
+      - $ref: '#/components/parameters/jobId'
+    get:
+      operationId: getStageByJobId
+      parameters:
+        - $ref: '#/components/parameters/includeTasks'
+      summary: Retrieve all stages for a specific job
+      description: |
+        Fetches all stages associated with the specified job ID.
+        Provides complete information about each stage including type, status, and progress.
+
+        Optional inclusion of related task data via the should_return_tasks parameter,
+        allowing clients to retrieve the complete job hierarchy in a single request.
+      tags:
+        - jobs
+      responses:
+        '200':
+          description: Successfully retrieved stages for the specified job
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getStageResponse'
+        '400':
+          description: Invalid job ID format or other parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /jobs/{jobId}/stage:
+    post:
+      operationId: addStage
+      summary: Add a new stage to a job
+      description: |
+        Appends a new stage to an existing job.
+        The stage will be added after any existing stages in the job's workflow sequence.
+
+        This endpoint allows for extending job workflows at runtime by adding new processing steps.
+        Optionally, tasks can be defined within the new stage during creation.
+
+        The job must exist and be in a valid state to accept new stages.
+      parameters:
+        - $ref: '#/components/parameters/jobId'
+      tags:
+        - jobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/createStageWithTasksPayload'
+      responses:
+        '201':
+          description: Stage successfully created and added to the job
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stageResponse'
+        '400':
+          description: Invalid request format.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages:
+    get:
+      operationId: getStages
+      parameters:
+        - $ref: '#/components/parameters/paramJobId'
+        - $ref: '#/components/parameters/paramStageType'
+        - $ref: '#/components/parameters/stageStatus'
+        - $ref: '#/components/parameters/includeTasks'
+      summary: Retrieve stages matching specified criteria
+      description: |
+        Returns a filtered list of stages based on the provided query parameters.
+        Supports filtering by job ID, stage type, and status.
+
+        Optional inclusion of related task data via the should_return_tasks parameter
+        allows clients to retrieve the complete stage hierarchy in a single request.
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Successfully retrieved matching stages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/getStageResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}:
+    parameters:
+      - $ref: '#/components/parameters/stageId'
+    get:
+      operationId: getStageById
+      parameters:
+        - $ref: '#/components/parameters/includeTasks'
+      summary: Retrieve a specific stage by its ID
+      description: |
+        Fetches detailed information about a stage using its unique identifier.
+        Includes stage configuration, status, metadata, and completion information.
+
+        Optional inclusion of related task data via the should_return_tasks parameter,
+        which allows clients to retrieve the complete stage hierarchy in a single request.
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Stage data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/getStageResponse'
+        '400':
+          description: Invalid request format or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/summary:
+    get:
+      operationId: getStageSummary
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: Get stage progress summary
+      description: |
+        Retrieves aggregated statistics about the tasks within a specific stage.
+        Provides counts of tasks by status (pending, in progress, completed, etc.) 
+        and a total task count for monitoring stage progress.
+
+        This endpoint is useful for displaying progress indicators or status dashboards
+        without needing to retrieve and process all individual task details.
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Stage summary retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/summary'
+        '400':
+          description: Invalid stage ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/user-metadata:
+    patch:
+      operationId: updateStageUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: Update stage's custom metadata
+      description: |
+        Updates the user-defined metadata object for a specific stage.
+        This endpoint allows clients to attach or modify arbitrary data related to a stage
+        without affecting the stage's core properties or execution status.
+
+        User metadata is useful for storing application-specific context, tracking information,
+        or any custom data needed by client applications.
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: User metadata successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: STAGE_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Invalid metadata format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/status:
+    put:
+      operationId: updateStageStatus
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      summary: Change stage's operational status
+      description: |
+        Updates the operational status of a stage, which may cascade changes to all 
+        related tasks. This endpoint can be used to pause, resume, abort, or otherwise 
+        control the execution flow of a stage.
+
+        Status changes follow a state machine that enforces valid transitions, preventing
+        operations like resuming a completed stage or completing a failed stage without
+        proper remediation.
+
+        Changes to a stage's status may affect the parent job's status if certain 
+        conditions are met.
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/stageOperationStatus'
+              required:
+                - status
+      responses:
+        '200':
+          description: Stage status successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: STAGE_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Invalid status or illegal state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /stages/{stageId}/tasks:
+    parameters:
+      - $ref: '#/components/parameters/stageId'
+    get:
+      operationId: getTasksByStageId
+      summary: Retrieve all tasks for a specific stage
+      description: |
+        Fetches all tasks associated with the specified stage ID.
+        Provides complete information about each task including type, status, and attempt count.
+      responses:
+        '200':
+          description: Successfully retrieved tasks for the specified stage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid stage ID format or other parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - stages
+    post:
+      operationId: addTasks
+      summary: Add new tasks to an existing stage
+      description: |
+        Creates and appends new tasks to an existing stage.
+        This endpoint allows for extending stage processing capabilities by adding more work units.
+
+        Task objects require type and data properties, with optional user metadata and 
+        maximum attempt configuration. Tasks are created with an initial status of PENDING.
+
+        The stage must exist and be in a valid state to accept new tasks.
+      parameters:
+        - $ref: '#/components/parameters/stageId'
+      tags:
+        - stages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/createTaskPayload'
+      responses:
+        '201':
+          description: Tasks successfully created and added to the stage
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid request format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Stage not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /tasks:
+    parameters:
+      - $ref: '#/components/parameters/paramStageId'
+      - $ref: '#/components/parameters/paramTaskType'
+      - $ref: '#/components/parameters/fromDate'
+      - $ref: '#/components/parameters/tillDate'
+      - $ref: '#/components/parameters/paramsTaskStatus'
+    get:
+      operationId: getTasksByCriteria
+      summary: Retrieve tasks matching specified criteria
+      description: |
+        Returns a filtered list of tasks based on the provided query parameters.
+        Supports filtering by stage ID, task type, date range, and operational status.
+
+        This endpoint is useful for monitoring task progress across multiple stages and jobs,
+        enabling clients to build custom dashboards or track specific task types.
+      responses:
+        '200':
+          description: Successfully retrieved matching tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: No tasks found matching criteria
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No such task in the database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - tasks
+  /tasks/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    get:
+      operationId: getTaskById
+      summary: Retrieve a specific task by its ID
+      description: |
+        Fetches detailed information about a task using its unique identifier.
+        Returns complete task data including type, status, payload, and attempt information.
+      responses:
+        '200':
+          description: Task data retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid task ID format or other parameter error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+      tags:
+        - tasks
+  /tasks/{taskId}/user-metadata:
+    patch:
+      operationId: updateTaskUserMetadata
+      parameters:
+        - $ref: '#/components/parameters/taskId'
+      summary: Update task's custom metadata
+      description: |
+        Updates the user-defined metadata object for a specific task.
+        This endpoint allows clients to attach or modify arbitrary data related to a task
+        without affecting the task's core properties or execution status.
+
+        User metadata is useful for storing application-specific context, tracking information,
+        or any custom data needed by client applications.
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/userMetadata'
+      responses:
+        '200':
+          description: User metadata successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/defaultOkMessage'
+              example:
+                code: TASK_MODIFIED_SUCCESSFULLY
+        '400':
+          description: Invalid metadata format or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskId}/status:
+    parameters:
+      - $ref: '#/components/parameters/taskId'
+    put:
+      operationId: updateTaskStatus
+      summary: Change task's operational status
+      description: |
+        Updates the operational status of a task, which may trigger cascading updates
+        to the parent stage and job. This endpoint can be used to mark tasks as complete, 
+        failed, aborted, or otherwise control the execution flow.
+
+        Status changes follow a state machine that enforces valid transitions, preventing
+        operations like completing a paused task without proper resumption.
+
+        When a task's status is changed, the system will automatically update the parent stage's
+        summary statistics and may affect the stage's overall status.
+      tags:
+        - tasks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  $ref: '#/components/schemas/taskOperationStatus'
+              required:
+                - status
+      responses:
+        '200':
+          description: Task status successfully changed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid status or illegal state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+  /tasks/{taskType}/dequeue:
+    parameters:
+      - $ref: '#/components/parameters/taskType'
+    patch:
+      operationId: dequeueTask
+      summary: Find and claim the highest priority pending task of specified type
+      description: |
+        Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status, 
+        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+        work queue pattern where workers can claim the next available task.
+
+        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
+        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+
+        If successful, returns the complete task details with status updated to IN_PROGRESS.
+      tags:
+        - tasks
+      responses:
+        '200':
+          description: Task successfully dequeued and status updated to IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Bad taskType parameter or other validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No pending tasks of requested type are available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+
+security: []
+
 components:
+  parameters:
+    jobId:
+      in: path
+      name: jobId
+      description: Unique identifier for the job
+      required: true
+      schema:
+        $ref: '#/components/schemas/jobId'
+    stageId:
+      in: path
+      name: stageId
+      description: Unique identifier for the stage
+      required: true
+      schema:
+        $ref: '#/components/schemas/stageId'
+    taskId:
+      in: path
+      name: taskId
+      description: Unique identifier for the task
+      required: true
+      schema:
+        type: string
+    taskType:
+      in: path
+      name: taskType
+      description: Type of the requested task
+      required: true
+      schema:
+        $ref: '#/components/schemas/taskType'
+    paramsTaskStatus:
+      in: query
+      name: status
+      description: Filter tasks by their operational status
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskOperationStatus'
+    jobNameQueryParam:
+      in: query
+      name: job_name
+      description: Filter jobs by their name/type
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobName'
+    priority:
+      in: query
+      name: priority
+      description: Filter jobs by their priority level
+      required: false
+      schema:
+        $ref: '#/components/schemas/priority'
+    fromDate:
+      in: query
+      name: from_date
+      description: Filter results by update time, starting from this date/time
+      required: false
+      schema:
+        type: string
+        format: date-time
+    tillDate:
+      in: query
+      name: till_date
+      description: Filter results by update time, ending at this date/time
+      required: false
+      schema:
+        type: string
+        format: date-time
+    includeStages:
+      in: query
+      name: should_return_stages
+      description: When true, includes stage data in the response
+      required: false
+      schema:
+        $ref: '#/components/schemas/returnStage'
+    includeTasks:
+      in: query
+      name: should_return_tasks
+      description: When true, includes task data in the response
+      required: false
+      schema:
+        $ref: '#/components/schemas/returnTask'
+    paramStageId:
+      in: query
+      name: stage_id
+      description: Filter results by stage identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/stageId'
+    paramJobId:
+      in: query
+      name: job_id
+      description: Filter results by job identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/jobId'
+    paramStageType:
+      in: query
+      name: stage_type
+      description: Filter results by stage identifier
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
+    stageStatus:
+      in: query
+      name: stage_operation_status
+      description: |
+        Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
+        Used to find stages in specific execution states.
+      required: false
+      schema:
+        $ref: '#/components/schemas/stageOperationStatus'
+    paramTaskType:
+      in: query
+      name: task_type
+      description: |
+        Filter results by task type.
+        Used to find tasks designed for specific operations (e.g., TILE_RENDERING).
+      required: false
+      schema:
+        $ref: '#/components/schemas/taskType'
   schemas:
-    error:
+    creationTime:
+      type: string
+      format: date-time
+      description: Timestamp indicating when the resource was created
+    updateTime:
+      type: string
+      format: date-time
+      description: Timestamp indicating when the resource was last updated
+    jobId:
+      type: string
+      format: uuid
+      description: Unique identifier for a job
+    jobPayload:
       type: object
-      required:
-        - message
+      additionalProperties: true
+      description: Custom job configuration data containing job-specific parameters
+    percentage:
+      type: integer
+      minimum: 0
+      maximum: 100
+      description: Completion percentage of a job, stage, or task (0-100)
+    attempts:
+      type: integer
+      description: Number of times a task has been attempted
+    maxAttempts:
+      type: integer
+      description: Maximum number of retries allowed for a task
+    stageId:
+      type: string
+      format: uuid
+      description: Unique identifier for a stage
+    stagePayload:
+      type: object
+      additionalProperties: true
+      description: Custom stage configuration data containing stage-specific parameters
+    priority:
+      type: string
+      enum:
+        - VERY_HIGH
+        - HIGH
+        - MEDIUM
+        - LOW
+        - VERY_LOW
+      example: LOW
+      description: Relative importance of the job, affecting processing order
+    successMessages:
+      type: string
+      enum:
+        - JOB_MODIFIED_SUCCESSFULLY
+        - TASK_MODIFIED_SUCCESSFULLY
+        - STAGE_MODIFIED_SUCCESSFULLY
+        - JOB_DELETED_SUCCESSFULLY
+      example: JOB_MODIFIED_SUCCESSFULLY
+      description: Standard success message codes used in API responses
+    jobOperationStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - PAUSED
+        - WAITING
+        - CREATED
+      example: CREATED
+      description: |
+        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+    stageOperationStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - PAUSED
+        - WAITING
+        - CREATED
+      example: CREATED
+      description: |
+        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+    taskOperationStatus:
+      type: string
+      enum:
+        - PENDING
+        - IN_PROGRESS
+        - COMPLETED
+        - FAILED
+        - ABORTED
+        - PAUSED
+        - CREATED
+        - RETRIED
+      example: CREATED
+      description: |
+        Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
+        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+    jobName:
+      type: string
+      enum:
+        - INGESTION
+        - EXPORT
+        - DEFAULT
+      example: DEFAULT
+      description: Category or type of job processing being performed, used for filtering and system behaviors
+    returnStage:
+      type: boolean
+      description: Flag indicating whether to include complete stage details in job response payloads
+    returnTask:
+      type: boolean
+      description: Flag indicating whether to include complete task details in stage response payloads
+    userMetadata:
+      type: object
+      additionalProperties: true
+      description: Application-specific custom data container that can store arbitrary client information without affecting core operations
+    summary:
+      description: |
+        Aggregated task statistics grouped by operational status, providing a complete overview of stage progress.
+        Used for monitoring progress, generating dashboards, and determining when stages/jobs are complete.
+        The total field should always equal the sum of all other status counts.
+      type: object
       properties:
-        message:
-          type: string
-    resource:
+        pending:
+          type: integer
+          description: Number of tasks awaiting execution
+        inProgress:
+          type: integer
+          description: Number of tasks currently being processed
+        completed:
+          type: integer
+          description: Number of tasks that finished successfully
+        failed:
+          type: integer
+          description: Number of tasks that encountered errors and could not be completed
+        aborted:
+          type: integer
+          description: Number of tasks manually stopped before completion
+        paused:
+          type: integer
+          description: Number of tasks temporarily suspended from execution
+        created:
+          type: integer
+          description: Number of tasks in initial state before becoming pending
+        retried:
+          type: integer
+          description: Number of tasks scheduled for re-execution after failure
+        total:
+          type: integer
+          description: Total count of tasks belonging to the stage
+      required:
+        - pending
+        - inProgress
+        - completed
+        - failed
+        - aborted
+        - paused
+        - created
+        - retried
+        - total
+      additionalProperties: false
+    createJobPayload:
+      type: object
+      properties:
+        name:
+          $ref: '#/components/schemas/jobName'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        priority:
+          $ref: '#/components/schemas/priority'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        stages:
+          type: array
+          description: Optional array of stages to create with the job (required for PRE_DEFINED jobs)
+          items:
+            $ref: '#/components/schemas/createStagePayload'
+      required:
+        - data
+        - userMetadata
+      additionalProperties: false
+      description: |
+        Input payload for creating a new job in the system.
+        Contains all required configuration for job execution, including processing mode,
+        custom parameters, metadata.
+    jobResponse:
       type: object
       required:
         - id
         - name
-        - description
+        - data
+        - userMetadata
+      description: job Response model
       properties:
         id:
-          type: number
-          format: int64
+          $ref: '#/components/schemas/jobId'
+        status:
+          $ref: '#/components/schemas/jobOperationStatus'
+        percentage:
+          $ref: '#/components/schemas/percentage'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
         name:
-          type: string
-        description:
-          type: string
-    anotherResource:
+          $ref: '#/components/schemas/jobName'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        priority:
+          $ref: '#/components/schemas/priority'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/stageResponse'
+    createStagePayload:
+      description: |
+        Input payload for creating a new processing stage.
+        Defines the stage type, custom configuration data, and user-defined metadata.
+        Used when adding stages to jobs or creating stages as part of job creation.
       type: object
-      required:
-        - kind
-        - isAlive
       properties:
-        kind:
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/stagePayload'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+      required:
+        - data
+        - type
+        - userMetadata
+    stageResponse:
+      allOf:
+        - $ref: '#/components/schemas/createStagePayload'
+        - type: object
+          required:
+            - id
+            - summary
+            - jobId
+          properties:
+            id:
+              $ref: '#/components/schemas/stageId'
+            summary:
+              $ref: '#/components/schemas/summary'
+            percentage:
+              $ref: '#/components/schemas/percentage'
+            status:
+              $ref: '#/components/schemas/stageOperationStatus'
+            jobId:
+              $ref: '#/components/schemas/jobId'
+          description: |
+            Complete stage information returned by the API, including all fields from the 
+            creation payload plus system-generated fields like ID, progress statistics,
+            execution status, and parent job reference.
+    getStageResponse:
+      allOf:
+        - $ref: '#/components/schemas/stageResponse'
+        - type: object
+          description: |
+            Extended stage response that includes associated tasks when requested with 
+            should_return_tasks=true. Used to retrieve the complete stage hierarchy
+            in a single API call.
+          properties:
+            tasks:
+              type: array
+              description: Associated tasks belonging to this stage
+              items:
+                $ref: '#/components/schemas/taskResponse'
+    taskId:
+      type: string
+      format: uuid
+      description: Unique identifier for a task, generated by the system upon task creation
+    taskType:
+      type: string
+      enum:
+        - TILE_SEEDING
+        - TILE_RENDERING
+        - PUBLISH_CATALOG
+        - PUBLISH_LAYER
+        - DEFAULT
+      maxLength: 255
+      example: DEFAULT
+      description: |
+        Categorization of task functionality, determining the specific operation
+        to be performed. Used for routing tasks to appropriate workers and
+        for filtering in API requests.
+    taskPayload:
+      type: object
+      additionalProperties: true
+      description: |
+        Custom task configuration data containing operation-specific parameters.
+        The schema varies based on task type and contains all necessary information
+        for task execution by workers.
+    createStageWithTasksPayload:
+      allOf:
+        - $ref: '#/components/schemas/createStagePayload'
+        - type: object
+          description: |
+            Extended stage creation payload that includes associated tasks to create
+            alongside the stage.
+          properties:
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/createTaskPayload'
+    createTaskPayload:
+      type: object
+      description: |
+        Input payload for creating a new task within a stage.
+        Contains task type, operational parameters, and optional retry configuration.
+        Used when adding tasks to existing stages.
+      properties:
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/taskPayload'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
+      required:
+        - data
+        - type
+      additionalProperties: false
+    taskResponse:
+      type: object
+      description: |
+        Complete task information returned by the API, including all configuration
+        data along with execution status, attempt tracking, and associated stage reference.
+        Used when retrieving task details or after task creation.
+      properties:
+        id:
+          $ref: '#/components/schemas/taskId'
+        type:
+          $ref: '#/components/schemas/taskType'
+        data:
+          $ref: '#/components/schemas/taskPayload'
+        stageId:
+          $ref: '#/components/schemas/stageId'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
+        status:
+          $ref: '#/components/schemas/taskOperationStatus'
+        attempts:
+          $ref: '#/components/schemas/attempts'
+        maxAttempts:
+          $ref: '#/components/schemas/maxAttempts'
+      required:
+        - id
+        - type
+        - data
+        - stageId
+        - status
+        - attempts
+        - maxAttempts
+      additionalProperties: false
+    createJobResponse:
+      type: object
+      description: |
+        Response returned after successful job creation, containing the complete
+        job details including the generated job ID and initial status information.
+      properties:
+        id:
+          $ref: '#/components/schemas/jobId'
+        data:
+          $ref: '#/components/schemas/jobPayload'
+        status:
+          $ref: '#/components/schemas/jobOperationStatus'
+        percentage:
+          $ref: '#/components/schemas/percentage'
+        creationTime:
+          $ref: '#/components/schemas/creationTime'
+        updateTime:
+          $ref: '#/components/schemas/updateTime'
+        userMetadata:
+          $ref: '#/components/schemas/userMetadata'
+        priority:
+          $ref: '#/components/schemas/priority'
+        name:
+          $ref: '#/components/schemas/jobName'
+        stages:
+          type: array
+          items:
+            $ref: '#/components/schemas/stageResponse'
+      additionalProperties: false
+      required:
+        - id
+    errorMessage:
+      type: object
+      description: |
+        Standard error response structure used when API operations encounter problems.
+        Contains a human-readable message and optional stack trace for debugging.
+      properties:
+        message:
           type: string
-        isAlive:
-          type: boolean
+          description: Human-readable error description explaining what went wrong
+        stacktrace:
+          type: string
+          description: |
+            Technical stack trace for debugging purposes, included based on 
+            server configuration settings
+      required:
+        - message
+    defaultOkMessage:
+      type: object
+      description: |
+        Standard success response structure used for operations that don't
+        return entity data, providing a standardized confirmation message.
+      properties:
+        code:
+          $ref: '#/components/schemas/successMessages'
+      required:
+        - code
+    error:
+      type: object
+      description: |
+        Simplified error response format used for common validation and client errors,
+        containing just the essential error message without additional debugging data.
+      required:
+        - message
+      properties:
+        message:
+          description: Human-readable error description explaining what went wrong
+          type: string

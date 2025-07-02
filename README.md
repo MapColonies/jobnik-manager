@@ -1,120 +1,44 @@
-# Map Colonies typescript service template
+# Job Manager Server
 
-----------------------------------
+This server provides a management interface for job trees and includes a RESTful API for interacting with a PostgreSQL database.
 
-This is a basic repo template for building new MapColonies web services in Typescript.
+**Key Features:**
 
-> [!IMPORTANT]
-> To regenerate the types on openapi change run the command `npm run generate:openapi-types`.
+* Manages job trees.
+* Provides a RESTful API for database management.
 
-## Development
-When in development you should use the command `npm run start:dev`. The main benefits are that it enables offline mode for the config package, and source map support for NodeJS errors.
+**Requirements:**
 
-### Template Features:
+* **PostgreSQL:** Version 13 or higher is required.
 
-- eslint configuration by [@map-colonies/eslint-config](https://github.com/MapColonies/eslint-config)
+------------------------
 
-- prettier configuration by [@map-colonies/prettier-config](https://github.com/MapColonies/prettier-config)
+## Migration
+<ins>**How to create a new migration**</ins>
 
-- jest
+***Update and Edit schema***
 
-- .nvmrc
+* New migration will need to be generated once you have made modification on 'schema.prisma' file [read more](https://www.prisma.io/docs/orm/reference/prisma-schema-reference)
+* For example:
+    * You modified exists model
+    * Add another model or type
+    * Remove some model
+    * Add some constraint.
 
-- Multi stage production-ready Dockerfile
+***Create new migration on modified schema***
 
-- commitlint
+1. **Schema Validation:** `npm run migration:validate` - Ensures the integrity and correctness of your Prisma schema.
+2. **Schema Formatting:** 
+    * `npm run migration:format` - Formats the Prisma schema for consistency and readability.
+    * `npm run migration:format-fix` - Automatically applies formatting changes to the schema.
+3. **Migration Creation:** `npm run migration:generate <migration name>` - Creates and applies a new migration to your local development database.
 
-- git hooks
+    * To apply only current migration - `npm run migration:dev`
+4. **Type Generation:** `npm run migration:generate-types` - Generates and updates TypeScript types for your database models.
 
-- logging by [@map-colonies/js-logger](https://github.com/MapColonies/js-logger)
+<ins>**Production Deployment:**</ins>
+* **Migration Deployment:** `npm run migration:deploy` - Deploys the latest migrations to your production database.
 
-- OpenAPI request validation
-
-- config load with [node-config](https://www.npmjs.com/package/node-config)
-
-- Tracing and metrics by [@map-colonies/telemetry](https://github.com/MapColonies/telemetry)
-
-- github templates
-
-- bug report
-
-- feature request
-
-- pull request
-
-- github actions
-
-- on pull_request
-
-- LGTM
-
-- test
-
-- lint
-
-- snyk
-
-## API
-Checkout the OpenAPI spec [here](/openapi3.yaml)
-
-## Installation
-
-Install deps with npm
-
-```bash
-npm install
-```
-
-## Run Locally
-
-Clone the project
-
-```bash
-
-git clone https://link-to-project
-
-```
-
-Go to the project directory
-
-```bash
-
-cd my-project
-
-```
-
-Install dependencies
-
-```bash
-
-npm install
-
-```
-
-Start the server
-
-```bash
-
-npm run start
-
-```
-
-## Running Tests
-
-To run tests, run the following command
-
-```bash
-
-npm run test
-
-```
-
-To only run unit tests:
-```bash
-npm run test:unit
-```
-
-To only run integration tests:
-```bash
-npm run test:integration
-```
+> [!CAUTION]
+> **Remember to carefully manage environment variables.**
+> Ensure that the `DATABASE_URL` environment variable is correctly configured for each environment (development, staging, production).

@@ -1,0 +1,150 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "./generated/client"
+  previewFeatures = ["driverAdapters"]
+}
+
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Job {
+  id           String             @id @default(uuid()) @db.Uuid
+  /// [JobData]
+  data         Json               @default("{}")
+  status       JobOperationStatus @default(CREATED)
+  /// [PersistenceSnapshot]
+  xstate       Json
+  percentage   Int                @default(0)
+  creationTime DateTime           @default(now()) @map("creation_time")
+  updateTime   DateTime           @updatedAt @map("update_time")
+  userMetadata Json               @default("{}") @map("user_metadata")
+  priority     Priority           @default(VERY_LOW)
+  name         JobName            @default(DEFAULT)
+  stage        Stage[]
+
+  @@map("job")
+}
+
+enum JobOperationStatus {
+  PENDING     @map("Pending")
+  IN_PROGRESS @map("In-Progress")
+  COMPLETED   @map("Completed")
+  FAILED      @map("Failed")
+  ABORTED     @map("Aborted")
+  WAITING     @map("Waiting")
+  CREATED     @map("Created")
+  PAUSED      @map("Paused")
+
+  @@map("job_operation_status_enum")
+}
+
+enum StageOperationStatus {
+  PENDING     @map("Pending")
+  IN_PROGRESS @map("In-Progress")
+  COMPLETED   @map("Completed")
+  FAILED      @map("Failed")
+  ABORTED     @map("Aborted")
+  PAUSED      @map("Paused")
+  WAITING     @map("Waiting")
+  CREATED     @map("Created")
+
+  @@map("stage_operation_status_enum")
+}
+
+enum Priority {
+  VERY_HIGH @map("Very-High")
+  HIGH      @map("High")
+  MEDIUM    @map("Medium")
+  LOW       @map("Low")
+  VERY_LOW  @map("Very-Low")
+
+  @@map("priority_enum")
+}
+
+enum JobName {
+  INGESTION @map("Ingestion")
+  EXPORT    @map("Export")
+  DEFAULT   @map("Default")
+
+  @@map("job_name_enum")
+}
+
+model Stage {
+  id   String @id @default(uuid()) @db.Uuid
+  /// [StageData]
+  data Json   @default("{}")
+
+  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId String @map("job_id") @db.Uuid
+
+  percentage   Int                  @default(0)
+  /// [UserMetadata]
+  userMetadata Json                 @default("{}") @map("user_metadata")
+  /// [StageSummary]
+  summary      Json
+  status       StageOperationStatus @default(CREATED)
+  /// [PersistenceSnapshot]
+  xstate       Json
+  name         StageName            @default(DEFAULT)
+  task         Task[]
+
+  @@map("stage")
+}
+
+enum StageName {
+  TILE_SEEDING    @map("Tile-Seeding")
+  TILE_RENDERING  @map("Tile-Rendering")
+  PUBLISH_CATALOG @map("Publish-Catalog")
+  PUBLISH_LAYER   @map("Publish-Layer")
+  DEFAULT         @map("Default")
+
+  @@map("stage_name_enum")
+}
+
+model Task {
+  id           String              @id @default(uuid()) @db.Uuid
+  /// [TaskData]
+  data         Json                @default("{}")
+  status       TaskOperationStatus @default(CREATED)
+  /// [PersistenceSnapshot]
+  xstate       Json
+  type         TaskType            @default(DEFAULT) @map("type")
+  creationTime DateTime            @default(now()) @map("creation_time")
+  updateTime   DateTime            @updatedAt @map("update_time")
+  userMetadata Json                @default("{}") @map("user_metadata")
+  stage        Stage               @relation(fields: [stageId], references: [id], onDelete: Cascade)
+  stageId      String              @map("stage_id") @db.Uuid
+  attempts     Int                 @default(0)
+  maxAttempts  Int                 @default(0) @map("max_attempts")
+
+  @@map("task")
+}
+
+enum TaskOperationStatus {
+  PENDING     @map("Pending")
+  IN_PROGRESS @map("In-Progress")
+  COMPLETED   @map("Completed")
+  FAILED      @map("Failed")
+  ABORTED     @map("Aborted")
+  PAUSED      @map("Paused")
+  CREATED     @map("Created")
+  RETRIED     @map("Retried")
+
+  @@map("task_operation_status_enum")
+}
+
+enum TaskType {
+  TILE_SEEDING    @map("Tile-Seeding")
+  TILE_RENDERING  @map("Tile-Rendering")
+  PUBLISH_CATALOG @map("Publish-Catalog")
+  PUBLISH_LAYER   @map("Publish-Layer")
+  DEFAULT         @map("Default")
+
+  @@map("task_type_enum")
+}

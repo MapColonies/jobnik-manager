@@ -5,15 +5,16 @@ import { OpenapiViewerRouter } from '@map-colonies/openapi-express-viewer';
 import { getErrorHandlerMiddleware } from '@map-colonies/error-express-handler';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
 import { inject, injectable } from 'tsyringe';
-import { Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
 import httpLogger from '@map-colonies/express-access-log-middleware';
 import { getTraceContexHeaderMiddleware } from '@map-colonies/telemetry';
 import { collectMetricsExpressMiddleware } from '@map-colonies/telemetry/prom-metrics';
 import { Registry } from 'prom-client';
-import { ConfigType } from '@common/config';
+import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
-import { RESOURCE_NAME_ROUTER_SYMBOL } from './resourceName/routes/resourceNameRouter';
-import { ANOTHER_RESOURCE_ROUTER_SYMBOL } from './anotherResource/routes/anotherResourceRouter';
+import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
+import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
+import { TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
 
 @injectable()
 export class ServerBuilder {
@@ -23,8 +24,9 @@ export class ServerBuilder {
     @inject(SERVICES.CONFIG) private readonly config: ConfigType,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
-    @inject(RESOURCE_NAME_ROUTER_SYMBOL) private readonly resourceNameRouter: Router,
-    @inject(ANOTHER_RESOURCE_ROUTER_SYMBOL) private readonly anotherResourceRouter: Router
+    @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
+    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router,
+    @inject(TASK_ROUTER_SYMBOL) private readonly taskRouter: Router
   ) {
     this.serverInstance = express();
   }
@@ -47,8 +49,9 @@ export class ServerBuilder {
   }
 
   private buildRoutes(): void {
-    this.serverInstance.use('/resourceName', this.resourceNameRouter);
-    this.serverInstance.use('/anotherResource', this.anotherResourceRouter);
+    this.serverInstance.use('/jobs', this.jobRouter);
+    this.serverInstance.use('/stages', this.stageRouter);
+    this.serverInstance.use('/tasks', this.taskRouter);
     this.buildDocsRoutes();
   }
 

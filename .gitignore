@@ -110,3 +110,11 @@ dist
 # Jest
 jest_html_reporters.html
 reports
+
+# generated files
+src/db/prisma/generated
+
+# local values
+local-*.json
+local.json
+*myvalues*

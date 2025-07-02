@@ -18,7 +18,12 @@ module.exports = {
     '!**/controllers/**',
     '!**/routes/**',
     '!<rootDir>/src/*',
+    '!<rootDir>/src/db/createConnection.ts',
+    '!<rootDir>/src/db/prisma/generated/client/**',
+    '!<rootDir>/src/**/models/models.ts',
   ],
+
+  setupFilesAfterEnv: ['jest-extended/all'],
   coverageDirectory: '<rootDir>/coverage',
   reporters: [
     'default',
