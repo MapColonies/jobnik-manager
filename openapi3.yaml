@@ -1172,8 +1172,6 @@ components:
         - IN_PROGRESS
         - COMPLETED
         - FAILED
-        - ABORTED
-        - PAUSED
         - CREATED
         - RETRIED
       example: CREATED
@@ -1217,12 +1215,6 @@ components:
         failed:
           type: integer
           description: Number of tasks that encountered errors and could not be completed
-        aborted:
-          type: integer
-          description: Number of tasks manually stopped before completion
-        paused:
-          type: integer
-          description: Number of tasks temporarily suspended from execution
         created:
           type: integer
           description: Number of tasks in initial state before becoming pending
@@ -1237,8 +1229,6 @@ components:
         - inProgress
         - completed
         - failed
-        - aborted
-        - paused
         - created
         - retried
         - total

@@ -614,7 +614,7 @@ export type components = {
      * @example CREATED
      * @enum {string}
      */
-    taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED' | 'RETRIED';
+    taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CREATED' | 'RETRIED';
     /**
      * @description Category or type of job processing being performed, used for filtering and system behaviors
      * @example DEFAULT
@@ -642,10 +642,6 @@ export type components = {
       completed: number;
       /** @description Number of tasks that encountered errors and could not be completed */
       failed: number;
-      /** @description Number of tasks manually stopped before completion */
-      aborted: number;
-      /** @description Number of tasks temporarily suspended from execution */
-      paused: number;
       /** @description Number of tasks in initial state before becoming pending */
       created: number;
       /** @description Number of tasks scheduled for re-execution after failure */
