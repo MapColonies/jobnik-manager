@@ -411,7 +411,7 @@ describe('JobManager', () => {
       });
 
       describe('#BadPath', () => {
-        it('should reject change status to a non-existent task', async function () {
+        it('should reject changing status on a non-existent task', async function () {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(null);
 
           await expect(taskManager.updateStatus('someId', TaskOperationStatus.COMPLETED)).rejects.toThrow(tasksErrorMessages.taskNotFound);
