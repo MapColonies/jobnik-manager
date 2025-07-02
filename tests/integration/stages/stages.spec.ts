@@ -116,7 +116,7 @@ describe('stage', function () {
         );
 
         const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.ABORTED, xstate: abortedStageXstatePersistentSnapshot }],
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: abortedStageXstatePersistentSnapshot }],
           prisma
         );
 

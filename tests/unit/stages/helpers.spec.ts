@@ -8,8 +8,6 @@ describe('helpers', function () {
       inProgress: 0,
       completed: completed,
       failed: 0,
-      aborted: 0,
-      paused: 0,
       created: 0,
       retried: 0,
       total: total,
