@@ -27,6 +27,7 @@ import {
   convertPrismaToStageResponse,
   defaultStatusCounts,
   getCurrentPercentage,
+  getInitialXstate,
   summaryCountsMapper,
   taskOperationStatusWithTotal,
 } from './helper';
@@ -49,9 +50,7 @@ export class StageManager {
   ) {}
 
   public async addStage(jobId: string, stagePayload: StageCreateWithTasksModel): Promise<StageModel> {
-    const createStageActor = createActor(stageStateMachine).start();
-    const stagePersistenceSnapshot = createStageActor.getPersistedSnapshot();
-
+    const stagePersistenceSnapshot = getInitialXstate(stagePayload);
     const createTaskActor = createActor(taskStateMachine).start();
     const taskPersistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
@@ -68,7 +67,7 @@ export class StageManager {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
-    const { tasks: taskReq, type, ...bodyInput } = stagePayload;
+    const { tasks: taskReq, type, isWaiting, ...bodyInput } = stagePayload;
 
     let input: Prisma.StageCreateInput = {
       ...bodyInput,
@@ -78,7 +77,7 @@ export class StageManager {
         [summaryCountsMapper[taskOperationStatusWithTotal.CREATED]]: taskReq?.length ?? 0,
         [summaryCountsMapper[taskOperationStatusWithTotal.TOTAL]]: taskReq?.length ?? 0,
       },
-      status: StageOperationStatus.CREATED,
+      status: (isWaiting ?? false) ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
       job: {
         connect: {
           id: jobId,

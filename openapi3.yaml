@@ -1246,7 +1246,7 @@ components:
           type: array
           description: Optional array of stages to create with the job (required for PRE_DEFINED jobs)
           items:
-            $ref: '#/components/schemas/createStagePayload'
+            $ref: '#/components/schemas/createStagePayloadRequest'
       required:
         - data
         - userMetadata
@@ -1286,11 +1286,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/stageResponse'
+    createStagePayloadRequest:
+      allOf:
+        - $ref: '#/components/schemas/createStagePayload'
+        - type: object
+          properties:
+            isWaiting:
+              type: boolean
+              description: |
+                Optional flag indicating whether the stage should be created in a waiting state.
+                If true, the stage will not start processing immediately and will require
+                manual intervention to begin execution. Useful for staging workflows where
+                stages need to be prepared but not executed until all dependencies are met.
+              example: false
+          description: |
+            Input payload for creating a new processing stage.
+            Defines the stage type, custom configuration data, and user-defined metadata.
+            Used when adding stages to jobs or creating stages as part of job creation.
+            The isWaiting flag allows for creating stages that are not immediately active,
+            enabling more complex workflows where stages can be prepared in advance.
     createStagePayload:
-      description: |
-        Input payload for creating a new processing stage.
-        Defines the stage type, custom configuration data, and user-defined metadata.
-        Used when adding stages to jobs or creating stages as part of job creation.
       type: object
       properties:
         type:
@@ -1367,7 +1382,7 @@ components:
         for task execution by workers.
     createStageWithTasksPayload:
       allOf:
-        - $ref: '#/components/schemas/createStagePayload'
+        - $ref: '#/components/schemas/createStagePayloadRequest'
         - type: object
           description: |
             Extended stage creation payload that includes associated tasks to create
