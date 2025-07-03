@@ -5,7 +5,7 @@ import { JobPrismaObject } from '@src/jobs/models/models';
 import { PrismaTransaction } from '@src/db/types';
 
 type StageModel = components['schemas']['getStageResponse'];
-type StageCreateModel = components['schemas']['createStagePayload'];
+type StageCreateModel = components['schemas']['createStagePayloadRequest'];
 type StageCreateWithTasksModel = components['schemas']['createStageWithTasksPayload'];
 type StageCreateBody = StageCreateModel & { jobId: string; xstate: Snapshot<unknown> };
 type StageSummary = components['schemas']['summary'];

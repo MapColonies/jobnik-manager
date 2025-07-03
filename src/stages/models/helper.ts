@@ -1,7 +1,9 @@
+import { createActor, Snapshot } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
 import { convertArrayPrismaTaskToTaskResponse } from '@src/tasks/models/helper';
 import { createCamelCaseMapper } from '@src/common/utils/formatter';
-import { StageModel, StagePrismaObject, StageSummary } from './models';
+import { StageCreateWithTasksModel, StageModel, StagePrismaObject, StageSummary } from './models';
+import { stageStateMachine } from './stageStateMachine';
 
 const taskOperationStatusWithTotal = {
   ...TaskOperationStatus,
@@ -61,10 +63,26 @@ function getCurrentPercentage(stageSummary: StageSummary): number {
   return Math.floor((completed / total) * PERCENTAGE_MULTIPLIER);
 }
 
+/**
+ * This method is used to get the initial xstate snapshot for a stage.
+ * @param stage The stage object containing the initial state flag.
+ * @returns The initial xstate snapshot for the stage, Created as default or Wait if flag is true.
+ */
+function getInitialXstate(stage: StageCreateWithTasksModel): Snapshot<unknown> {
+  const createStageActor = createActor(stageStateMachine).start();
+
+  if (stage.isWaiting ?? false) {
+    createStageActor.send({ type: 'wait' });
+  }
+
+  return createStageActor.getPersistedSnapshot();
+}
+
 export {
   getCurrentPercentage,
   convertArrayPrismaStageToStageResponse,
   convertPrismaToStageResponse,
+  getInitialXstate,
   summaryCountsMapper,
   defaultStatusCounts,
   taskOperationStatusWithTotal,

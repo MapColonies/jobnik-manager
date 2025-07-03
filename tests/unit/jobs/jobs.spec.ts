@@ -41,6 +41,22 @@ describe('JobManager', () => {
           expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
         });
 
+        it('should create job with stage in WAITING status when isWaiting flag is true', async function () {
+          jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithStages);
+          const stagePayload = { data: stageEntity.data, type: stageEntity.name, userMetadata: stageEntity.userMetadata } satisfies StageCreateModel;
+
+          const createJobParams = {
+            name: jobEntityWithStages.name,
+            data: jobEntityWithStages.data,
+            userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
+            stages: [stagePayload],
+          } satisfies JobCreateModel;
+
+          const job = await jobManager.createJob({ ...createJobParams, stages: [{ ...stagePayload, isWaiting: true }] });
+          expect(job).toMatchObject(createJobParams);
+          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
+        });
+
         it('should return created job formatted with empty stage array', async function () {
           jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithEmptyStagesArr);
 
