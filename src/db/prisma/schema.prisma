@@ -37,7 +37,6 @@ enum JobOperationStatus {
   COMPLETED   @map("Completed")
   FAILED      @map("Failed")
   ABORTED     @map("Aborted")
-  WAITING     @map("Waiting")
   CREATED     @map("Created")
   PAUSED      @map("Paused")
 

@@ -2,7 +2,7 @@
 import { setup } from 'xstate';
 import { JobOperationStatus } from '@prismaClient';
 
-type ChangeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
+type ChangeStatusOperations = 'pend' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
 
 const OperationStatusMapper: { [key in JobOperationStatus]: ChangeStatusOperations } = {
   [JobOperationStatus.PENDING]: 'pend',
@@ -10,7 +10,6 @@ const OperationStatusMapper: { [key in JobOperationStatus]: ChangeStatusOperatio
   [JobOperationStatus.COMPLETED]: 'complete',
   [JobOperationStatus.FAILED]: 'fail',
   [JobOperationStatus.ABORTED]: 'abort',
-  [JobOperationStatus.WAITING]: 'wait',
   [JobOperationStatus.CREATED]: 'create',
   [JobOperationStatus.PAUSED]: 'pause',
 };
@@ -19,7 +18,6 @@ const jobStateMachine = setup({
   types: {
     events: {} as
       | { type: 'pend' }
-      | { type: 'wait' }
       | { type: 'pause' }
       | { type: 'abort' }
       | { type: 'complete' }
@@ -35,14 +33,12 @@ const jobStateMachine = setup({
     CREATED: {
       on: {
         pend: { target: 'PENDING' },
-        wait: { target: 'WAITING' },
         pause: { target: 'PAUSED' },
         abort: { target: 'ABORTED' },
       },
     },
     PENDING: {
       on: {
-        wait: { target: 'WAITING' },
         process: { target: 'IN_PROGRESS' },
         abort: { target: 'ABORTED' },
         pause: { target: 'PAUSED' },
@@ -54,20 +50,12 @@ const jobStateMachine = setup({
         fail: { target: 'FAILED' },
         abort: { target: 'ABORTED' },
         pause: { target: 'PAUSED' },
-        wait: { target: 'WAITING' },
       },
     },
     PAUSED: {
       on: {
         pend: { target: 'PENDING' },
-        wait: { target: 'WAITING' },
         process: { target: 'IN_PROGRESS' },
-        abort: { target: 'ABORTED' },
-      },
-    },
-    WAITING: {
-      on: {
-        pend: { target: 'PENDING' },
         abort: { target: 'ABORTED' },
       },
     },
