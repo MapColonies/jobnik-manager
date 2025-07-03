@@ -49,7 +49,6 @@ enum StageOperationStatus {
   COMPLETED   @map("Completed")
   FAILED      @map("Failed")
   ABORTED     @map("Aborted")
-  PAUSED      @map("Paused")
   WAITING     @map("Waiting")
   CREATED     @map("Created")
 

@@ -2,7 +2,7 @@
 import { setup } from 'xstate';
 import { StageOperationStatus } from '@prismaClient';
 
-type changeStatusOperations = 'pend' | 'wait' | 'pause' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
+type changeStatusOperations = 'pend' | 'wait' | 'abort' | 'complete' | 'process' | 'fail' | 'create';
 
 const OperationStatusMapper: { [key in StageOperationStatus]: changeStatusOperations } = {
   [StageOperationStatus.PENDING]: 'pend',
@@ -12,7 +12,6 @@ const OperationStatusMapper: { [key in StageOperationStatus]: changeStatusOperat
   [StageOperationStatus.ABORTED]: 'abort',
   [StageOperationStatus.WAITING]: 'wait',
   [StageOperationStatus.CREATED]: 'create',
-  [StageOperationStatus.PAUSED]: 'pause',
 };
 
 const stageStateMachine = setup({
@@ -20,7 +19,6 @@ const stageStateMachine = setup({
     events: {} as
       | { type: 'pend' }
       | { type: 'wait' }
-      | { type: 'pause' }
       | { type: 'abort' }
       | { type: 'complete' }
       | { type: 'process' }
@@ -35,7 +33,6 @@ const stageStateMachine = setup({
       on: {
         pend: { target: 'PENDING' },
         wait: { target: 'WAITING' },
-        pause: { target: 'PAUSED' },
         abort: { target: 'ABORTED' },
       },
     },
@@ -44,7 +41,6 @@ const stageStateMachine = setup({
         wait: { target: 'WAITING' },
         process: { target: 'IN_PROGRESS' },
         abort: { target: 'ABORTED' },
-        pause: { target: 'PAUSED' },
       },
     },
     IN_PROGRESS: {
@@ -52,16 +48,7 @@ const stageStateMachine = setup({
         complete: { target: 'COMPLETED' },
         fail: { target: 'FAILED' },
         abort: { target: 'ABORTED' },
-        pause: { target: 'PAUSED' },
         wait: { target: 'WAITING' },
-      },
-    },
-    PAUSED: {
-      on: {
-        pend: { target: 'PENDING' },
-        wait: { target: 'WAITING' },
-        process: { target: 'IN_PROGRESS' },
-        abort: { target: 'ABORTED' },
       },
     },
     WAITING: {

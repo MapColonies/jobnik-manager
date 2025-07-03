@@ -606,10 +606,10 @@ export type components = {
      * @example CREATED
      * @enum {string}
      */
-    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'WAITING' | 'CREATED';
+    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING' | 'CREATED';
     /**
      * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
-     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     *     Finite states from which no further transitions are possible include: COMPLETED and FAILED.
      *
      * @example CREATED
      * @enum {string}
