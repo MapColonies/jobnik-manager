@@ -53,11 +53,11 @@ export class JobManager {
       if (stagesReq !== undefined && stagesReq.length > 0) {
         const stages: StageCreateModel[] = stagesReq;
         stagesInput = stages.map((stage) => {
-          const { type, isWaiting, ...rest } = stage;
+          const { type, startAsWaiting, ...rest } = stage;
           const stageFull = Object.assign(rest, {
             xstate: getInitialXstate(stage),
             name: type,
-            status: (isWaiting ?? false) ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
+            status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
             summary: defaultStatusCounts,
           });
           return stageFull;

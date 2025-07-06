@@ -158,18 +158,20 @@ describe('job', function () {
         });
       });
 
-      it('should create job with stage in WAITING status when isWaiting flag is true', async function () {
+      it('should create job with stage in WAITING status when startAsWaiting flag is true', async function () {
         const stageWithAwaitingStatus = {
           ...createJobRequestWithStagesBody.stages[0],
-          isWaiting: true,
+          startAsWaiting: true,
           type: JobName.DEFAULT,
           data: {},
           userMetadata: {},
         };
+
         const jobRequest = {
           ...createJobRequestWithStagesBody,
           stages: [stageWithAwaitingStatus],
         };
+
         const response = await requestSender.createJob({
           requestBody: jobRequest,
         });
@@ -183,10 +185,10 @@ describe('job', function () {
         expect(response.body.stages![0]).toHaveProperty('status', StageOperationStatus.WAITING);
       });
 
-      it('should create job with stage in CREATED status when isWaiting flag is false', async function () {
+      it('should create job with stage in CREATED status when startAsWaiting flag is false', async function () {
         const stageWithAwaitingStatus = {
           ...createJobRequestWithStagesBody.stages[0],
-          isWaiting: false,
+          startAsWaiting: false,
           type: JobName.DEFAULT,
           data: {},
           userMetadata: {},

@@ -683,7 +683,7 @@ export type components = {
        *
        * @example false
        */
-      isWaiting?: boolean;
+      startAsWaiting?: boolean;
     };
     createStagePayload: {
       type: components['schemas']['taskType'];

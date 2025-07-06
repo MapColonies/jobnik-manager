@@ -71,7 +71,7 @@ function getCurrentPercentage(stageSummary: StageSummary): number {
 function getInitialXstate(stage: StageCreateWithTasksModel): Snapshot<unknown> {
   const createStageActor = createActor(stageStateMachine).start();
 
-  if (stage.isWaiting ?? false) {
+  if (stage.startAsWaiting === true) {
     createStageActor.send({ type: 'wait' });
   }
 

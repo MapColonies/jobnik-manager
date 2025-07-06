@@ -270,7 +270,7 @@ describe('JobManager', () => {
           expect(stagesResponse).toMatchObject(Object.assign(rest, { type: name }));
         });
 
-        it('should add stage with WAITING status when isWaiting flag is true', async function () {
+        it('should add stage with WAITING status when startAsWaiting flag is true', async function () {
           const uniqueJobId = faker.string.uuid();
           const uniqueStageId = faker.string.uuid();
           const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
@@ -281,7 +281,7 @@ describe('JobManager', () => {
             data: {},
             type: StageName.DEFAULT,
             userMetadata: { someData: '123' },
-            isWaiting: true,
+            startAsWaiting: true,
           } satisfies StageCreateWithTasksModel;
 
           const anotherStageEntity = createStageEntity({

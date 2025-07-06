@@ -627,14 +627,14 @@ describe('stage', function () {
         expect(getTaskOfStagResponse.body).toMatchObject(createTasksPayload);
       });
 
-      it('should create a stage with WAITING status when isWaiting flag is true', async function () {
+      it('should create a stage with WAITING status when startAsWaiting flag is true', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
 
         const createStagesPayload = {
           data: {},
           type: StageName.DEFAULT,
           userMetadata: {},
-          isWaiting: true,
+          startAsWaiting: true,
         } satisfies StageCreateWithTasksModel;
 
         const addStageResponse = await requestSender.addStage({
@@ -649,14 +649,14 @@ describe('stage', function () {
         });
       });
 
-      it('should create a stage with CREATED status when isWaiting flag is false', async function () {
+      it('should create a stage with CREATED status when startAsWaiting flag is false', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
 
         const createStagesPayload = {
           data: {},
           type: StageName.DEFAULT,
           userMetadata: {},
-          isWaiting: false,
+          startAsWaiting: false,
         } satisfies StageCreateWithTasksModel;
 
         const addStageResponse = await requestSender.addStage({

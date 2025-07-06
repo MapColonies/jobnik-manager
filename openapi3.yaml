@@ -1291,7 +1291,7 @@ components:
         - $ref: '#/components/schemas/createStagePayload'
         - type: object
           properties:
-            isWaiting:
+            startAsWaiting:
               type: boolean
               description: |
                 Optional flag indicating whether the stage should be created in a waiting state.
@@ -1303,7 +1303,7 @@ components:
             Input payload for creating a new processing stage.
             Defines the stage type, custom configuration data, and user-defined metadata.
             Used when adding stages to jobs or creating stages as part of job creation.
-            The isWaiting flag allows for creating stages that are not immediately active,
+            The startAsWaiting flag allows for creating stages that are not immediately active,
             enabling more complex workflows where stages can be prepared in advance.
     createStagePayload:
       type: object
