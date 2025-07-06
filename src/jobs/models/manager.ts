@@ -2,10 +2,10 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
-import { Prisma, StageOperationStatus } from '@prismaClient';
+import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
-import { StageCreateModel } from '@src/stages/models/models';
-import { convertArrayPrismaStageToStageResponse, defaultStatusCounts, getInitialXstate } from '@src/stages/models/helper';
+import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
+import type { StagePrismaObject } from '@src/stages/models/models';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
@@ -46,29 +46,8 @@ export class JobManager {
       const createJobActor = createActor(jobStateMachine).start();
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-      let input = undefined;
-      let stagesInput = undefined;
-      const { stages: stagesReq, ...bodyInput } = body;
-
-      if (stagesReq !== undefined && stagesReq.length > 0) {
-        const stages: StageCreateModel[] = stagesReq;
-        stagesInput = stages.map((stage) => {
-          const { type, startAsWaiting, ...rest } = stage;
-          const stageFull = Object.assign(rest, {
-            xstate: getInitialXstate(stage),
-            name: type,
-            status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
-            summary: defaultStatusCounts,
-          });
-          return stageFull;
-        });
-
-        input = { ...bodyInput, xstate: persistenceSnapshot, stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
-      } else {
-        input = { ...bodyInput, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
-      }
-
-      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: true } }));
+      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: false } }));
 
       // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
@@ -207,13 +186,16 @@ export class JobManager {
   }
 
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
-    const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, updateTime, xstate, ...rest } = prismaObjects;
+
+    const hasStageArray = 'stage' in prismaObjects && Array.isArray(prismaObjects.stage);
+
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
       userMetadata: userMetadata as { [key: string]: unknown },
       updateTime: updateTime.toISOString(),
-      stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
+      stages: hasStageArray ? convertArrayPrismaStageToStageResponse(prismaObjects.stage as StagePrismaObject[]) : undefined,
     };
 
     return Object.assign(rest, transformedFields);

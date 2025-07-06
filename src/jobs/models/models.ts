@@ -6,6 +6,10 @@ type JobCreateModel = components['schemas']['createJobPayload'];
 type JobCreateResponse = components['schemas']['createJobResponse'];
 type JobGetParams = components['parameters'];
 type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
-type JobPrismaObject = Prisma.JobGetPayload<{ include: { stage: boolean } }>;
+
+type JobPrismaObject =
+  | Prisma.JobGetPayload<{ include: { stage: true } }>
+  | Prisma.JobGetPayload<{ include: { stage: false } }>
+  | Prisma.JobGetPayload<object>;
 
 export type { JobModel, JobCreateModel, JobCreateResponse, JobGetParams, JobFindCriteriaArg, JobPrismaObject };

@@ -658,8 +658,6 @@ export type components = {
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
       userMetadata: components['schemas']['userMetadata'];
-      /** @description Optional array of stages to create with the job (required for PRE_DEFINED jobs) */
-      stages?: components['schemas']['createStagePayloadRequest'][];
     };
     /** @description job Response model */
     jobResponse: {
@@ -764,7 +762,6 @@ export type components = {
       userMetadata?: components['schemas']['userMetadata'];
       priority?: components['schemas']['priority'];
       name?: components['schemas']['jobName'];
-      stages?: components['schemas']['stageResponse'][];
     };
     /** @description Standard error response structure used when API operations encounter problems.
      *     Contains a human-readable message and optional stack trace for debugging.
