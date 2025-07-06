@@ -9,7 +9,7 @@ import type { StagePrismaObject } from '@src/stages/models/models';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
-import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
+import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject, JobPrismaObjectWithStages } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -185,17 +185,15 @@ export class JobManager {
     return job;
   }
 
-  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
-    const { data, creationTime, userMetadata, updateTime, xstate, ...rest } = prismaObjects;
-
-    const hasStageArray = 'stage' in prismaObjects && Array.isArray(prismaObjects.stage);
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObjectWithStages): JobModel {
+    const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
 
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
       userMetadata: userMetadata as { [key: string]: unknown },
       updateTime: updateTime.toISOString(),
-      stages: hasStageArray ? convertArrayPrismaStageToStageResponse(prismaObjects.stage as StagePrismaObject[]) : undefined,
+      stages: stage ? convertArrayPrismaStageToStageResponse(stage) : undefined,
     };
 
     return Object.assign(rest, transformedFields);
