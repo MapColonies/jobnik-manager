@@ -270,6 +270,37 @@ describe('JobManager', () => {
           expect(stagesResponse).toMatchObject(Object.assign(rest, { type: name }));
         });
 
+        it('should add stage with WAITING status when startAsWaiting flag is true', async function () {
+          const uniqueJobId = faker.string.uuid();
+          const uniqueStageId = faker.string.uuid();
+          const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
+
+          const anotherStagePayload = {
+            data: {},
+            type: StageName.DEFAULT,
+            userMetadata: { someData: '123' },
+            startAsWaiting: true,
+          } satisfies StageCreateWithTasksModel;
+
+          const anotherStageEntity = createStageEntity({
+            jobId: uniqueJobId,
+            id: uniqueStageId,
+            userMetadata: anotherStagePayload.userMetadata,
+            name: anotherStagePayload.type,
+          });
+
+          jest.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
+
+          const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
+
+          // Extract unnecessary fields from the stage object and assemble the expected result
+          const { xstate, name, task, ...rest } = anotherStageEntity;
+
+          expect(stagesResponse).toMatchObject(Object.assign(rest, { type: name }));
+        });
+
         it('should add new stage with included tasks to existing job stage', async function () {
           const uniqueJobId = faker.string.uuid();
           const uniqueStageId = faker.string.uuid();

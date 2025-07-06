@@ -571,7 +571,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.CREATED,
-          body: createStagesPayload,
+          body: { ...createStagesPayload, status: StageOperationStatus.CREATED },
         });
       });
 
@@ -625,6 +625,50 @@ describe('stage', function () {
         });
 
         expect(getTaskOfStagResponse.body).toMatchObject(createTasksPayload);
+      });
+
+      it('should create a stage with WAITING status when startAsWaiting flag is true', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: StageName.DEFAULT,
+          userMetadata: {},
+          startAsWaiting: true,
+        } satisfies StageCreateWithTasksModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: { status: StageOperationStatus.WAITING },
+        });
+      });
+
+      it('should create a stage with CREATED status when startAsWaiting flag is false', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: StageName.DEFAULT,
+          userMetadata: {},
+          startAsWaiting: false,
+        } satisfies StageCreateWithTasksModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: { status: StageOperationStatus.CREATED },
+        });
       });
     });
 

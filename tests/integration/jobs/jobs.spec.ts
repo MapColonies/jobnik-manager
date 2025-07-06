@@ -158,6 +158,58 @@ describe('job', function () {
         });
       });
 
+      it('should create job with stage in WAITING status when startAsWaiting flag is true', async function () {
+        const stageWithAwaitingStatus = {
+          ...createJobRequestWithStagesBody.stages[0],
+          startAsWaiting: true,
+          type: JobName.DEFAULT,
+          data: {},
+          userMetadata: {},
+        };
+
+        const jobRequest = {
+          ...createJobRequestWithStagesBody,
+          stages: [stageWithAwaitingStatus],
+        };
+
+        const response = await requestSender.createJob({
+          requestBody: jobRequest,
+        });
+
+        expect(response).toSatisfyApiSpec();
+
+        if (response.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(response.body.stages![0]).toHaveProperty('status', StageOperationStatus.WAITING);
+      });
+
+      it('should create job with stage in CREATED status when startAsWaiting flag is false', async function () {
+        const stageWithAwaitingStatus = {
+          ...createJobRequestWithStagesBody.stages[0],
+          startAsWaiting: false,
+          type: JobName.DEFAULT,
+          data: {},
+          userMetadata: {},
+        };
+        const jobRequest = {
+          ...createJobRequestWithStagesBody,
+          stages: [stageWithAwaitingStatus],
+        };
+        const response = await requestSender.createJob({
+          requestBody: jobRequest,
+        });
+
+        expect(response).toSatisfyApiSpec();
+
+        if (response.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(response.body.stages![0]).toHaveProperty('status', StageOperationStatus.CREATED);
+      });
+
       it('should return 200 status code and create the job without stages array', async function () {
         const createJobWithoutStagesRequestBody = { ...createJobRequestBody, data: {} };
 

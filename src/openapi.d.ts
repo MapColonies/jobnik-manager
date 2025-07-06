@@ -659,7 +659,7 @@ export type components = {
       priority?: components['schemas']['priority'];
       userMetadata: components['schemas']['userMetadata'];
       /** @description Optional array of stages to create with the job (required for PRE_DEFINED jobs) */
-      stages?: components['schemas']['createStagePayload'][];
+      stages?: components['schemas']['createStagePayloadRequest'][];
     };
     /** @description job Response model */
     jobResponse: {
@@ -674,10 +674,17 @@ export type components = {
       userMetadata: components['schemas']['userMetadata'];
       stages?: components['schemas']['stageResponse'][];
     };
-    /** @description Input payload for creating a new processing stage.
-     *     Defines the stage type, custom configuration data, and user-defined metadata.
-     *     Used when adding stages to jobs or creating stages as part of job creation.
-     *      */
+    createStagePayloadRequest: components['schemas']['createStagePayload'] & {
+      /**
+       * @description Optional flag indicating whether the stage should be created in a waiting state.
+       *     If true, the stage will not start processing immediately and will require
+       *     manual intervention to begin execution. Useful for staging workflows where
+       *     stages need to be prepared but not executed until all dependencies are met.
+       *
+       * @example false
+       */
+      startAsWaiting?: boolean;
+    };
     createStagePayload: {
       type: components['schemas']['taskType'];
       data: components['schemas']['stagePayload'];
@@ -715,7 +722,7 @@ export type components = {
     taskPayload: {
       [key: string]: unknown;
     };
-    createStageWithTasksPayload: components['schemas']['createStagePayload'] & {
+    createStageWithTasksPayload: components['schemas']['createStagePayloadRequest'] & {
       tasks?: components['schemas']['createTaskPayload'][];
     };
     /** @description Input payload for creating a new task within a stage.
