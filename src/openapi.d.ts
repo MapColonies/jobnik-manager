@@ -720,9 +720,6 @@ export type components = {
     taskPayload: {
       [key: string]: unknown;
     };
-    createStageWithTasksPayload: components['schemas']['createStagePayloadRequest'] & {
-      tasks?: components['schemas']['createTaskPayload'][];
-    };
     /** @description Input payload for creating a new task within a stage.
      *     Contains task type, operational parameters, and optional retry configuration.
      *     Used when adding tasks to existing stages.
@@ -1267,7 +1264,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['createStageWithTasksPayload'];
+        'application/json': components['schemas']['createStagePayloadRequest'];
       };
     };
     responses: {

@@ -11,15 +11,14 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { StageCreateWithTasksModel } from '@src/stages/models/models';
+import { StageCreateModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
-import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
-import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
+import { addJobRecord, addStageRecord, createStageBody } from './helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -54,7 +53,7 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: job.id,
           },
           prisma
@@ -67,9 +66,9 @@ describe('stage', function () {
             {
               jobId: job.id,
               status: StageOperationStatus.CREATED,
-              type: createStageWithoutTaskBody.name,
-              data: createStageWithoutTaskBody.data,
-              userMetadata: createStageWithoutTaskBody.userMetadata,
+              type: createStageBody.name,
+              data: createStageBody.data,
+              userMetadata: createStageBody.userMetadata,
             },
           ],
         });
@@ -89,7 +88,7 @@ describe('stage', function () {
         const createdJobId = job.id;
         await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -120,7 +119,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             summary: { ...defaultStatusCounts, total: 1, pending: 1 },
             jobId: job.id,
             status: StageOperationStatus.PENDING,
@@ -154,7 +153,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             summary: { ...defaultStatusCounts, total: 1, pending: 1 },
             jobId: job.id,
             status: StageOperationStatus.PENDING,
@@ -218,7 +217,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -239,14 +238,21 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and return the stage with related tasks', async function () {
-        const stagePayload = {
-          data: {},
-          type: StageName.DEFAULT,
-          userMetadata: {},
-          tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
-        } satisfies StageCreateWithTasksModel;
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
 
-        const stage = await createStageWithJob(stagePayload, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
+          prisma
+        );
 
         const getStageResponse = await requestSender.getStageById({
           pathParams: { stageId: stage.id },
@@ -264,14 +270,21 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and return the stage without related tasks', async function () {
-        const stagePayload = {
-          data: {},
-          type: StageName.DEFAULT,
-          userMetadata: {},
-          tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
-        } satisfies StageCreateWithTasksModel;
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
 
-        const stage = await createStageWithJob(stagePayload, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
+          prisma
+        );
 
         const getStageResponse = await requestSender.getStageById({
           pathParams: { stageId: stage.id },
@@ -330,7 +343,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -348,15 +361,21 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and return the stages with related tasks', async function () {
-        const stagePayload = {
-          data: {},
-          type: StageName.DEFAULT,
-          userMetadata: {},
-          tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
-        } satisfies StageCreateWithTasksModel;
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
 
-        const stage = await createStageWithJob(stagePayload, prisma);
-        const createdJobId = stage.jobId;
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
+          prisma
+        );
 
         const getStageResponse = await requestSender.getStageByJobId({
           pathParams: { jobId: createdJobId },
@@ -374,15 +393,21 @@ describe('stage', function () {
       });
 
       it('should return 200 status code and return the stages without related tasks', async function () {
-        const stagePayload = {
-          data: {},
-          type: StageName.DEFAULT,
-          userMetadata: {},
-          tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
-        } satisfies StageCreateWithTasksModel;
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
 
-        const stage = await createStageWithJob(stagePayload, prisma);
-        const createdJobId = stage.jobId;
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
+          prisma
+        );
 
         const getStageResponse = await requestSender.getStageByJobId({
           pathParams: { jobId: createdJobId },
@@ -454,7 +479,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -510,7 +535,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -545,7 +570,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: createdJobId,
           },
           prisma
@@ -585,7 +610,7 @@ describe('stage', function () {
           data: {},
           type: StageName.DEFAULT,
           userMetadata: {},
-        } satisfies StageCreateWithTasksModel;
+        } satisfies StageCreateModel;
 
         const addStageResponse = await requestSender.addStage({
           requestBody: createStagesPayload,
@@ -599,37 +624,6 @@ describe('stage', function () {
         });
       });
 
-      it('should return 200 status code and create the related stage with related tasks for current job', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-
-        const createTasksPayload = [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }] satisfies TaskCreateModel[];
-
-        const createStagesPayload = {
-          data: {},
-          type: StageName.DEFAULT,
-          userMetadata: {},
-        } satisfies StageCreateWithTasksModel;
-
-        const response = await requestSender.addStage({
-          requestBody: { ...createStagesPayload, tasks: createTasksPayload },
-          pathParams: { jobId: job.id },
-        });
-
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        const getTaskOfStagResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: response.body.id } });
-
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({
-          status: StatusCodes.CREATED,
-          body: { ...createStagesPayload },
-        });
-
-        expect(getTaskOfStagResponse.body).toMatchObject(createTasksPayload);
-      });
-
       it('should create a stage with WAITING status when startAsWaiting flag is true', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
 
@@ -638,7 +632,7 @@ describe('stage', function () {
           type: StageName.DEFAULT,
           userMetadata: {},
           startAsWaiting: true,
-        } satisfies StageCreateWithTasksModel;
+        } satisfies StageCreateModel;
 
         const addStageResponse = await requestSender.addStage({
           requestBody: createStagesPayload,
@@ -660,7 +654,7 @@ describe('stage', function () {
           type: StageName.DEFAULT,
           userMetadata: {},
           startAsWaiting: false,
-        } satisfies StageCreateWithTasksModel;
+        } satisfies StageCreateModel;
 
         const addStageResponse = await requestSender.addStage({
           requestBody: createStagesPayload,
@@ -684,7 +678,7 @@ describe('stage', function () {
             type: 'DEFAULT',
             data: {},
             userMetadata: {},
-          } satisfies StageCreateWithTasksModel,
+          } satisfies StageCreateModel,
           pathParams: { jobId: 'someInvalidJobId' },
         });
 
@@ -699,26 +693,12 @@ describe('stage', function () {
 
         const addStageResponse = await requestSender.addStage({
           pathParams: { jobId: job.id },
-          requestBody: {} as unknown as StageCreateWithTasksModel,
+          requestBody: {} as unknown as StageCreateModel,
         });
 
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/body must have required property 'data'/) as string },
-        });
-      });
-
-      it('should return 400 when the request contains an incorrect task nested body', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
-
-        const addStageResponse = await requestSender.addStage({
-          pathParams: { jobId: job.id },
-          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT, tasks: {} } as unknown as StageCreateWithTasksModel,
-        });
-
-        expect(addStageResponse).toMatchObject({
-          status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/tasks must be array/) as string },
         });
       });
 
@@ -744,7 +724,7 @@ describe('stage', function () {
           data: {},
           type: TaskType.DEFAULT,
           userMetadata: {},
-        } satisfies StageCreateWithTasksModel;
+        } satisfies StageCreateModel;
 
         const response = await requestSender.addStage({
           requestBody: createStagesPayload,
@@ -784,7 +764,7 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: job.id,
           },
           prisma
@@ -813,7 +793,7 @@ describe('stage', function () {
 
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: job.id,
             status: StageOperationStatus.PENDING,
             xstate: pendingStageXstatePersistentSnapshot,
@@ -844,7 +824,7 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const stage = await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             jobId: job.id,
           },
           prisma

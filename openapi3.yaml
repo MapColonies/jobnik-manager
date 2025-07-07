@@ -394,7 +394,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/createStageWithTasksPayload'
+              $ref: '#/components/schemas/createStagePayloadRequest'
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -1375,18 +1375,6 @@ components:
         Custom task configuration data containing operation-specific parameters.
         The schema varies based on task type and contains all necessary information
         for task execution by workers.
-    createStageWithTasksPayload:
-      allOf:
-        - $ref: '#/components/schemas/createStagePayloadRequest'
-        - type: object
-          description: |
-            Extended stage creation payload that includes associated tasks to create
-            alongside the stage.
-          properties:
-            tasks:
-              type: array
-              items:
-                $ref: '#/components/schemas/createTaskPayload'
     createTaskPayload:
       type: object
       description: |

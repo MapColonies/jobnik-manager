@@ -2,19 +2,17 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { PrismaClient } from '@prismaClient';
-import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { JobOperationStatus, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { TaskCreateModel } from '@src/tasks/models/models';
-import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { PrismaTransaction } from '@src/db/types';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
-  StageCreateWithTasksModel,
+  StageCreateModel,
   StageEntityOptions,
   StageFindCriteriaArg,
   StageIncludingJob,
@@ -28,8 +26,6 @@ import {
   defaultStatusCounts,
   getCurrentPercentage,
   getInitialXstate,
-  summaryCountsMapper,
-  taskOperationStatusWithTotal,
 } from './helper';
 import { OperationStatusMapper, stageStateMachine } from './stageStateMachine';
 
@@ -49,10 +45,8 @@ export class StageManager {
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
-  public async addStage(jobId: string, stagePayload: StageCreateWithTasksModel): Promise<StageModel> {
+  public async addStage(jobId: string, stagePayload: StageCreateModel): Promise<StageModel> {
     const stagePersistenceSnapshot = getInitialXstate(stagePayload);
-    const createTaskActor = createActor(taskStateMachine).start();
-    const taskPersistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
     const job = await this.jobManager.getJobEntityById(jobId);
 
@@ -67,16 +61,12 @@ export class StageManager {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
-    const { tasks: taskReq, type, startAsWaiting, ...bodyInput } = stagePayload;
+    const { type, startAsWaiting, ...bodyInput } = stagePayload;
 
-    let input: Prisma.StageCreateInput = {
+    const input: Prisma.StageCreateInput = {
       ...bodyInput,
       name: type,
-      summary: {
-        ...defaultStatusCounts,
-        [summaryCountsMapper[taskOperationStatusWithTotal.CREATED]]: taskReq?.length ?? 0,
-        [summaryCountsMapper[taskOperationStatusWithTotal.TOTAL]]: taskReq?.length ?? 0,
-      },
+      summary: defaultStatusCounts,
       status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
       job: {
         connect: {
@@ -86,23 +76,8 @@ export class StageManager {
       xstate: stagePersistenceSnapshot,
     };
 
-    // will add also task creation, if exists in request
-    if (taskReq !== undefined && taskReq.length > 0) {
-      const tasks: TaskCreateModel[] = taskReq;
-      const tasksInput = tasks.map((task) => {
-        const taskFull = { ...task, xstate: taskPersistenceSnapshot, status: TaskOperationStatus.CREATED };
-
-        return taskFull;
-      });
-
-      input = { ...input, task: { create: tasksInput } } satisfies Prisma.StageCreateInput;
-    }
-
     const queryBody: Prisma.StageCreateArgs = {
       data: input,
-      include: {
-        task: false,
-      },
     };
 
     try {
