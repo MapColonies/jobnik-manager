@@ -16,7 +16,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { addJobRecord, addStageRecord, createStageWithJob, createStageWithoutTaskBody } from './helpers';
@@ -130,7 +130,7 @@ describe('stage', function () {
         );
 
         const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
           prisma
         );
 

@@ -171,10 +171,10 @@ export class JobManager {
    * @param options Configuration options for the query
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById<TIncludeStages extends boolean = false>(
+  public async getJobEntityById<IncludeStages extends boolean = false>(
     jobId: string,
-    options: { includeStages?: TIncludeStages; tx?: PrismaTransaction } = {}
-  ): Promise<JobPrismaObject<TIncludeStages> | null> {
+    options: { includeStages?: IncludeStages; tx?: PrismaTransaction } = {}
+  ): Promise<JobPrismaObject<IncludeStages> | null> {
     const prisma = options.tx ?? this.prisma;
     const queryBody = {
       where: {
@@ -185,7 +185,7 @@ export class JobManager {
 
     const job = await prisma.job.findUnique(queryBody);
 
-    return job as JobPrismaObject<TIncludeStages> | null;
+    return job as JobPrismaObject<IncludeStages> | null;
   }
 
   /**
