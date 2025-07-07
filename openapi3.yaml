@@ -13,7 +13,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/jobNameQueryParam'
         - $ref: '#/components/parameters/fromDate'
-        - $ref: '#/components/parameters/tillDate'
+        - $ref: '#/components/parameters/endDate'
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve jobs matching specified criteria
@@ -737,7 +737,7 @@ paths:
       - $ref: '#/components/parameters/paramStageId'
       - $ref: '#/components/parameters/paramTaskType'
       - $ref: '#/components/parameters/fromDate'
-      - $ref: '#/components/parameters/tillDate'
+      - $ref: '#/components/parameters/endDate'
       - $ref: '#/components/parameters/paramsTaskStatus'
     get:
       operationId: getTasksByCriteria
@@ -1019,9 +1019,9 @@ components:
       schema:
         type: string
         format: date-time
-    tillDate:
+    endDate:
       in: query
-      name: till_date
+      name: end_date
       description: Filter results by update time, ending at this date/time
       required: false
       schema:
