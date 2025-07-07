@@ -20,11 +20,11 @@ export type paths = {
     get: operations['findJobs'];
     put?: never;
     /**
-     * Create a new job with optional stages
-     * @description Creates a new job in the system with user-defined configuration.
-     *     Supports customizable priorities.
+     * Create a new job with configuration and metadata
+     * @description Creates a new job in the system with user-defined configuration and metadata.
+     *     Supports customizable priorities and job-specific data payloads.
      *
-     *     The job will be created with an initial default status of PENDING and can be tracked
+     *     The job will be created with an initial status of CREATED and can be tracked
      *     throughout its lifecycle using the returned job ID.
      *
      */
