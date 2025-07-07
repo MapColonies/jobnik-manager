@@ -27,7 +27,7 @@ export class JobManager {
           AND: {
             name: { equals: params.job_name },
             priority: { equals: params.priority },
-            creationTime: { gte: params.from_date, lte: params.till_date },
+            creationTime: { gte: params.from_date, lte: params.end_date },
           },
         },
         include: { stage: params.should_return_stages },

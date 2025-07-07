@@ -144,7 +144,7 @@ export class TaskManager {
             stageId: { equals: params.stage_id },
             type: { equals: params.task_type },
             status: { equals: params.status },
-            creationTime: { gte: params.from_date, lte: params.till_date },
+            creationTime: { gte: params.from_date, lte: params.end_date },
           },
         },
       };

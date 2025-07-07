@@ -401,7 +401,7 @@ export type paths = {
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
         /** @description Filter results by update time, ending at this date/time */
-        till_date?: components['parameters']['tillDate'];
+        end_date?: components['parameters']['endDate'];
         /** @description Filter tasks by their operational status */
         status?: components['parameters']['paramsTaskStatus'];
       };
@@ -807,7 +807,7 @@ export type components = {
     /** @description Filter results by update time, starting from this date/time */
     fromDate: string;
     /** @description Filter results by update time, ending at this date/time */
-    tillDate: string;
+    endDate: string;
     /** @description When true, includes stage data in the response */
     includeStages: components['schemas']['returnStage'];
     /** @description When true, includes task data in the response */
@@ -841,7 +841,7 @@ export interface operations {
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
         /** @description Filter results by update time, ending at this date/time */
-        till_date?: components['parameters']['tillDate'];
+        end_date?: components['parameters']['endDate'];
         /** @description Filter jobs by their priority level */
         priority?: components['parameters']['priority'];
         /** @description When true, includes stage data in the response */
@@ -1687,7 +1687,7 @@ export interface operations {
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
         /** @description Filter results by update time, ending at this date/time */
-        till_date?: components['parameters']['tillDate'];
+        end_date?: components['parameters']['endDate'];
         /** @description Filter tasks by their operational status */
         status?: components['parameters']['paramsTaskStatus'];
       };
