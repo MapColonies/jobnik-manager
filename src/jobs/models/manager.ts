@@ -8,7 +8,7 @@ import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helpe
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
-import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject, JobPrismaObjectWithStages } from './models';
+import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -46,7 +46,8 @@ export class JobManager {
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
       const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
-      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: false } }));
+      const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
+      const res = this.convertPrismaToJobResponse(createdJob as JobPrismaObject<false>);
 
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
@@ -167,9 +168,13 @@ export class JobManager {
   /**
    * This method is used to get a job entity by its id from the database.
    * @param jobId unique identifier of the job.
+   * @param options Configuration options for the query
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string, options: { includeStages?: boolean; tx?: PrismaTransaction } = {}): Promise<JobPrismaObject | null> {
+  public async getJobEntityById<TIncludeStages extends boolean = false>(
+    jobId: string,
+    options: { includeStages?: TIncludeStages; tx?: PrismaTransaction } = {}
+  ): Promise<JobPrismaObject<TIncludeStages> | null> {
     const prisma = options.tx ?? this.prisma;
     const queryBody = {
       where: {
@@ -180,10 +185,17 @@ export class JobManager {
 
     const job = await prisma.job.findUnique(queryBody);
 
-    return job;
+    return job as JobPrismaObject<TIncludeStages> | null;
   }
 
-  private convertPrismaToJobResponse(prismaObjects: JobPrismaObjectWithStages): JobModel {
+  /**
+   * Converts a Prisma job object to a job response model
+   * @param prismaObjects - The Prisma job object with or without stages
+   * @returns The converted job model
+   */
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<true>): JobModel;
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<false>): JobModel;
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
     const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
 
     const transformedFields = {
@@ -191,7 +203,7 @@ export class JobManager {
       creationTime: creationTime.toISOString(),
       userMetadata: userMetadata as { [key: string]: unknown },
       updateTime: updateTime.toISOString(),
-      stages: stage ? convertArrayPrismaStageToStageResponse(stage) : undefined,
+      stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
     };
 
     return Object.assign(rest, transformedFields);
