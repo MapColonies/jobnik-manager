@@ -5,7 +5,6 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
 import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
-import type { StagePrismaObject } from '@src/stages/models/models';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
