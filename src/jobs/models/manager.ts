@@ -48,7 +48,6 @@ export class JobManager {
       const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
       const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: false } }));
 
-      // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
