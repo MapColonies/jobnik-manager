@@ -16,7 +16,7 @@ import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { addJobRecord, addStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
-import { createJobRecord, createJobRequestBody, createJobRequestWithStagesBody, testJobId } from './helpers';
+import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -148,79 +148,13 @@ describe('job', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and create the job', async function () {
         const response = await requestSender.createJob({
-          requestBody: createJobRequestWithStagesBody,
+          requestBody: createJobRequestBody,
         });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: JobOperationStatus.CREATED, ...createJobRequestWithStagesBody },
-        });
-      });
-
-      it('should create job with stage in WAITING status when startAsWaiting flag is true', async function () {
-        const stageWithAwaitingStatus = {
-          ...createJobRequestWithStagesBody.stages[0],
-          startAsWaiting: true,
-          type: JobName.DEFAULT,
-          data: {},
-          userMetadata: {},
-        };
-
-        const jobRequest = {
-          ...createJobRequestWithStagesBody,
-          stages: [stageWithAwaitingStatus],
-        };
-
-        const response = await requestSender.createJob({
-          requestBody: jobRequest,
-        });
-
-        expect(response).toSatisfyApiSpec();
-
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        expect(response.body.stages![0]).toHaveProperty('status', StageOperationStatus.WAITING);
-      });
-
-      it('should create job with stage in CREATED status when startAsWaiting flag is false', async function () {
-        const stageWithAwaitingStatus = {
-          ...createJobRequestWithStagesBody.stages[0],
-          startAsWaiting: false,
-          type: JobName.DEFAULT,
-          data: {},
-          userMetadata: {},
-        };
-        const jobRequest = {
-          ...createJobRequestWithStagesBody,
-          stages: [stageWithAwaitingStatus],
-        };
-        const response = await requestSender.createJob({
-          requestBody: jobRequest,
-        });
-
-        expect(response).toSatisfyApiSpec();
-
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
-        expect(response.body.stages![0]).toHaveProperty('status', StageOperationStatus.CREATED);
-      });
-
-      it('should return 200 status code and create the job without stages array', async function () {
-        const createJobWithoutStagesRequestBody = { ...createJobRequestBody, data: {} };
-
-        const response = await requestSender.createJob({
-          requestBody: createJobWithoutStagesRequestBody,
-        });
-
-        expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({
-          status: StatusCodes.CREATED,
-          body: { status: JobOperationStatus.CREATED, ...createJobWithoutStagesRequestBody },
+          body: { status: JobOperationStatus.CREATED, ...createJobRequestBody },
         });
       });
     });

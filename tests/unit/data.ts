@@ -18,12 +18,16 @@ const runningStageActor = createActor(stageStateMachine).start();
 runningStageActor.send({ type: 'pend' });
 runningStageActor.send({ type: 'process' });
 
+const completedStageActor = createActor(stageStateMachine).start();
+completedStageActor.send({ type: 'pend' });
+completedStageActor.send({ type: 'process' });
+completedStageActor.send({ type: 'complete' });
+
 export const jobId = faker.string.uuid();
 export const stageId = faker.string.uuid();
 export const anotherStageId = faker.string.uuid();
 
 export const jobEntityWithoutStages = createJobEntity({ id: jobId });
-export const jobEntityWithEmptyStagesArr = createJobEntity({ id: jobId, stage: [] });
 export const stageEntity = createStageEntity({ id: stageId, jobId, data: { name: 'someStage' } });
 
 export const jobEntityWithStages = createJobEntity({
@@ -36,6 +40,7 @@ export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot(
 export const inProgressStageXstatePersistentSnapshot = runningStageActor.getPersistedSnapshot();
 export const abortedStageXstatePersistentSnapshot = abortedStageActor.getPersistedSnapshot();
 export const pendingStageXstatePersistentSnapshot = pendingStageActor.getPersistedSnapshot();
+export const completedStageXstatePersistentSnapshot = completedStageActor.getPersistedSnapshot();
 
 export const jobEntityWithAbortStatus = createJobEntity({
   xstate: abortedXstatePersistentSnapshot,

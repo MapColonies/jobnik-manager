@@ -2,10 +2,9 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
-import { Prisma, StageOperationStatus } from '@prismaClient';
+import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
-import { StageCreateModel } from '@src/stages/models/models';
-import { convertArrayPrismaStageToStageResponse, defaultStatusCounts, getInitialXstate } from '@src/stages/models/helper';
+import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
@@ -46,31 +45,10 @@ export class JobManager {
       const createJobActor = createActor(jobStateMachine).start();
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-      let input = undefined;
-      let stagesInput = undefined;
-      const { stages: stagesReq, ...bodyInput } = body;
+      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+      const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
+      const res = this.convertPrismaToJobResponse(createdJob as JobPrismaObject<false>);
 
-      if (stagesReq !== undefined && stagesReq.length > 0) {
-        const stages: StageCreateModel[] = stagesReq;
-        stagesInput = stages.map((stage) => {
-          const { type, startAsWaiting, ...rest } = stage;
-          const stageFull = Object.assign(rest, {
-            xstate: getInitialXstate(stage),
-            name: type,
-            status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
-            summary: defaultStatusCounts,
-          });
-          return stageFull;
-        });
-
-        input = { ...bodyInput, xstate: persistenceSnapshot, stage: { create: stagesInput } } satisfies Prisma.JobCreateInput;
-      } else {
-        input = { ...bodyInput, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
-      }
-
-      const res = this.convertPrismaToJobResponse(await this.prisma.job.create({ data: input, include: { stage: true } }));
-
-      // todo - will added logic that extract stages on predefined and generated also stages + tasks
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
@@ -190,9 +168,13 @@ export class JobManager {
   /**
    * This method is used to get a job entity by its id from the database.
    * @param jobId unique identifier of the job.
+   * @param options Configuration options for the query
    * @returns The job entity if found, otherwise null.
    */
-  public async getJobEntityById(jobId: string, options: { includeStages?: boolean; tx?: PrismaTransaction } = {}): Promise<JobPrismaObject | null> {
+  public async getJobEntityById<IncludeStages extends boolean = false>(
+    jobId: string,
+    options: { includeStages?: IncludeStages; tx?: PrismaTransaction } = {}
+  ): Promise<JobPrismaObject<IncludeStages> | null> {
     const prisma = options.tx ?? this.prisma;
     const queryBody = {
       where: {
@@ -203,11 +185,19 @@ export class JobManager {
 
     const job = await prisma.job.findUnique(queryBody);
 
-    return job;
+    return job as JobPrismaObject<IncludeStages> | null;
   }
 
+  /**
+   * Converts a Prisma job object to a job response model
+   * @param prismaObjects - The Prisma job object with or without stages
+   * @returns The converted job model
+   */
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<true>): JobModel;
+  private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<false>): JobModel;
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
     const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
+
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),

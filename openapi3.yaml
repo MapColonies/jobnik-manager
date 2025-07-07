@@ -48,12 +48,12 @@ paths:
                 $ref: '#/components/schemas/errorMessage'
     post:
       operationId: createJob
-      summary: Create a new job with optional stages
+      summary: Create a new job with configuration and metadata
       description: |
-        Creates a new job in the system with user-defined configuration.
-        Supports customizable priorities.
+        Creates a new job in the system with user-defined configuration and metadata.
+        Supports customizable priorities and job-specific data payloads.
 
-        The job will be created with an initial default status of PENDING and can be tracked
+        The job will be created with an initial status of CREATED and can be tracked
         throughout its lifecycle using the returned job ID.
       tags:
         - jobs
@@ -1242,11 +1242,6 @@ components:
           $ref: '#/components/schemas/priority'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
-        stages:
-          type: array
-          description: Optional array of stages to create with the job (required for PRE_DEFINED jobs)
-          items:
-            $ref: '#/components/schemas/createStagePayloadRequest'
       required:
         - data
         - userMetadata
@@ -1471,10 +1466,6 @@ components:
           $ref: '#/components/schemas/priority'
         name:
           $ref: '#/components/schemas/jobName'
-        stages:
-          type: array
-          items:
-            $ref: '#/components/schemas/stageResponse'
       additionalProperties: false
       required:
         - id

@@ -4,9 +4,8 @@ import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/co
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
-import { StageCreateModel } from '@src/stages/models/models';
 import { randomUuid } from '@tests/unit/generator';
-import { jobEntityWithAbortStatus, jobEntityWithEmptyStagesArr, jobEntityWithoutStages, jobEntityWithStages, stageEntity } from '../data';
+import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';
 
 let jobManager: JobManager;
 const prisma = new PrismaClient();
@@ -27,49 +26,14 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return a formatted job after creation', async function () {
           jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithStages);
-          const stagePayload = { data: stageEntity.data, type: stageEntity.name, userMetadata: stageEntity.userMetadata } satisfies StageCreateModel;
-
           const createJobParams = {
             name: jobEntityWithStages.name,
             data: jobEntityWithStages.data,
             userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
-            stages: [stagePayload],
           } satisfies JobCreateModel;
 
           const job = await jobManager.createJob(createJobParams);
           expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
-        });
-
-        it('should create job with stage in WAITING status when startAsWaiting flag is true', async function () {
-          jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithStages);
-          const stagePayload = { data: stageEntity.data, type: stageEntity.name, userMetadata: stageEntity.userMetadata } satisfies StageCreateModel;
-
-          const createJobParams = {
-            name: jobEntityWithStages.name,
-            data: jobEntityWithStages.data,
-            userMetadata: jobEntityWithStages.userMetadata as Record<string, unknown>,
-            stages: [stagePayload],
-          } satisfies JobCreateModel;
-
-          const job = await jobManager.createJob({ ...createJobParams, stages: [{ ...stagePayload, startAsWaiting: true }] });
-          expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([{ jobId: stageEntity.jobId, id: stageEntity.id }]);
-        });
-
-        it('should return created job formatted with empty stage array', async function () {
-          jest.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithEmptyStagesArr);
-
-          const createJobParams = {
-            name: jobEntityWithoutStages.name,
-            data: jobEntityWithoutStages.data,
-            userMetadata: jobEntityWithoutStages.userMetadata as Record<string, unknown>,
-          } satisfies JobCreateModel;
-
-          const job = await jobManager.createJob(createJobParams);
-
-          expect(job).toMatchObject(createJobParams);
-          expect(job.stages).toMatchObject([]);
         });
       });
 
