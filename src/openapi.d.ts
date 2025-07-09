@@ -524,8 +524,8 @@ export type paths = {
     options?: never;
     head?: never;
     /**
-     * Find and claim the highest priority pending task of specified type
-     * @description Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status,
+     * Find and claim the highest priority pending task of specified stage type
+     * @description Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status,
      *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
      *     work queue pattern where workers can claim the next available task.
      *
@@ -984,7 +984,7 @@ export interface operations {
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
-      /** @description Bad parameters input */
+      /** @description Invalid parameters or validation error */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1900,7 +1900,7 @@ export interface operations {
           'application/json': components['schemas']['taskResponse'];
         };
       };
-      /** @description Bad stageName parameter or other validation error */
+      /** @description Invalid stageName parameter or other validation error */
       400: {
         headers: {
           [name: string]: unknown;

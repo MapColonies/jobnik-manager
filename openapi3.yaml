@@ -147,7 +147,7 @@ paths:
               example:
                 code: JOB_DELETED_SUCCESSFULLY
         '400':
-          description: Bad parameters input
+          description: Invalid parameters or validation error
           content:
             application/json:
               schema:
@@ -924,9 +924,9 @@ paths:
           $ref: '#/components/schemas/stageName'
     patch:
       operationId: dequeueTask
-      summary: Find and claim the highest priority pending task of specified type
+      summary: Find and claim the highest priority pending task of specified stage type
       description: |
-        Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status, 
+        Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status, 
         and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
         work queue pattern where workers can claim the next available task.
 
@@ -944,7 +944,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/taskResponse'
         '400':
-          description: Bad stageName parameter or other validation error
+          description: Invalid stageName parameter or other validation error
           content:
             application/json:
               schema:
