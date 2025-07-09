@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobOperationStatus, Priority, Prisma, StageName, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -104,8 +104,9 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 status code and a relevant validation error message when the stage name is incorrect', async function () {
-        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_name: 'NOT_VALID_NAME' as StageName } });
+      it('should return 400 status code and a relevant validation error message when the stage name is longer of 50 characters', async function () {
+        const longStageName = faker.string.alpha(51);
+        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_name: longStageName } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
@@ -114,7 +115,7 @@ describe('task', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/stage_name must be equal to one of the allowed values/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/query\/stage_name must NOT have more than 50 characters/) as MatcherContext },
         });
       });
     });
@@ -738,6 +739,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            name: 'SOME_TEST_NAME_1',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           },
@@ -748,7 +750,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_1' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
@@ -780,6 +782,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            name: 'SOME_TEST_NAME_2',
             status: StageOperationStatus.PENDING,
             xstate: pendingStageXstatePersistentSnapshot,
           },
@@ -790,7 +793,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_2' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
@@ -817,6 +820,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.PENDING,
+            name: 'SOME_TEST_NAME_3',
             xstate: pendingStageXstatePersistentSnapshot,
           },
           prisma
@@ -826,7 +830,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_3' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
@@ -861,6 +865,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobLowPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            name: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -885,6 +890,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobMediumPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            name: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -916,6 +922,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobHighPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            name: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -926,15 +933,15 @@ describe('task', function () {
         );
         // Dequeue tasks, should return the task with high priority first
         const dequeueResponseHigh = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with medium and low priority, should return the next available task
         const dequeueResponseMedium = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with low priority, should return the next available task
         const dequeueResponseLow = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_DEQUEUE_BY_PRIORITY' },
         });
         expect(dequeueResponseHigh).toSatisfyApiSpec();
         expect(dequeueResponseHigh).toMatchObject({
@@ -965,24 +972,25 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 with bad taskType request error', async function () {
+      it('should return 400 with bad stage name (length > 50 characters) request error', async function () {
+        const longStageName = faker.string.alpha(51);
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
 
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: 'SOME_BAD_STAGE_NAME' as unknown as StageName },
+          pathParams: { stageName: longStageName },
         });
 
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageName must be equal to one of the allowed values/) as string },
+          body: { message: expect.stringMatching(/request\/params\/stageName must NOT have more than 50 characters/) as string },
         });
       });
 
       it('should return 404 without available task', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_NON_EXIST_STAGE_NAME' },
         });
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
@@ -1009,6 +1017,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.IN_PROGRESS,
+            name: 'SOME_TEST_NAME_NO_PENDING_TASK',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -1018,7 +1027,7 @@ describe('task', function () {
           prisma
         );
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_NO_PENDING_TASK' },
         });
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
@@ -1032,7 +1041,7 @@ describe('task', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(new Error('Database error'));
         const response = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME' },
         });
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -1051,6 +1060,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.PENDING,
+            name: 'SOME_TEST_NAME_FAILED_TRANSACTION',
             xstate: pendingStageXstatePersistentSnapshot,
           },
           prisma
@@ -1060,7 +1070,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_FAILED_TRANSACTION' },
         });
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
@@ -1089,6 +1099,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            name: 'SOME_TEST_NAME_PREVENT_MULTIPLE_DEQUEUE',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           },
@@ -1124,10 +1135,10 @@ describe('task', function () {
           return res;
         });
         const dequeueFirstPromise = requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const dequeueSecondPromise = requestSender.dequeueTask({
-          pathParams: { stageName: StageName.DEFAULT },
+          pathParams: { stageName: 'SOME_TEST_NAME_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const firstResponse = await dequeueFirstPromise;
         // @ts-expect-error not recognized initialization

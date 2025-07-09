@@ -1,7 +1,7 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import { JobOperationStatus, Prisma, StageName, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
@@ -16,7 +16,7 @@ import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function generatePrioritizedTaskQuery(stageName: StageName) {
+function generatePrioritizedTaskQuery(stageName: string) {
   // Define valid states for filtering
   const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
   const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
@@ -149,7 +149,7 @@ export class TaskManager {
         : {
             AND: {
               stageId: { equals: params.stage_id },
-              stage: { name: { equals: params.stage_name as StageName } },
+              stage: { name: { equals: params.stage_name } },
               status: { equals: params.status },
               creationTime: { gte: params.from_date, lte: params.end_date },
             },
@@ -223,7 +223,7 @@ export class TaskManager {
    * @returns The dequeued task model with updated status
    * @throws TaskNotFoundError when no suitable task is found
    */
-  public async dequeue(stageName: StageName): Promise<TaskModel> {
+  public async dequeue(stageName: string): Promise<TaskModel> {
     const queryBody = generatePrioritizedTaskQuery(stageName);
 
     const task = await this.prisma.task.findFirst(queryBody);

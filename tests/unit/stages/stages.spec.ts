@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, StageName, StageOperationStatus, JobOperationStatus } from '@prismaClient';
+import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -36,10 +36,10 @@ describe('JobManager', () => {
     describe('#getStages', () => {
       describe('#HappyPath', () => {
         it('should return array with single stage formatted object by criteria without tasks', async function () {
-          const stageEntity = createStageEntity({});
+          const stageEntity = createStageEntity({ name: 'SOME_STAGE_NAME' });
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
-          const stages = await stageManager.getStages({ stage_name: StageName.DEFAULT });
+          const stages = await stageManager.getStages({ stage_name: 'SOME_STAGE_NAME' });
 
           const { name: type, xstate, task, ...rest } = stageEntity;
 
@@ -53,10 +53,10 @@ describe('JobManager', () => {
         it('should return array with single stage formatted object by criteria with related tasks', async function () {
           const stageId = faker.string.uuid();
           const taskEntity = createTaskEntity({ stageId });
-          const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
+          const stageEntity = createStageEntity({ id: stageId, task: [taskEntity], name: 'SOME_STAGE_NAME' });
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
-          const stages = await stageManager.getStages({ stage_name: StageName.DEFAULT, should_return_tasks: true });
+          const stages = await stageManager.getStages({ stage_name: 'SOME_STAGE_NAME', should_return_tasks: true });
           const { name: type, xstate, task, ...rest } = stageEntity;
 
           const expectedStage = [rest];
@@ -70,7 +70,7 @@ describe('JobManager', () => {
         it('should failed on db error when find stages', async function () {
           const prismaCreateJobMock = jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(stageManager.getStages({ stage_name: StageName.DEFAULT })).rejects.toThrow('db connection error');
+          await expect(stageManager.getStages({ stage_name: 'SOME_STAGE_NAME' })).rejects.toThrow('db connection error');
 
           expect(prismaCreateJobMock).toHaveBeenCalledTimes(1);
         });
@@ -249,7 +249,7 @@ describe('JobManager', () => {
 
           const anotherStagePayload = {
             data: {},
-            type: StageName.DEFAULT,
+            type: 'SOME_STAGE_NAME',
             userMetadata: { someData: '123' },
           } satisfies StageCreateModel;
 
@@ -279,7 +279,7 @@ describe('JobManager', () => {
 
           const anotherStagePayload = {
             data: {},
-            type: StageName.DEFAULT,
+            type: 'SOME_STAGE_NAME',
             userMetadata: { someData: '123' },
             startAsWaiting: true,
           } satisfies StageCreateModel;

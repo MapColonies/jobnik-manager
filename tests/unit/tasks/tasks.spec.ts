@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus, StageName } from '@prismaClient';
+import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -42,7 +42,7 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({});
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
 
-          const tasks = await taskManager.getTasks({ stage_name: StageName.DEFAULT });
+          const tasks = await taskManager.getTasks({ stage_name: 'SOME_STAGE_NAME' });
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
@@ -65,7 +65,7 @@ describe('JobManager', () => {
         it('should return empty array', async function () {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
 
-          const tasks = await taskManager.getTasks({ stage_name: StageName.DEFAULT });
+          const tasks = await taskManager.getTasks({ stage_name: 'SOME_STAGE_NAME' });
 
           expect(tasks).toMatchObject([]);
         });
@@ -75,7 +75,7 @@ describe('JobManager', () => {
         it('should failed on db error when find tasks', async function () {
           jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(taskManager.getTasks({ stage_name: StageName.DEFAULT })).rejects.toThrow('db connection error');
+          await expect(taskManager.getTasks({ stage_name: 'SOME_STAGE_NAME' })).rejects.toThrow('db connection error');
         });
       });
     });
@@ -468,7 +468,7 @@ describe('JobManager', () => {
           const taskId = faker.string.uuid();
 
           const jobEntity = createJobEntity({ id: jobId });
-          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
+          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId, name: 'SOME_DEQUEUE_STAGE_NAME' });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
             id: taskId,
@@ -492,7 +492,7 @@ describe('JobManager', () => {
 
           jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.dequeue(StageName.DEFAULT)).toResolve();
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_NAME')).toResolve();
         });
       });
 
@@ -500,7 +500,7 @@ describe('JobManager', () => {
         it('should get code 404 not found for no available tasks to dequeue', async function () {
           jest.spyOn(prisma.task, 'findFirst').mockResolvedValue(null);
 
-          await expect(taskManager.dequeue(StageName.DEFAULT)).rejects.toThrow(tasksErrorMessages.taskNotFound);
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_NAME')).rejects.toThrow(tasksErrorMessages.taskNotFound);
         });
       });
 
@@ -508,7 +508,7 @@ describe('JobManager', () => {
         it('should fail with a database error when adding tasks', async function () {
           jest.spyOn(prisma.task, 'findFirst').mockRejectedValue(new Error('db connection error'));
 
-          await expect(taskManager.dequeue(StageName.DEFAULT)).rejects.toThrow('db connection error');
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_NAME')).rejects.toThrow('db connection error');
         });
 
         it('should fail with bad race conditions (task already pulled)', async function () {
@@ -536,7 +536,7 @@ describe('JobManager', () => {
             return callback(mockTx);
           });
 
-          await expect(taskManager.dequeue(StageName.DEFAULT)).rejects.toThrow(tasksErrorMessages.taskStatusUpdateFailed);
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_NAME')).rejects.toThrow(tasksErrorMessages.taskStatusUpdateFailed);
         });
       });
     });

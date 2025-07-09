@@ -619,14 +619,13 @@ export type components = {
      */
     jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
     /**
-     * @description Categorization of stage functionality, determining the specific operation
-     *     to be performed. Used for routing task as part of some stage to appropriate workers and
-     *     for filtering in API requests.
+     * @description Free-form string identifier for stage functionality, allowing flexible categorization
+     *     of stage operations. Used for routing tasks to appropriate workers and
+     *     for filtering in API requests. Can be any descriptive name up to 50 characters.
      *
-     * @example DEFAULT
-     * @enum {string}
+     * @example unknown
      */
-    stageName: 'TILE_SEEDING' | 'TILE_RENDERING' | 'PUBLISH_CATALOG' | 'PUBLISH_LAYER' | 'DEFAULT';
+    stageName: string;
     /** @description Flag indicating whether to include complete stage details in job response payloads */
     returnStage: boolean;
     /** @description Flag indicating whether to include complete task details in stage response payloads */

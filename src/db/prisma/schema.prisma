@@ -89,20 +89,10 @@ model Stage {
   status       StageOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json
-  name         StageName            @default(DEFAULT)
+  name         String               @default("unknown") @db.VarChar(50)
   task         Task[]
 
   @@map("stage")
-}
-
-enum StageName {
-  TILE_SEEDING    @map("Tile-Seeding")
-  TILE_RENDERING  @map("Tile-Rendering")
-  PUBLISH_CATALOG @map("Publish-Catalog")
-  PUBLISH_LAYER   @map("Publish-Layer")
-  DEFAULT         @map("Default")
-
-  @@map("stage_name_enum")
 }
 
 model Task {

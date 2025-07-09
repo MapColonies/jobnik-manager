@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
-import { StageName, type Prisma, type PrismaClient } from '@prismaClient';
+import { type Prisma, type PrismaClient } from '@prismaClient';
 import { StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { defaultStatusCounts } from '@src/stages/models/helper';
@@ -35,7 +35,7 @@ export const addStageRecord = async (body: Prisma.StageCreateManyInput, prisma: 
 
 export const createStageBody = {
   jobId: faker.string.uuid(),
-  name: StageName.DEFAULT,
+  name: 'UNKNOWN',
   data: {},
   summary: defaultStatusCounts,
   xstate: persistedSnapshot,
