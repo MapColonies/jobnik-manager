@@ -525,7 +525,7 @@ export type paths = {
     head?: never;
     /**
      * Find and claim the highest priority pending task of specified stage type
-     * @description Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status,
+     * @description Retrieves the highest priority task of the specified stage name that is in PENDING or RETRIED status,
      *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
      *     work queue pattern where workers can claim the next available task.
      *
