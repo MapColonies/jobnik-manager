@@ -382,7 +382,6 @@ paths:
         The stage will be added after any existing stages in the job's workflow sequence.
 
         This endpoint allows for extending job workflows at runtime by adding new processing steps.
-        Optionally, tasks can be defined within the new stage during creation.
 
         The job must exist and be in a valid state to accept new stages.
       parameters:
@@ -394,7 +393,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/createStageWithTasksPayload'
+              $ref: '#/components/schemas/createStagePayloadRequest'
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -1375,18 +1374,6 @@ components:
         Custom task configuration data containing operation-specific parameters.
         The schema varies based on task type and contains all necessary information
         for task execution by workers.
-    createStageWithTasksPayload:
-      allOf:
-        - $ref: '#/components/schemas/createStagePayloadRequest'
-        - type: object
-          description: |
-            Extended stage creation payload that includes associated tasks to create
-            alongside the stage.
-          properties:
-            tasks:
-              type: array
-              items:
-                $ref: '#/components/schemas/createTaskPayload'
     createTaskPayload:
       type: object
       description: |

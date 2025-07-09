@@ -15,7 +15,7 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
-import { addJobRecord, addStageRecord, createStageWithoutTaskBody } from '../stages/helpers';
+import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
 describe('job', function () {
@@ -58,7 +58,7 @@ describe('job', function () {
 
         await addStageRecord(
           {
-            ...createStageWithoutTaskBody,
+            ...createStageBody,
             summary: { ...defaultStatusCounts, total: 1, pending: 1 },
             jobId: job.id,
             status: StageOperationStatus.PENDING,

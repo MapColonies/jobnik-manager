@@ -6,7 +6,6 @@ import { PrismaTransaction } from '@src/db/types';
 
 type StageModel = components['schemas']['getStageResponse'];
 type StageCreateModel = components['schemas']['createStagePayloadRequest'];
-type StageCreateWithTasksModel = components['schemas']['createStageWithTasksPayload'];
 type StageCreateBody = StageCreateModel & { jobId: string; xstate: Snapshot<unknown> };
 type StageSummary = components['schemas']['summary'];
 type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
@@ -41,7 +40,6 @@ export type {
   StageModel,
   StageFindCriteriaArg,
   StageCreateModel,
-  StageCreateWithTasksModel,
   StagePrismaObject,
   StageCreateBody,
   UpdateSummaryCount,

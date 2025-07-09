@@ -206,7 +206,6 @@ export type paths = {
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *
      *     This endpoint allows for extending job workflows at runtime by adding new processing steps.
-     *     Optionally, tasks can be defined within the new stage during creation.
      *
      *     The job must exist and be in a valid state to accept new stages.
      *
@@ -719,9 +718,6 @@ export type components = {
      *      */
     taskPayload: {
       [key: string]: unknown;
-    };
-    createStageWithTasksPayload: components['schemas']['createStagePayloadRequest'] & {
-      tasks?: components['schemas']['createTaskPayload'][];
     };
     /** @description Input payload for creating a new task within a stage.
      *     Contains task type, operational parameters, and optional retry configuration.
@@ -1267,7 +1263,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        'application/json': components['schemas']['createStageWithTasksPayload'];
+        'application/json': components['schemas']['createStagePayloadRequest'];
       };
     };
     responses: {
