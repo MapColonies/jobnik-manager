@@ -1,6 +1,6 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
-import { TaskType, type Prisma, type PrismaClient } from '@prismaClient';
+import { type Prisma, type PrismaClient } from '@prismaClient';
 import {} from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
@@ -14,7 +14,6 @@ export const createTaskRecords = async (body: Prisma.TaskCreateManyInput[], pris
 
 export const createTaskBody = {
   stageId: faker.string.uuid(),
-  type: TaskType.DEFAULT,
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},

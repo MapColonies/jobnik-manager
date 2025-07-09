@@ -10,7 +10,7 @@ const taskRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.get('/:taskId', controller.getTaskById);
   router.patch('/:taskId/user-metadata', controller.updateUserMetadata);
   router.put('/:taskId/status', controller.updateStatus);
-  router.patch('/:taskType/dequeue', controller.dequeue);
+  router.patch('/:stageName/dequeue', controller.dequeue);
 
   return router;
 };

@@ -98,7 +98,7 @@ export class StageManager {
         where: {
           AND: {
             jobId: { equals: params.job_id },
-            name: { equals: params.stage_type },
+            name: { equals: params.stage_name },
             status: { equals: params.stage_operation_status },
           },
         },
