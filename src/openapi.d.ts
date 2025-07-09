@@ -206,7 +206,6 @@ export type paths = {
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *
      *     This endpoint allows for extending job workflows at runtime by adding new processing steps.
-     *     Optionally, tasks can be defined within the new stage during creation.
      *
      *     The job must exist and be in a valid state to accept new stages.
      *
