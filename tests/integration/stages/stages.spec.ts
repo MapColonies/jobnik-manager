@@ -66,7 +66,7 @@ describe('stage', function () {
             {
               jobId: job.id,
               status: StageOperationStatus.CREATED,
-              type: createStageBody.name,
+              type: createStageBody.type,
               data: createStageBody.data,
               userMetadata: createStageBody.userMetadata,
             },
@@ -142,7 +142,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.name, data: stage.data, userMetadata: stage.userMetadata }],
+          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
         });
 
         expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
@@ -175,7 +175,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.name, data: stage.data, userMetadata: stage.userMetadata }],
+          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
         });
 
         expect(response.body[0]).not.toHaveProperty('tasks');
@@ -183,9 +183,9 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 status code and a relevant validation error message when the stage name is larger than 50 characters', async function () {
-        const longStageName = faker.string.alpha(51);
-        const response = await requestSender.getStages({ queryParams: { stage_name: longStageName } });
+      it('should return 400 status code and a relevant validation error message when the stage type is larger than 50 characters', async function () {
+        const longStageType = faker.string.alpha(51);
+        const response = await requestSender.getStages({ queryParams: { stage_type: longStageType } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
@@ -194,7 +194,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/stage_name must NOT have more than 50 characters/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext },
         });
       });
     });
@@ -220,7 +220,7 @@ describe('stage', function () {
           {
             ...createStageBody,
             jobId: createdJobId,
-            name: 'SOME_HAPPY_PATH_STAGE_NAME',
+            type: 'SOME_HAPPY_PATH_STAGE_TYPE',
           },
           prisma
         );
@@ -237,7 +237,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: { status: StageOperationStatus.CREATED, type: 'SOME_HAPPY_PATH_STAGE_NAME' },
+          body: { status: StageOperationStatus.CREATED, type: 'SOME_HAPPY_PATH_STAGE_TYPE' },
         });
         expect(getStageResponse.body).not.toHaveProperty('tasks');
       });
@@ -713,7 +713,7 @@ describe('stage', function () {
         await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: StageOperationStatus.ABORTED } });
 
         const addStageResponse = await requestSender.addStage({
-          requestBody: { data: {}, userMetadata: {}, type: 'SOME_STAGE_NAME' } satisfies StageCreateModel,
+          requestBody: { data: {}, userMetadata: {}, type: 'SOME_STAGE_TYPE' } satisfies StageCreateModel,
           pathParams: { jobId: job.id },
         });
 
@@ -727,7 +727,7 @@ describe('stage', function () {
       it('should return 404 when attempting to update a non-existent job ID', async function () {
         const createStagesPayload = {
           data: {},
-          type: 'SOME_STAGE_NAME',
+          type: 'SOME_STAGE_TYPE',
           userMetadata: {},
         } satisfies StageCreateModel;
 
@@ -753,7 +753,7 @@ describe('stage', function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.addStage({
-          requestBody: { data: {}, type: 'SOME_STAGE_NAME', userMetadata: {} },
+          requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
           pathParams: { jobId: testJobId },
         });
 

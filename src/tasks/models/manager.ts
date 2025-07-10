@@ -16,7 +16,7 @@ import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function generatePrioritizedTaskQuery(stageName: string) {
+function generatePrioritizedTaskQuery(stageType: string) {
   // Define valid states for filtering
   const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
   const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
@@ -25,7 +25,7 @@ function generatePrioritizedTaskQuery(stageName: string) {
   const queryBody = {
     where: {
       stage: {
-        name: stageName,
+        type: stageType,
         status: {
           in: validStageStatuses,
         },
@@ -149,7 +149,7 @@ export class TaskManager {
         : {
             AND: {
               stageId: { equals: params.stage_id },
-              stage: { name: { equals: params.stage_name } },
+              stage: { type: { equals: params.stage_type } },
               status: { equals: params.status },
               creationTime: { gte: params.from_date, lte: params.end_date },
             },
@@ -223,8 +223,8 @@ export class TaskManager {
    * @returns The dequeued task model with updated status
    * @throws TaskNotFoundError when no suitable task is found
    */
-  public async dequeue(stageName: string): Promise<TaskModel> {
-    const queryBody = generatePrioritizedTaskQuery(stageName);
+  public async dequeue(stageType: string): Promise<TaskModel> {
+    const queryBody = generatePrioritizedTaskQuery(stageType);
 
     const task = await this.prisma.task.findFirst(queryBody);
 

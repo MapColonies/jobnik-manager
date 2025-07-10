@@ -35,7 +35,7 @@ export const addStageRecord = async (body: Prisma.StageCreateManyInput, prisma: 
 
 export const createStageBody = {
   jobId: faker.string.uuid(),
-  name: 'UNKNOWN',
+  type: 'UNKNOWN',
   data: {},
   summary: defaultStatusCounts,
   xstate: persistedSnapshot,

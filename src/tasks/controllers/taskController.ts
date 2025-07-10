@@ -101,9 +101,9 @@ export class TaskController {
     }
   };
 
-  public dequeue: TypedRequestHandlers['PATCH /stages/{stageName}/dequeue/tasks'] = async (req, res, next) => {
+  public dequeue: TypedRequestHandlers['PATCH /stages/{stageType}/dequeue/tasks'] = async (req, res, next) => {
     try {
-      const response = await this.manager.dequeue(req.params.stageName);
+      const response = await this.manager.dequeue(req.params.stageType);
 
       return res.status(httpStatus.OK).json(response);
     } catch (err) {

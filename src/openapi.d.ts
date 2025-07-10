@@ -388,13 +388,13 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageName}/dequeue/tasks': {
+  '/stages/{stageType}/dequeue/tasks': {
     parameters: {
       query?: never;
       header?: never;
       path: {
-        /** @description Stage name identifier for dequeuing tasks */
-        stageName: components['parameters']['stageName'];
+        /** @description Stage type identifier for dequeuing tasks */
+        stageType: components['parameters']['stageType'];
       };
       cookie?: never;
     };
@@ -405,8 +405,8 @@ export type paths = {
     options?: never;
     head?: never;
     /**
-     * Find and claim the highest priority pending task of specified stage name
-     * @description Retrieves the highest priority task of the specified stage name that is in PENDING or RETRIED status,
+     * Find and claim the highest priority pending task of specified stage type
+     * @description Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status,
      *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
      *     work queue pattern where workers can claim the next available task.
      *
@@ -425,7 +425,7 @@ export type paths = {
         /** @description Filter results by stage identifier */
         stage_id?: components['parameters']['paramStageId'];
         /** @description Filter results by stage identifier */
-        stage_name?: components['parameters']['paramStageName'];
+        stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
         /** @description Filter results by update time, ending at this date/time */
@@ -625,7 +625,7 @@ export type components = {
      *
      * @example unknown
      */
-    stageName: string;
+    stageType: string;
     /** @description Flag indicating whether to include complete stage details in job response payloads */
     returnStage: boolean;
     /** @description Flag indicating whether to include complete task details in stage response payloads */
@@ -689,7 +689,7 @@ export type components = {
       startAsWaiting?: boolean;
     };
     createStagePayload: {
-      type: components['schemas']['stageName'];
+      type: components['schemas']['stageType'];
       data: components['schemas']['stagePayload'];
       userMetadata: components['schemas']['userMetadata'];
     };
@@ -806,9 +806,9 @@ export type components = {
     /** @description Filter results by job identifier */
     paramJobId: components['schemas']['jobId'];
     /** @description Filter results by stage identifier */
-    paramStageName: components['schemas']['stageName'];
-    /** @description Stage name identifier for dequeuing tasks */
-    stageName: components['schemas']['stageName'];
+    paramStageType: components['schemas']['stageType'];
+    /** @description Stage type identifier for dequeuing tasks */
+    stageType: components['schemas']['stageType'];
     /** @description Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
      *     Used to find stages in specific execution states.
      *      */
@@ -1302,7 +1302,7 @@ export interface operations {
         /** @description Filter results by job identifier */
         job_id?: components['parameters']['paramJobId'];
         /** @description Filter results by stage identifier */
-        stage_name?: components['parameters']['paramStageName'];
+        stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
          *     Used to find stages in specific execution states.
          *      */
@@ -1667,8 +1667,8 @@ export interface operations {
       query?: never;
       header?: never;
       path: {
-        /** @description Stage name identifier for dequeuing tasks */
-        stageName: components['parameters']['stageName'];
+        /** @description Stage type identifier for dequeuing tasks */
+        stageType: components['parameters']['stageType'];
       };
       cookie?: never;
     };
@@ -1683,7 +1683,7 @@ export interface operations {
           'application/json': components['schemas']['taskResponse'];
         };
       };
-      /** @description Invalid stageName parameter or other validation error */
+      /** @description Invalid stageType parameter or other validation error */
       400: {
         headers: {
           [name: string]: unknown;
@@ -1718,7 +1718,7 @@ export interface operations {
         /** @description Filter results by stage identifier */
         stage_id?: components['parameters']['paramStageId'];
         /** @description Filter results by stage identifier */
-        stage_name?: components['parameters']['paramStageName'];
+        stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
         /** @description Filter results by update time, ending at this date/time */

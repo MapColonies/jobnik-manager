@@ -89,7 +89,7 @@ model Stage {
   status       StageOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json
-  name         String               @default("unknown") @db.VarChar(50)
+  type         String               @default("unknown") @db.VarChar(50)
   task         Task[]
 
   @@map("stage")

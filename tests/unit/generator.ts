@@ -43,7 +43,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
 export const createStageEntity = (override: Partial<StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
-    name: 'DEFAULT_TEST_STAGE_NAME',
+    type: 'DEFAULT_TEST_STAGE_TYPE',
     summary: defaultStatusCounts,
     jobId: faker.string.uuid(),
     id: faker.string.uuid(),
