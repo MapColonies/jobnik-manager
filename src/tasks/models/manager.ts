@@ -139,11 +139,9 @@ export class TaskManager {
    * @returns Promise resolving to array of task models
    */
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
-    // Early return when no parameters provided or empty object
     const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
-    // Build query with consistent structure
-    const queryBody = {
+    const queryBody: Prisma.TaskFindManyArgs = {
       where: hasNoParams
         ? undefined
         : {
