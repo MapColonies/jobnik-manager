@@ -388,7 +388,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageType}/dequeue/tasks': {
+  '/stages/{stageType}/task/dequeue': {
     parameters: {
       query?: never;
       header?: never;

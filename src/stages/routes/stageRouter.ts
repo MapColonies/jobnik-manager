@@ -15,7 +15,7 @@ const stageRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.put('/:stageId/status', controller.updateStatus);
   router.get('/:stageId/tasks', taskController.getTaskByStageId);
   router.post('/:stageId/tasks', taskController.addTasks);
-  router.patch('/:stageType/dequeue/tasks', taskController.dequeue);
+  router.patch('/:stageType/task/dequeue', taskController.dequeue);
 
   return router;
 };
