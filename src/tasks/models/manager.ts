@@ -152,7 +152,6 @@ export class TaskManager {
               creationTime: { gte: params.from_date, lte: params.end_date },
             },
           },
-      include: { stage: false },
     };
 
     const tasks = await this.prisma.task.findMany(queryBody);
