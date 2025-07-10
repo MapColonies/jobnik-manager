@@ -388,6 +388,37 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
+  '/stages/{stageName}/dequeue/tasks': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Stage name identifier for dequeuing tasks */
+        stageName: components['parameters']['stageName'];
+      };
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Find and claim the highest priority pending task of specified stage name
+     * @description Retrieves the highest priority task of the specified stage name that is in PENDING or RETRIED status,
+     *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
+     *     work queue pattern where workers can claim the next available task.
+     *
+     *     The endpoint considers task priority (inherited from the parent job), searches only for tasks
+     *     that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+     *
+     *     If successful, returns the complete task details with status updated to IN_PROGRESS.
+     *
+     */
+    patch: operations['dequeueTask'];
+    trace?: never;
+  };
   '/tasks': {
     parameters: {
       query?: {
@@ -505,37 +536,6 @@ export type paths = {
     options?: never;
     head?: never;
     patch?: never;
-    trace?: never;
-  };
-  '/tasks/{stageName}/dequeue': {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Stage name identifier for dequeuing tasks */
-        stageName: components['schemas']['stageName'];
-      };
-      cookie?: never;
-    };
-    get?: never;
-    put?: never;
-    post?: never;
-    delete?: never;
-    options?: never;
-    head?: never;
-    /**
-     * Find and claim the highest priority pending task of specified stage type
-     * @description Retrieves the highest priority task of the specified stage name that is in PENDING or RETRIED status,
-     *     and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based
-     *     work queue pattern where workers can claim the next available task.
-     *
-     *     The endpoint considers task priority (inherited from the parent job), searches only for tasks
-     *     that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
-     *
-     *     If successful, returns the complete task details with status updated to IN_PROGRESS.
-     *
-     */
-    patch: operations['dequeueTask'];
     trace?: never;
   };
 };
@@ -807,6 +807,8 @@ export type components = {
     paramJobId: components['schemas']['jobId'];
     /** @description Filter results by stage identifier */
     paramStageName: components['schemas']['stageName'];
+    /** @description Stage name identifier for dequeuing tasks */
+    stageName: components['schemas']['stageName'];
     /** @description Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
      *     Used to find stages in specific execution states.
      *      */
@@ -1660,6 +1662,56 @@ export interface operations {
       };
     };
   };
+  dequeueTask: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description Stage name identifier for dequeuing tasks */
+        stageName: components['parameters']['stageName'];
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Task successfully dequeued and status updated to IN_PROGRESS */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['taskResponse'];
+        };
+      };
+      /** @description Invalid stageName parameter or other validation error */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description No pending tasks of requested type are available */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+      /** @description Internal server error or invalid state transition */
+      500: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['errorMessage'];
+        };
+      };
+    };
+  };
   getTasksByCriteria: {
     parameters: {
       query?: {
@@ -1868,56 +1920,6 @@ export interface operations {
         };
       };
       /** @description Internal server error */
-      500: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-    };
-  };
-  dequeueTask: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path: {
-        /** @description Stage name identifier for dequeuing tasks */
-        stageName: components['schemas']['stageName'];
-      };
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Task successfully dequeued and status updated to IN_PROGRESS */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['taskResponse'];
-        };
-      };
-      /** @description Invalid stageName parameter or other validation error */
-      400: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description No pending tasks of requested type are available */
-      404: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          'application/json': components['schemas']['errorMessage'];
-        };
-      };
-      /** @description Internal server error or invalid state transition */
       500: {
         headers: {
           [name: string]: unknown;
