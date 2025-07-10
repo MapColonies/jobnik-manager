@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -46,8 +46,6 @@ describe('task', function () {
   });
 
   afterEach(async () => {
-    // to ensure that the database is clean after each test for dequeue
-    await prisma.$queryRaw(Prisma.sql`DELETE FROM "job_manager"."task" WHERE "status"  = 'Pending' OR "status" = 'In-Progress';`);
     await prisma.$disconnect();
   });
 
@@ -104,8 +102,9 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 status code and a relevant validation error message when the task type is incorrect', async function () {
-        const response = await requestSender.getTasksByCriteria({ queryParams: { task_type: 'NOT_VALID_TYPE' as TaskType } });
+      it('should return 400 status code and a relevant validation error message when the stage type is longer of 50 characters', async function () {
+        const longStageType = faker.string.alpha(51);
+        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_type: longStageType } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
@@ -114,7 +113,7 @@ describe('task', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/task_type must be equal to one of the allowed values/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext },
         });
       });
     });
@@ -140,7 +139,7 @@ describe('task', function () {
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
-        expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED, type: TaskType.DEFAULT } });
+        expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED } });
       });
     });
 
@@ -328,7 +327,6 @@ describe('task', function () {
 
         const createTasksPayload = {
           data: {},
-          type: TaskType.DEFAULT,
           userMetadata: {},
         } satisfies TaskCreateModel;
 
@@ -363,7 +361,6 @@ describe('task', function () {
 
         const createTasksPayload = {
           data: {},
-          type: TaskType.DEFAULT,
           userMetadata: {},
         } satisfies TaskCreateModel;
 
@@ -455,14 +452,13 @@ describe('task', function () {
       });
 
       it('should return 404 when attempting to update a non-existent stage ID', async function () {
-        const createStagesPayload = {
+        const createTaskPayload = {
           data: {},
-          type: TaskType.DEFAULT,
           userMetadata: {},
         } satisfies TaskCreateModel;
 
         const response = await requestSender.addTasks({
-          requestBody: [createStagesPayload],
+          requestBody: [createTaskPayload],
           pathParams: { stageId: faker.string.uuid() },
         });
 
@@ -741,6 +737,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            type: 'SOME_TEST_TYPE_1',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           },
@@ -751,7 +748,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_1' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
@@ -761,7 +758,6 @@ describe('task', function () {
             id: tasks[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stage.id,
-            type: TaskType.DEFAULT,
           },
         });
         //validate summary was updated
@@ -784,6 +780,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            type: 'SOME_TEST_TYPE_2',
             status: StageOperationStatus.PENDING,
             xstate: pendingStageXstatePersistentSnapshot,
           },
@@ -794,7 +791,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_2' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
@@ -804,7 +801,6 @@ describe('task', function () {
             id: tasks[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stage.id,
-            type: TaskType.DEFAULT,
           },
         });
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
@@ -822,6 +818,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.PENDING,
+            type: 'SOME_TEST_TYPE_3',
             xstate: pendingStageXstatePersistentSnapshot,
           },
           prisma
@@ -831,7 +828,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_3' },
         });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
@@ -842,7 +839,6 @@ describe('task', function () {
             id: tasks[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stage.id,
-            type: TaskType.DEFAULT,
           },
         });
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
@@ -867,6 +863,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobLowPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            type: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -891,6 +888,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobMediumPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            type: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -922,6 +920,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: jobHighPriority.id,
             status: StageOperationStatus.IN_PROGRESS,
+            type: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -932,15 +931,15 @@ describe('task', function () {
         );
         // Dequeue tasks, should return the task with high priority first
         const dequeueResponseHigh = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with medium and low priority, should return the next available task
         const dequeueResponseMedium = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with low priority, should return the next available task
         const dequeueResponseLow = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         expect(dequeueResponseHigh).toSatisfyApiSpec();
         expect(dequeueResponseHigh).toMatchObject({
@@ -949,7 +948,6 @@ describe('task', function () {
             id: tasksHighPriority[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stageHighPriority.id,
-            type: TaskType.DEFAULT,
           },
         });
         expect(dequeueResponseMedium).toMatchObject({
@@ -958,7 +956,6 @@ describe('task', function () {
             id: tasksMediumPriority[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stageMediumPriority.id,
-            type: TaskType.DEFAULT,
           },
         });
         expect(dequeueResponseLow).toMatchObject({
@@ -967,29 +964,31 @@ describe('task', function () {
             id: tasksLowPriority[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stageLowPriority.id,
-            type: TaskType.DEFAULT,
           },
         });
       });
     });
 
     describe('Bad Path', function () {
-      it('should return 400 with bad taskType request error', async function () {
+      it('should return 400 with bad stage type (length > 50 characters) request error', async function () {
+        const longStageType = faker.string.alpha(51);
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
+
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: 'SOME_BAD_TASK_TYPE' as unknown as TaskType },
+          pathParams: { stageType: longStageType },
         });
+
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/taskType must be equal to one of the allowed values/) as string },
+          body: { message: expect.stringMatching(/request\/params\/stageType must NOT have more than 50 characters/) as string },
         });
       });
 
       it('should return 404 without available task', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_NON_EXIST_STAGE_TYPE' },
         });
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
@@ -1016,6 +1015,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.IN_PROGRESS,
+            type: 'SOME_TEST_TYPE_NO_PENDING_TASK',
             xstate: inProgressStageXstatePersistentSnapshot,
           },
           prisma
@@ -1025,7 +1025,7 @@ describe('task', function () {
           prisma
         );
         const taskResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_NO_PENDING_TASK' },
         });
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
@@ -1039,7 +1039,7 @@ describe('task', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(new Error('Database error'));
         const response = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_NAME' },
         });
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -1058,6 +1058,7 @@ describe('task', function () {
             summary: initialSummary,
             jobId: job.id,
             status: StageOperationStatus.PENDING,
+            type: 'SOME_TEST_TYPE_FAILED_TRANSACTION',
             xstate: pendingStageXstatePersistentSnapshot,
           },
           prisma
@@ -1067,7 +1068,7 @@ describe('task', function () {
           prisma
         );
         const dequeueResponse = await requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_FAILED_TRANSACTION' },
         });
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
@@ -1096,6 +1097,7 @@ describe('task', function () {
             ...createStageBody,
             summary: initialSummary,
             jobId: job.id,
+            type: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           },
@@ -1131,10 +1133,10 @@ describe('task', function () {
           return res;
         });
         const dequeueFirstPromise = requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const dequeueSecondPromise = requestSender.dequeueTask({
-          pathParams: { taskType: TaskType.DEFAULT },
+          pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const firstResponse = await dequeueFirstPromise;
         // @ts-expect-error not recognized initialization
@@ -1148,7 +1150,6 @@ describe('task', function () {
             id: tasks[0]!.id,
             status: TaskOperationStatus.IN_PROGRESS,
             stageId: stage.id,
-            type: TaskType.DEFAULT,
           },
         });
         //second call will fail with 500 status code

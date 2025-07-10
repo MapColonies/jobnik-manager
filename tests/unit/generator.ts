@@ -1,17 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
-import {
-  JobName,
-  JobOperationStatus,
-  Priority,
-  Prisma,
-  Stage,
-  StageName,
-  StageOperationStatus,
-  Task,
-  TaskOperationStatus,
-  TaskType,
-} from '@prismaClient';
+import { JobName, JobOperationStatus, Priority, Prisma, Stage, StageOperationStatus, Task, TaskOperationStatus } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
@@ -54,7 +43,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
 export const createStageEntity = (override: Partial<StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
-    name: StageName.DEFAULT,
+    type: 'DEFAULT_TEST_STAGE_TYPE',
     summary: defaultStatusCounts,
     jobId: faker.string.uuid(),
     id: faker.string.uuid(),
@@ -71,7 +60,6 @@ export const createStageEntity = (override: Partial<StageWithTasks>): StageWithT
 export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrismaObject => {
   const taskEntity = {
     data: {},
-    type: TaskType.DEFAULT,
     stageId: faker.string.uuid(),
     id: faker.string.uuid(),
     status: TaskOperationStatus.CREATED,

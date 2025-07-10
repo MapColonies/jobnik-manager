@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, Prisma, TaskType, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -42,7 +42,19 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({});
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
 
-          const tasks = await taskManager.getTasks({ task_type: TaskType.DEFAULT });
+          const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
+
+          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+
+          expect(tasks).toMatchObject(expectedTask);
+        });
+
+        it('should return array with task formatted object by empty criteria', async function () {
+          const taskEntity = createTaskEntity({});
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
+
+          const tasks = await taskManager.getTasks({});
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
@@ -53,7 +65,7 @@ describe('JobManager', () => {
         it('should return empty array', async function () {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
 
-          const tasks = await taskManager.getTasks({ task_type: TaskType.DEFAULT });
+          const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
           expect(tasks).toMatchObject([]);
         });
@@ -63,7 +75,7 @@ describe('JobManager', () => {
         it('should failed on db error when find tasks', async function () {
           jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(taskManager.getTasks({ task_type: TaskType.DEFAULT })).rejects.toThrow('db connection error');
+          await expect(taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' })).rejects.toThrow('db connection error');
         });
       });
     });
@@ -190,7 +202,6 @@ describe('JobManager', () => {
 
           const taskPayload = {
             data: {},
-            type: TaskType.DEFAULT,
             userMetadata: { someData: '123' },
           } satisfies TaskCreateModel;
 
@@ -457,7 +468,7 @@ describe('JobManager', () => {
           const taskId = faker.string.uuid();
 
           const jobEntity = createJobEntity({ id: jobId });
-          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
+          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId, type: 'SOME_DEQUEUE_STAGE_TYPE' });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
             id: taskId,
@@ -481,7 +492,7 @@ describe('JobManager', () => {
 
           jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.dequeue(TaskType.DEFAULT)).toResolve();
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).toResolve();
         });
       });
 
@@ -489,7 +500,7 @@ describe('JobManager', () => {
         it('should get code 404 not found for no available tasks to dequeue', async function () {
           jest.spyOn(prisma.task, 'findFirst').mockResolvedValue(null);
 
-          await expect(taskManager.dequeue(TaskType.DEFAULT)).rejects.toThrow(tasksErrorMessages.taskNotFound);
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).rejects.toThrow(tasksErrorMessages.taskNotFound);
         });
       });
 
@@ -497,7 +508,7 @@ describe('JobManager', () => {
         it('should fail with a database error when adding tasks', async function () {
           jest.spyOn(prisma.task, 'findFirst').mockRejectedValue(new Error('db connection error'));
 
-          await expect(taskManager.dequeue(TaskType.DEFAULT)).rejects.toThrow('db connection error');
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).rejects.toThrow('db connection error');
         });
 
         it('should fail with bad race conditions (task already pulled)', async function () {
@@ -525,7 +536,7 @@ describe('JobManager', () => {
             return callback(mockTx);
           });
 
-          await expect(taskManager.dequeue(TaskType.DEFAULT)).rejects.toThrow(tasksErrorMessages.taskStatusUpdateFailed);
+          await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).rejects.toThrow(tasksErrorMessages.taskStatusUpdateFailed);
         });
       });
     });

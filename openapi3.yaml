@@ -147,7 +147,7 @@ paths:
               example:
                 code: JOB_DELETED_SUCCESSFULLY
         '400':
-          description: Bad parameters input
+          description: Invalid parameters or validation error
           content:
             application/json:
               schema:
@@ -731,10 +731,52 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+  /stages/{stageType}/tasks/dequeue:
+    parameters:
+      - $ref: '#/components/parameters/stageType'
+    patch:
+      operationId: dequeueTask
+      summary: Find and claim the highest priority pending task of specified stage type
+      description: |
+        Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status, 
+        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+        work queue pattern where workers can claim the next available task.
+
+        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
+        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
+
+        If successful, returns the complete task details with status updated to IN_PROGRESS.
+      tags:
+        - stages
+      responses:
+        '200':
+          description: Task successfully dequeued and status updated to IN_PROGRESS
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/taskResponse'
+        '400':
+          description: Invalid stageType parameter or other validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '404':
+          description: No pending tasks of requested type are available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
+        '500':
+          description: Internal server error or invalid state transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorMessage'
   /tasks:
     parameters:
       - $ref: '#/components/parameters/paramStageId'
-      - $ref: '#/components/parameters/paramTaskType'
+      - $ref: '#/components/parameters/paramStageType'
       - $ref: '#/components/parameters/fromDate'
       - $ref: '#/components/parameters/endDate'
       - $ref: '#/components/parameters/paramsTaskStatus'
@@ -914,49 +956,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
-  /tasks/{taskType}/dequeue:
-    parameters:
-      - $ref: '#/components/parameters/taskType'
-    patch:
-      operationId: dequeueTask
-      summary: Find and claim the highest priority pending task of specified type
-      description: |
-        Retrieves the highest priority task of the specified type that is in PENDING or RETRIED status, 
-        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
-        work queue pattern where workers can claim the next available task.
-
-        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
-        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
-
-        If successful, returns the complete task details with status updated to IN_PROGRESS.
-      tags:
-        - tasks
-      responses:
-        '200':
-          description: Task successfully dequeued and status updated to IN_PROGRESS
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/taskResponse'
-        '400':
-          description: Bad taskType parameter or other validation error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
-        '404':
-          description: No pending tasks of requested type are available
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
-        '500':
-          description: Internal server error or invalid state transition
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/errorMessage'
-
 security: []
 
 components:
@@ -982,13 +981,6 @@ components:
       required: true
       schema:
         type: string
-    taskType:
-      in: path
-      name: taskType
-      description: Type of the requested task
-      required: true
-      schema:
-        $ref: '#/components/schemas/taskType'
     paramsTaskStatus:
       in: query
       name: status
@@ -1060,7 +1052,14 @@ components:
       description: Filter results by stage identifier
       required: false
       schema:
-        $ref: '#/components/schemas/taskType'
+        $ref: '#/components/schemas/stageType'
+    stageType:
+      in: path
+      name: stageType
+      description: Stage type identifier for dequeuing tasks
+      required: true
+      schema:
+        $ref: '#/components/schemas/stageType'
     stageStatus:
       in: query
       name: stage_operation_status
@@ -1070,15 +1069,6 @@ components:
       required: false
       schema:
         $ref: '#/components/schemas/stageOperationStatus'
-    paramTaskType:
-      in: query
-      name: task_type
-      description: |
-        Filter results by task type.
-        Used to find tasks designed for specific operations (e.g., TILE_RENDERING).
-      required: false
-      schema:
-        $ref: '#/components/schemas/taskType'
   schemas:
     creationTime:
       type: string
@@ -1183,6 +1173,14 @@ components:
         - DEFAULT
       example: DEFAULT
       description: Category or type of job processing being performed, used for filtering and system behaviors
+    stageType:
+      type: string
+      maxLength: 50
+      example: unknown
+      description: |
+        Free-form string identifier for stage functionality, allowing flexible categorization
+        of stage operations. Used for routing tasks to appropriate workers and
+        for filtering in API requests. Can be any descriptive name up to 50 characters.
     returnStage:
       type: boolean
       description: Flag indicating whether to include complete stage details in job response payloads
@@ -1303,7 +1301,7 @@ components:
       type: object
       properties:
         type:
-          $ref: '#/components/schemas/taskType'
+          $ref: '#/components/schemas/stageType'
         data:
           $ref: '#/components/schemas/stagePayload'
         userMetadata:
@@ -1353,20 +1351,6 @@ components:
       type: string
       format: uuid
       description: Unique identifier for a task, generated by the system upon task creation
-    taskType:
-      type: string
-      enum:
-        - TILE_SEEDING
-        - TILE_RENDERING
-        - PUBLISH_CATALOG
-        - PUBLISH_LAYER
-        - DEFAULT
-      maxLength: 255
-      example: DEFAULT
-      description: |
-        Categorization of task functionality, determining the specific operation
-        to be performed. Used for routing tasks to appropriate workers and
-        for filtering in API requests.
     taskPayload:
       type: object
       additionalProperties: true
@@ -1381,8 +1365,6 @@ components:
         Contains task type, operational parameters, and optional retry configuration.
         Used when adding tasks to existing stages.
       properties:
-        type:
-          $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/taskPayload'
         userMetadata:
@@ -1391,7 +1373,6 @@ components:
           $ref: '#/components/schemas/maxAttempts'
       required:
         - data
-        - type
       additionalProperties: false
     taskResponse:
       type: object
@@ -1402,8 +1383,6 @@ components:
       properties:
         id:
           $ref: '#/components/schemas/taskId'
-        type:
-          $ref: '#/components/schemas/taskType'
         data:
           $ref: '#/components/schemas/taskPayload'
         stageId:
@@ -1422,7 +1401,6 @@ components:
           $ref: '#/components/schemas/maxAttempts'
       required:
         - id
-        - type
         - data
         - stageId
         - status

@@ -1,7 +1,7 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
@@ -16,7 +16,7 @@ import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function generatePrioritizedTaskQuery(taskType: TaskType) {
+function generatePrioritizedTaskQuery(stageType: string) {
   // Define valid states for filtering
   const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
   const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
@@ -24,11 +24,8 @@ function generatePrioritizedTaskQuery(taskType: TaskType) {
 
   const queryBody = {
     where: {
-      type: taskType,
-      status: {
-        in: validTaskStatuses,
-      },
       stage: {
+        type: stageType,
         status: {
           in: validStageStatuses,
         },
@@ -37,6 +34,9 @@ function generatePrioritizedTaskQuery(taskType: TaskType) {
             in: validJobStatuses,
           },
         },
+      },
+      status: {
+        in: validTaskStatuses,
       },
     },
     include: {
@@ -75,6 +75,7 @@ export class TaskManager {
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
     const createTaskActor = createActor(taskStateMachine).start();
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
+
     const stage = await this.stageManager.getStageEntityById(stageId);
 
     if (!stage) {
@@ -101,11 +102,9 @@ export class TaskManager {
           attempts: 0,
           maxAttempts: taskData.maxAttempts,
           data: taskData.data,
-          type: taskData.type,
           xstate: persistenceSnapshot,
           userMetadata: taskData.userMetadata,
           status: TaskOperationStatus.CREATED,
-
           stageId,
         }) satisfies Prisma.TaskCreateManyInput
     );
@@ -134,26 +133,29 @@ export class TaskManager {
     }
   }
 
+  /**
+   * Retrieves tasks based on filtering criteria
+   * @param params - Optional filtering parameters for tasks
+   * @returns Promise resolving to array of task models
+   */
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
-    let queryBody = undefined;
+    const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
-    if (params !== undefined) {
-      queryBody = {
-        where: {
-          AND: {
-            stageId: { equals: params.stage_id },
-            type: { equals: params.task_type },
-            status: { equals: params.status },
-            creationTime: { gte: params.from_date, lte: params.end_date },
+    const queryBody: Prisma.TaskFindManyArgs = {
+      where: hasNoParams
+        ? undefined
+        : {
+            AND: {
+              stageId: { equals: params.stage_id },
+              stage: { type: { equals: params.stage_type } },
+              status: { equals: params.status },
+              creationTime: { gte: params.from_date, lte: params.end_date },
+            },
           },
-        },
-      };
-    }
+    };
 
     const tasks = await this.prisma.task.findMany(queryBody);
-
-    const result = convertArrayPrismaTaskToTaskResponse(tasks);
-    return result;
+    return convertArrayPrismaTaskToTaskResponse(tasks);
   }
 
   public async getTaskById(taskId: string): Promise<TaskModel> {
@@ -218,8 +220,8 @@ export class TaskManager {
    * @returns The dequeued task model with updated status
    * @throws TaskNotFoundError when no suitable task is found
    */
-  public async dequeue(taskType: TaskType): Promise<TaskModel> {
-    const queryBody = generatePrioritizedTaskQuery(taskType);
+  public async dequeue(stageType: string): Promise<TaskModel> {
+    const queryBody = generatePrioritizedTaskQuery(stageType);
 
     const task = await this.prisma.task.findFirst(queryBody);
 

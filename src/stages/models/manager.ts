@@ -61,11 +61,10 @@ export class StageManager {
       throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
-    const { type, startAsWaiting, ...bodyInput } = stagePayload;
+    const { startAsWaiting, ...bodyInput } = stagePayload;
 
     const input: Prisma.StageCreateInput = {
       ...bodyInput,
-      name: type,
       summary: defaultStatusCounts,
       status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
       job: {
@@ -98,7 +97,7 @@ export class StageManager {
         where: {
           AND: {
             jobId: { equals: params.job_id },
-            name: { equals: params.stage_type },
+            type: { equals: params.stage_type },
             status: { equals: params.stage_operation_status },
           },
         },

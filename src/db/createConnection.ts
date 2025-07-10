@@ -54,8 +54,8 @@ export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promi
     }
 
     await prisma.job.count(); // validate migration deployed job table
-    // TODO - AFTER IMPLEMENTATION - await prisma.stage.count(); // validate migration deployed stage table
-    // TODO - AFTER IMPLEMENTATION - await prisma.task.count(); // validate migration deployed task table
+    await prisma.stage.count(); // validate migration deployed stage table
+    await prisma.task.count(); // validate migration deployed task table
   } catch (error) {
     throw new Error(`Error on db connection: ${(error as Error).message}`);
   }

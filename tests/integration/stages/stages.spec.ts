@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
-import { JobOperationStatus, StageName, StageOperationStatus, TaskOperationStatus, TaskType, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -66,7 +66,7 @@ describe('stage', function () {
             {
               jobId: job.id,
               status: StageOperationStatus.CREATED,
-              type: createStageBody.name,
+              type: createStageBody.type,
               data: createStageBody.data,
               userMetadata: createStageBody.userMetadata,
             },
@@ -142,10 +142,10 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.name, data: stage.data, userMetadata: stage.userMetadata }],
+          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
         });
 
-        expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, type: tasks[0]!.type, userMetadata: tasks[0]!.userMetadata }] }]);
+        expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
       });
 
       it('should return 200 status code and the matching stage without related tasks', async function () {
@@ -164,7 +164,7 @@ describe('stage', function () {
 
         await requestSender.addTasks({
           pathParams: { stageId: stage.id },
-          requestBody: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }],
+          requestBody: [{ data: {}, userMetadata: {} }],
         });
         const response = await requestSender.getStages({ queryParams: { job_id: job.id, should_return_tasks: false } });
 
@@ -175,7 +175,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.name, data: stage.data, userMetadata: stage.userMetadata }],
+          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
         });
 
         expect(response.body[0]).not.toHaveProperty('tasks');
@@ -183,8 +183,9 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 status code and a relevant validation error message when the stage type is incorrect', async function () {
-        const response = await requestSender.getStages({ queryParams: { stage_type: 'NOT_VALID_TYPE' as StageName } });
+      it('should return 400 status code and a relevant validation error message when the stage type is larger than 50 characters', async function () {
+        const longStageType = faker.string.alpha(51);
+        const response = await requestSender.getStages({ queryParams: { stage_type: longStageType } });
 
         if (response.status !== StatusCodes.BAD_REQUEST) {
           throw new Error();
@@ -193,7 +194,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/stage_type must be equal to one of the allowed values/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext },
         });
       });
     });
@@ -219,6 +220,7 @@ describe('stage', function () {
           {
             ...createStageBody,
             jobId: createdJobId,
+            type: 'SOME_HAPPY_PATH_STAGE_TYPE',
           },
           prisma
         );
@@ -233,7 +235,10 @@ describe('stage', function () {
         }
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: StageOperationStatus.CREATED, type: StageName.DEFAULT } });
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: { status: StageOperationStatus.CREATED, type: 'SOME_HAPPY_PATH_STAGE_TYPE' },
+        });
         expect(getStageResponse.body).not.toHaveProperty('tasks');
       });
 
@@ -266,7 +271,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: StageOperationStatus.CREATED, id: stage.id } });
         expect(getStageResponse.body).toHaveProperty('tasks');
-        expect(getStageResponse.body).toMatchObject({ tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }] });
+        expect(getStageResponse.body).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
       });
 
       it('should return 200 status code and return the stage without related tasks', async function () {
@@ -389,7 +394,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
         expect(getStageResponse.body[0]).toHaveProperty('tasks');
-        expect(getStageResponse.body[0]).toMatchObject({ tasks: [{ data: {}, type: TaskType.DEFAULT, userMetadata: {} }] });
+        expect(getStageResponse.body[0]).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
       });
 
       it('should return 200 status code and return the stages without related tasks', async function () {
@@ -608,7 +613,7 @@ describe('stage', function () {
 
         const createStagesPayload = {
           data: {},
-          type: StageName.DEFAULT,
+          type: 'SOME_ADD_STAGE_TEST_NAME',
           userMetadata: {},
         } satisfies StageCreateModel;
 
@@ -629,7 +634,7 @@ describe('stage', function () {
 
         const createStagesPayload = {
           data: {},
-          type: StageName.DEFAULT,
+          type: 'SOME_ADD_STAGE_WAITING_TEST_NAME',
           userMetadata: {},
           startAsWaiting: true,
         } satisfies StageCreateModel;
@@ -651,7 +656,7 @@ describe('stage', function () {
 
         const createStagesPayload = {
           data: {},
-          type: StageName.DEFAULT,
+          type: 'SOME_ADD_STAGE_CREATED_TEST_NAME',
           userMetadata: {},
           startAsWaiting: false,
         } satisfies StageCreateModel;
@@ -708,7 +713,7 @@ describe('stage', function () {
         await requestSender.updateStatus({ pathParams: { jobId: job.id }, requestBody: { status: StageOperationStatus.ABORTED } });
 
         const addStageResponse = await requestSender.addStage({
-          requestBody: { data: {}, userMetadata: {}, type: TaskType.DEFAULT },
+          requestBody: { data: {}, userMetadata: {}, type: 'SOME_STAGE_TYPE' } satisfies StageCreateModel,
           pathParams: { jobId: job.id },
         });
 
@@ -722,7 +727,7 @@ describe('stage', function () {
       it('should return 404 when attempting to update a non-existent job ID', async function () {
         const createStagesPayload = {
           data: {},
-          type: TaskType.DEFAULT,
+          type: 'SOME_STAGE_TYPE',
           userMetadata: {},
         } satisfies StageCreateModel;
 
@@ -748,7 +753,7 @@ describe('stage', function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
         const response = await requestSender.addStage({
-          requestBody: { data: {}, type: TaskType.DEFAULT, userMetadata: {} },
+          requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
           pathParams: { jobId: testJobId },
         });
 

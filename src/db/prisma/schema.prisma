@@ -89,20 +89,10 @@ model Stage {
   status       StageOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json
-  name         StageName            @default(DEFAULT)
+  type         String               @default("unknown") @db.VarChar(50)
   task         Task[]
 
   @@map("stage")
-}
-
-enum StageName {
-  TILE_SEEDING    @map("Tile-Seeding")
-  TILE_RENDERING  @map("Tile-Rendering")
-  PUBLISH_CATALOG @map("Publish-Catalog")
-  PUBLISH_LAYER   @map("Publish-Layer")
-  DEFAULT         @map("Default")
-
-  @@map("stage_name_enum")
 }
 
 model Task {
@@ -112,7 +102,6 @@ model Task {
   status       TaskOperationStatus @default(CREATED)
   /// [PersistenceSnapshot]
   xstate       Json
-  type         TaskType            @default(DEFAULT) @map("type")
   creationTime DateTime            @default(now()) @map("creation_time")
   updateTime   DateTime            @updatedAt @map("update_time")
   userMetadata Json                @default("{}") @map("user_metadata")
@@ -133,14 +122,4 @@ enum TaskOperationStatus {
   RETRIED     @map("Retried")
 
   @@map("task_operation_status_enum")
-}
-
-enum TaskType {
-  TILE_SEEDING    @map("Tile-Seeding")
-  TILE_RENDERING  @map("Tile-Rendering")
-  PUBLISH_CATALOG @map("Publish-Catalog")
-  PUBLISH_LAYER   @map("Publish-Layer")
-  DEFAULT         @map("Default")
-
-  @@map("task_type_enum")
 }
