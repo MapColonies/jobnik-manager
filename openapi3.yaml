@@ -17,12 +17,17 @@ paths:
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve jobs matching specified criteria
-      description: |
+      description: >
         Returns a filtered list of jobs based on the provided query parameters.
-        Supports filtering by job mode, name, date range, priority.
-        Optional inclusion of related stage data via the should_return_stages parameter.
 
-        Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
+        Supports filtering by job mode, name, date range, priority.
+
+        Optional inclusion of related stage data via the should_return_stages
+        parameter.
+
+
+        Returns an empty array ([]) when no jobs match the specified criteria,
+        rather than an error.
       tags:
         - jobs
       responses:
@@ -49,11 +54,16 @@ paths:
     post:
       operationId: createJob
       summary: Create a new job with configuration and metadata
-      description: |
-        Creates a new job in the system with user-defined configuration and metadata.
+      description: >
+        Creates a new job in the system with user-defined configuration and
+        metadata.
+
         Supports customizable priorities and job-specific data payloads.
 
-        The job will be created with an initial status of CREATED and can be tracked
+
+        The job will be created with an initial status of CREATED and can be
+        tracked
+
         throughout its lifecycle using the returned job ID.
       tags:
         - jobs
@@ -90,12 +100,17 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve a specific job by its ID
-      description: |
+      description: >
         Fetches detailed information about a job using its unique identifier.
+
         Includes job configuration, status, metadata, and completion percentage.
 
-        Optional inclusion of related stage data via the should_return_stages parameter,
-        which allows clients to retrieve the complete job hierarchy in a single request.
+
+        Optional inclusion of related stage data via the should_return_stages
+        parameter,
+
+        which allows clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -126,15 +141,25 @@ paths:
     delete:
       operationId: deleteJob
       summary: Delete a job and all its associated resources (stages, tasks)
-      description: |
-        Permanently removes a job and all its associated stages and tasks from the system.
-        This operation cascades to delete all child resources and cannot be undone.
+      description: >
+        Permanently removes a job and all its associated stages and tasks from
+        the system.
+
+        This operation cascades to delete all child resources and cannot be
+        undone.
+
 
         The job must exist in the system for this operation to succeed.
-        Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
-        Attempting to delete a job in any other state will result in a 400 error.
 
-        Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
+        Jobs can only be deleted when they are in a finite state (COMPLETED,
+        FAILED, or ABORTED).
+
+        Attempting to delete a job in any other state will result in a 400
+        error.
+
+
+        Returns a success message with code JOB_DELETED_SUCCESSFULLY when
+        completed.
       tags:
         - jobs
       responses:
@@ -170,12 +195,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/jobId'
       summary: Update job's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific job.
-        This endpoint allows clients to attach or modify arbitrary data related to a job
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a job
+
         without affecting the job's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - jobs
@@ -218,12 +249,19 @@ paths:
     patch:
       operationId: updateJobPriority
       summary: Modify job's priority level
-      description: |
+      description: >
         Updates the priority level for a specific job.
-        This affects how the job is scheduled relative to other jobs in the system.
 
-        Higher priority jobs will be processed before lower priority ones when resources
-        are constrained. Priority changes take effect immediately and apply to all 
+        This affects how the job is scheduled relative to other jobs in the
+        system.
+
+
+        Higher priority jobs will be processed before lower priority ones when
+        resources
+
+        are constrained. Priority changes take effect immediately and apply to
+        all 
+
         pending tasks associated with the job.
       tags:
         - jobs
@@ -255,14 +293,14 @@ paths:
               schema:
                 type: string
           content: {}
-        '404':
-          description: Job not found
+        '400':
+          description: Invalid priority value or other request error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
-        '400':
-          description: Invalid priority value or other request error
+        '404':
+          description: Job not found
           content:
             application/json:
               schema:
@@ -279,16 +317,28 @@ paths:
     put:
       operationId: updateStatus
       summary: Change job's operational status
-      description: |
-        Updates the operational status of a job, which may cascade changes to all 
-        related stages and tasks. This endpoint can be used to pause, resume, abort,
+      description: >
+        Updates the operational status of a job, which may cascade changes to
+        all 
+
+        related stages and tasks. This endpoint can be used to pause, resume,
+        abort,
+
         or otherwise control the execution flow of a job.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed job or completing a failed job without
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
+        operations like resuming a completed job or completing a failed job
+        without
+
         proper remediation.
 
-        When a job's status is changed, the system will automatically update timestamps
+
+        When a job's status is changed, the system will automatically update
+        timestamps
+
         and completion percentages as appropriate.
       tags:
         - jobs
@@ -338,12 +388,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve all stages for a specific job
-      description: |
+      description: >
         Fetches all stages associated with the specified job ID.
-        Provides complete information about each stage including type, status, and progress.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        allowing clients to retrieve the complete job hierarchy in a single request.
+        Provides complete information about each stage including type, status,
+        and progress.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        allowing clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -377,11 +433,16 @@ paths:
     post:
       operationId: addStage
       summary: Add a new stage to a job
-      description: |
+      description: >
         Appends a new stage to an existing job.
-        The stage will be added after any existing stages in the job's workflow sequence.
 
-        This endpoint allows for extending job workflows at runtime by adding new processing steps.
+        The stage will be added after any existing stages in the job's workflow
+        sequence.
+
+
+        This endpoint allows for extending job workflows at runtime by adding
+        new processing steps.
+
 
         The job must exist and be in a valid state to accept new stages.
       parameters:
@@ -428,12 +489,18 @@ paths:
         - $ref: '#/components/parameters/stageStatus'
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve stages matching specified criteria
-      description: |
-        Returns a filtered list of stages based on the provided query parameters.
+      description: >
+        Returns a filtered list of stages based on the provided query
+        parameters.
+
         Supports filtering by job ID, stage type, and status.
 
-        Optional inclusion of related task data via the should_return_tasks parameter
-        allows clients to retrieve the complete stage hierarchy in a single request.
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter
+
+        allows clients to retrieve the complete stage hierarchy in a single
+        request.
       tags:
         - stages
       responses:
@@ -465,12 +532,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve a specific stage by its ID
-      description: |
+      description: >
         Fetches detailed information about a stage using its unique identifier.
-        Includes stage configuration, status, metadata, and completion information.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        which allows clients to retrieve the complete stage hierarchy in a single request.
+        Includes stage configuration, status, metadata, and completion
+        information.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        which allows clients to retrieve the complete stage hierarchy in a
+        single request.
       tags:
         - stages
       responses:
@@ -504,12 +577,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Get stage progress summary
-      description: |
+      description: >
         Retrieves aggregated statistics about the tasks within a specific stage.
-        Provides counts of tasks by status (pending, in progress, completed, etc.) 
+
+        Provides counts of tasks by status (pending, in progress, completed,
+        etc.) 
+
         and a total task count for monitoring stage progress.
 
-        This endpoint is useful for displaying progress indicators or status dashboards
+
+        This endpoint is useful for displaying progress indicators or status
+        dashboards
+
         without needing to retrieve and process all individual task details.
       tags:
         - stages
@@ -544,12 +623,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Update stage's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific stage.
-        This endpoint allows clients to attach or modify arbitrary data related to a stage
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a stage
+
         without affecting the stage's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - stages
@@ -592,16 +677,28 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Change stage's operational status
-      description: |
-        Updates the operational status of a stage, which may cascade changes to all 
-        related tasks. This endpoint can be used to pause, resume, abort, or otherwise 
+      description: >
+        Updates the operational status of a stage, which may cascade changes to
+        all 
+
+        related tasks. This endpoint can be used to pause, resume, abort, or
+        otherwise 
+
         control the execution flow of a stage.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed stage or completing a failed stage without
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
+        operations like resuming a completed stage or completing a failed stage
+        without
+
         proper remediation.
 
-        Changes to a stage's status may affect the parent job's status if certain 
+
+        Changes to a stage's status may affect the parent job's status if
+        certain 
+
         conditions are met.
       tags:
         - stages
@@ -649,9 +746,11 @@ paths:
     get:
       operationId: getTasksByStageId
       summary: Retrieve all tasks for a specific stage
-      description: |
+      description: >
         Fetches all tasks associated with the specified stage ID.
-        Provides complete information about each task including type, status, and attempt count.
+
+        Provides complete information about each task including type, status,
+        and attempt count.
       responses:
         '200':
           description: Successfully retrieved tasks for the specified stage
@@ -684,12 +783,19 @@ paths:
     post:
       operationId: addTasks
       summary: Add new tasks to an existing stage
-      description: |
+      description: >
         Creates and appends new tasks to an existing stage.
-        This endpoint allows for extending stage processing capabilities by adding more work units.
 
-        Task objects require type and data properties, with optional user metadata and 
-        maximum attempt configuration. Tasks are created with an initial status of PENDING.
+        This endpoint allows for extending stage processing capabilities by
+        adding more work units.
+
+
+        Task objects require type and data properties, with optional user
+        metadata and 
+
+        maximum attempt configuration. Tasks are created with an initial status
+        of PENDING.
+
 
         The stage must exist and be in a valid state to accept new tasks.
       parameters:
@@ -737,15 +843,25 @@ paths:
     patch:
       operationId: dequeueTask
       summary: Find and claim the highest priority pending task of specified stage type
-      description: |
-        Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status, 
-        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+      description: >
+        Retrieves the highest priority task of the specified stage type that is
+        in PENDING or RETRIED status, 
+
+        and automatically updates its status to IN_PROGRESS. This endpoint
+        implements a priority-based 
+
         work queue pattern where workers can claim the next available task.
 
-        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
-        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
 
-        If successful, returns the complete task details with status updated to IN_PROGRESS.
+        The endpoint considers task priority (inherited from the parent job),
+        searches only for tasks 
+
+        that are in valid states (PENDING or RETRIED), and updates related stage
+        and job status if needed.
+
+
+        If successful, returns the complete task details with status updated to
+        IN_PROGRESS.
       tags:
         - stages
       responses:
@@ -783,12 +899,18 @@ paths:
     get:
       operationId: getTasksByCriteria
       summary: Retrieve tasks matching specified criteria
-      description: |
+      description: >
         Returns a filtered list of tasks based on the provided query parameters.
-        Supports filtering by stage ID, task type, date range, and operational status.
 
-        This endpoint is useful for monitoring task progress across multiple stages and jobs,
-        enabling clients to build custom dashboards or track specific task types.
+        Supports filtering by stage ID, task type, date range, and operational
+        status.
+
+
+        This endpoint is useful for monitoring task progress across multiple
+        stages and jobs,
+
+        enabling clients to build custom dashboards or track specific task
+        types.
       responses:
         '200':
           description: Successfully retrieved matching tasks
@@ -824,9 +946,11 @@ paths:
     get:
       operationId: getTaskById
       summary: Retrieve a specific task by its ID
-      description: |
+      description: >
         Fetches detailed information about a task using its unique identifier.
-        Returns complete task data including type, status, payload, and attempt information.
+
+        Returns complete task data including type, status, payload, and attempt
+        information.
       responses:
         '200':
           description: Task data retrieved successfully
@@ -860,12 +984,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/taskId'
       summary: Update task's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific task.
-        This endpoint allows clients to attach or modify arbitrary data related to a task
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a task
+
         without affecting the task's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - tasks
@@ -908,15 +1038,25 @@ paths:
     put:
       operationId: updateTaskStatus
       summary: Change task's operational status
-      description: |
-        Updates the operational status of a task, which may trigger cascading updates
-        to the parent stage and job. This endpoint can be used to mark tasks as complete, 
+      description: >
+        Updates the operational status of a task, which may trigger cascading
+        updates
+
+        to the parent stage and job. This endpoint can be used to mark tasks as
+        complete, 
+
         failed, aborted, or otherwise control the execution flow.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
         operations like completing a paused task without proper resumption.
 
-        When a task's status is changed, the system will automatically update the parent stage's
+
+        When a task's status is changed, the system will automatically update
+        the parent stage's
+
         summary statistics and may affect the stage's overall status.
       tags:
         - tasks
@@ -957,7 +1097,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/errorMessage'
 security: []
-
 components:
   parameters:
     jobId:
@@ -1135,9 +1274,12 @@ components:
         - PAUSED
         - CREATED
       example: CREATED
-      description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+      description: >
+        Execution state of a stage within a job's workflow, tracking progress
+        through its lifecycle.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED, FAILED, and ABORTED.
     stageOperationStatus:
       type: string
       enum:
@@ -1149,9 +1291,12 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-      description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+      description: >
+        Execution state of a stage within a job's workflow, tracking progress
+        through its lifecycle.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED, FAILED, and ABORTED.
     taskOperationStatus:
       type: string
       enum:
@@ -1162,9 +1307,12 @@ components:
         - CREATED
         - RETRIED
       example: CREATED
-      description: |
-        Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
-        Finite states from which no further transitions are possible include: COMPLETED and FAILED.
+      description: >
+        Current operational state of a task, including specialized states like
+        RETRIED for task-specific error handling.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED and FAILED.
     jobName:
       type: string
       enum:
@@ -1172,29 +1320,45 @@ components:
         - EXPORT
         - DEFAULT
       example: DEFAULT
-      description: Category or type of job processing being performed, used for filtering and system behaviors
+      description: >-
+        Category or type of job processing being performed, used for filtering
+        and system behaviors
     stageType:
       type: string
       maxLength: 50
       example: unknown
-      description: |
-        Free-form string identifier for stage functionality, allowing flexible categorization
+      description: >
+        Free-form string identifier for stage functionality, allowing flexible
+        categorization
+
         of stage operations. Used for routing tasks to appropriate workers and
-        for filtering in API requests. Can be any descriptive name up to 50 characters.
+
+        for filtering in API requests. Can be any descriptive name up to 50
+        characters.
     returnStage:
       type: boolean
-      description: Flag indicating whether to include complete stage details in job response payloads
+      description: >-
+        Flag indicating whether to include complete stage details in job
+        response payloads
     returnTask:
       type: boolean
-      description: Flag indicating whether to include complete task details in stage response payloads
+      description: >-
+        Flag indicating whether to include complete task details in stage
+        response payloads
     userMetadata:
       type: object
       additionalProperties: true
-      description: Application-specific custom data container that can store arbitrary client information without affecting core operations
+      description: >-
+        Application-specific custom data container that can store arbitrary
+        client information without affecting core operations
     summary:
-      description: |
-        Aggregated task statistics grouped by operational status, providing a complete overview of stage progress.
-        Used for monitoring progress, generating dashboards, and determining when stages/jobs are complete.
+      description: >
+        Aggregated task statistics grouped by operational status, providing a
+        complete overview of stage progress.
+
+        Used for monitoring progress, generating dashboards, and determining
+        when stages/jobs are complete.
+
         The total field should always equal the sum of all other status counts.
       type: object
       properties:
@@ -1243,9 +1407,12 @@ components:
         - data
         - userMetadata
       additionalProperties: false
-      description: |
+      description: >
         Input payload for creating a new job in the system.
-        Contains all required configuration for job execution, including processing mode,
+
+        Contains all required configuration for job execution, including
+        processing mode,
+
         custom parameters, metadata.
     jobResponse:
       type: object
@@ -1285,18 +1452,33 @@ components:
           properties:
             startAsWaiting:
               type: boolean
-              description: |
-                Optional flag indicating whether the stage should be created in a waiting state.
-                If true, the stage will not start processing immediately and will require
-                manual intervention to begin execution. Useful for staging workflows where
-                stages need to be prepared but not executed until all dependencies are met.
+              description: >
+                Optional flag indicating whether the stage should be created in
+                a waiting state.
+
+                If true, the stage will not start processing immediately and
+                will require
+
+                manual intervention to begin execution. Useful for staging
+                workflows where
+
+                stages need to be prepared but not executed until all
+                dependencies are met.
               example: false
-          description: |
+          description: >
             Input payload for creating a new processing stage.
-            Defines the stage type, custom configuration data, and user-defined metadata.
-            Used when adding stages to jobs or creating stages as part of job creation.
-            The startAsWaiting flag allows for creating stages that are not immediately active,
-            enabling more complex workflows where stages can be prepared in advance.
+
+            Defines the stage type, custom configuration data, and user-defined
+            metadata.
+
+            Used when adding stages to jobs or creating stages as part of job
+            creation.
+
+            The startAsWaiting flag allows for creating stages that are not
+            immediately active,
+
+            enabling more complex workflows where stages can be prepared in
+            advance.
     createStagePayload:
       type: object
       properties:
@@ -1329,17 +1511,25 @@ components:
               $ref: '#/components/schemas/stageOperationStatus'
             jobId:
               $ref: '#/components/schemas/jobId'
-          description: |
-            Complete stage information returned by the API, including all fields from the 
-            creation payload plus system-generated fields like ID, progress statistics,
+          description: >
+            Complete stage information returned by the API, including all fields
+            from the 
+
+            creation payload plus system-generated fields like ID, progress
+            statistics,
+
             execution status, and parent job reference.
     getStageResponse:
       allOf:
         - $ref: '#/components/schemas/stageResponse'
         - type: object
-          description: |
-            Extended stage response that includes associated tasks when requested with 
-            should_return_tasks=true. Used to retrieve the complete stage hierarchy
+          description: >
+            Extended stage response that includes associated tasks when
+            requested with 
+
+            should_return_tasks=true. Used to retrieve the complete stage
+            hierarchy
+
             in a single API call.
           properties:
             tasks:
@@ -1354,15 +1544,21 @@ components:
     taskPayload:
       type: object
       additionalProperties: true
-      description: |
+      description: >
         Custom task configuration data containing operation-specific parameters.
-        The schema varies based on task type and contains all necessary information
+
+        The schema varies based on task type and contains all necessary
+        information
+
         for task execution by workers.
     createTaskPayload:
       type: object
-      description: |
+      description: >
         Input payload for creating a new task within a stage.
-        Contains task type, operational parameters, and optional retry configuration.
+
+        Contains task type, operational parameters, and optional retry
+        configuration.
+
         Used when adding tasks to existing stages.
       properties:
         data:
@@ -1376,9 +1572,13 @@ components:
       additionalProperties: false
     taskResponse:
       type: object
-      description: |
-        Complete task information returned by the API, including all configuration
-        data along with execution status, attempt tracking, and associated stage reference.
+      description: >
+        Complete task information returned by the API, including all
+        configuration
+
+        data along with execution status, attempt tracking, and associated stage
+        reference.
+
         Used when retrieving task details or after task creation.
       properties:
         id:
@@ -1409,9 +1609,11 @@ components:
       additionalProperties: false
     createJobResponse:
       type: object
-      description: |
+      description: >
         Response returned after successful job creation, containing the complete
-        job details including the generated job ID and initial status information.
+
+        job details including the generated job ID and initial status
+        information.
       properties:
         id:
           $ref: '#/components/schemas/jobId'
@@ -1436,9 +1638,12 @@ components:
         - id
     errorMessage:
       type: object
-      description: |
-        Standard error response structure used when API operations encounter problems.
-        Contains a human-readable message and optional stack trace for debugging.
+      description: >
+        Standard error response structure used when API operations encounter
+        problems.
+
+        Contains a human-readable message and optional stack trace for
+        debugging.
       properties:
         message:
           type: string
@@ -1462,9 +1667,12 @@ components:
         - code
     error:
       type: object
-      description: |
-        Simplified error response format used for common validation and client errors,
-        containing just the essential error message without additional debugging data.
+      description: >
+        Simplified error response format used for common validation and client
+        errors,
+
+        containing just the essential error message without additional debugging
+        data.
       required:
         - message
       properties:
