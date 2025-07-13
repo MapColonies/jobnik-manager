@@ -54,13 +54,6 @@
       "certFileName": {
         "__name": "DB_SSL_CERT_FILE_NAME"
       }
-    },
-    "secretName": {
-      "__name": "DB_SECRET_NAME"
-    },
-    "useExternalSecret": {
-      "__name": "DB_USE_EXTERNAL_SECRET",
-      "__format": "boolean"
     }
   }
 }
