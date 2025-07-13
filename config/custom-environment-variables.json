@@ -48,7 +48,7 @@
     "schema": "DB_SCHEMA",
     "ssl": {
       "enabled": {
-        "__name": "DB_SSL_ENABLED",
+        "__name": "DB_ENABLE_SSL_AUTH",
         "__format": "boolean"
       },
       "certFileName": {
