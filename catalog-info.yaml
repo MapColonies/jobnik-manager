@@ -1,17 +1,19 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: ts-server-boilerplate
-  description: A boilerplate github repo for a REST API service in NodeJS for MapColonies
+  name: jobnik-manager
+  description: A job management system providing REST API for creating, tracking, and managing jobs with hierarchical stages and tasks workflow
   annotations:
-    github.com/project-slug: MapColonies/ts-server-boilerplate
+    github.com/project-slug: MapColonies/jobnik-manager
   tags:
     - nodejs
     - typescript
     - expressjs
-    - boilerplate
+    - jobnik-manager
+    - job-manager
+    - job-management
 spec:
   type: service
   lifecycle: production
   owner: DevInfra
-  system: boilerplate
+  system: jobnik

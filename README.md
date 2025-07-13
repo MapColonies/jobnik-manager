@@ -37,7 +37,14 @@ This server provides a management interface for job trees and includes a RESTful
 4. **Type Generation:** `npm run migration:generate-types` - Generates and updates TypeScript types for your database models.
 
 <ins>**Production Deployment:**</ins>
-* **Migration Deployment:** `npm run migration:deploy` - Deploys the latest migrations to your production database.
+* **Migration Deployment:** 
+  * `npm run migration:deploy` - Deploys the latest migrations to your production database.
+  * Using Docker (without SSL):
+    ```bash
+    docker run --network=host -e DATABASE_URL="postgresql://<db_user_name>:<db_password>@<db_host>:<db_port>/<db_name>?schema=<db_schema>" \
+    --entrypoint=npx jobnik-manager prisma migrate deploy --schema ./db/prisma/schema.prisma
+    ```
+    > **Note:** This command uses a non-SSL connection. SSL-enabled connection option will be available in the next version.
 
 > [!CAUTION]
 > **Remember to carefully manage environment variables.**

@@ -4,6 +4,13 @@ global:
   metrics: {}
   environment: ''
 
+mcLabelsAndAnnotations:
+  component: backend
+  owner: infra
+  partOf: jobnik
+  prometheus:
+    enabled: true
+    
 enabled: true
 environment: development
 replicaCount: 1
@@ -13,12 +20,6 @@ resetOnConfigChange: false
 
 nameOverride: ""
 fullnameOverride: ""
-
-configManagement:
-  offlineMode: false
-  name: 'service-name'
-  version: 'latest'
-  serverUrl: 'http://localhost:8080/api'
 
 livenessProbe:
   enabled: true
@@ -59,7 +60,7 @@ caPath: '/usr/local/share/ca-certificates'
 caKey: 'ca.crt'
 
 image:
-  repository: ts-server-boilerplate
+  repository: jobnik-manager
   # If commented, appVersion will be taken. See: _helpers.tpl
   # tag: 'latest'
   pullPolicy: IfNotPresent
@@ -78,6 +79,24 @@ env:
   metrics:
     enabled: false
     url: http://localhost:55681/v1/metrics
+
+  configManager:
+    offlineMode: false
+    name: 'jobnik-manager'
+    version: 'latest'
+    serverUrl: 'http://localhost:8080/api'
+  
+dbConfig:
+  host: localhost
+  database: jobnik
+  port: 5432
+  useExternalSecret: false
+  secretName: ''
+  sslAuth:
+    enabled: false
+    certFileName: cert.pem
+    keyFileName: key.pem
+    caFileName: ca.crt
 
 resources:
   enabled: true

@@ -118,3 +118,5 @@ src/db/prisma/generated
 local-*.json
 local.json
 *myvalues*
+local
+local.yaml
