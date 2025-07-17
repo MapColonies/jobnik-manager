@@ -9,28 +9,21 @@ interface SchemaExistsResult {
   exists: boolean;
 }
 
-export type DbConfig = {
-  enableSslAuth: boolean;
-  sslPaths: { ca: string; cert: string; key: string };
-} & PoolConfig;
+export type DbConfig = PoolConfig & commonDbFullV1Type;
 
-export const createConnectionOptions = (dbConfig: commonDbFullV1Type): PoolConfig => {
-  const dataSourceOptions: PoolConfig = {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    application_name: `${hostname()}-${process.env.NODE_ENV ?? 'unknown_env'}`,
+export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
+  const { ssl, ...dataSourceOptions } = dbConfig;
+  dataSourceOptions.application_name = `${hostname()}-${process.env.NODE_ENV ?? 'unknown_env'}`;
+
+  const poolConfig: PoolConfig = {
+    ...dataSourceOptions,
     user: dbConfig.username,
-    host: dbConfig.host,
-    password: dbConfig.password,
-    database: dbConfig.database,
   };
-
-  const sslParams = dbConfig.ssl;
-  if (sslParams.enabled) {
-    // todo - should be tested on future development (current version not support cert full deployment)
-    dataSourceOptions.ssl = { key: readFileSync(sslParams.key), cert: readFileSync(sslParams.cert), ca: readFileSync(sslParams.ca) };
+  if (ssl.enabled) {
+    delete poolConfig.password;
+    poolConfig.ssl = { key: readFileSync(ssl.key), cert: readFileSync(ssl.cert), ca: readFileSync(ssl.ca) };
   }
-
-  return dataSourceOptions;
+  return poolConfig;
 };
 
 export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {

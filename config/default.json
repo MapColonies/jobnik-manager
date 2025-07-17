@@ -35,7 +35,10 @@
     "username": "postgres",
     "password": "postgres",
     "ssl": {
-      "enabled": false
+      "enabled": false,
+      "ca": "",
+      "key": "",
+      "cert": ""
     },
     "database": "postgres",
     "schema": "job_manager"
