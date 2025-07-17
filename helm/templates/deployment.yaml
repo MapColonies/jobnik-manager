@@ -1,20 +1,21 @@
 {{- $releaseName := .Release.Name -}}
-{{- $chartName := include "ts-server-boilerplate.name" . -}}
-{{- $cloudProviderFlavor := include "ts-server-boilerplate.cloudProviderFlavor" . -}}
-{{- $cloudProviderDockerRegistryUrl := include "ts-server-boilerplate.cloudProviderDockerRegistryUrl" . -}}
-{{- $cloudProviderImagePullSecretName := include "ts-server-boilerplate.cloudProviderImagePullSecretName" . -}}
-{{- $imageTag := include "ts-server-boilerplate.tag" . -}}
+{{- $chartName := include "jobnik-manager.name" . -}}
+{{- $cloudProviderFlavor := include "jobnik-manager.cloudProviderFlavor" . -}}
+{{- $cloudProviderDockerRegistryUrl := include "jobnik-manager.cloudProviderDockerRegistryUrl" . -}}
+{{- $cloudProviderImagePullSecretName := include "jobnik-manager.cloudProviderImagePullSecretName" . -}}
+{{- $postgresSecretName := ternary .Values.dbConfig.secretName (printf "%s%s" .Release.Name "-postgres-secret") .Values.dbConfig.useExternalSecret }}
+{{- $imageTag := include "jobnik-manager.tag" . -}}
 {{- if .Values.enabled -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ printf "%s-deployment" (include "ts-server-boilerplate.fullname" .) }}
+  name: {{ printf "%s-deployment" (include "jobnik-manager.fullname" .) }}
   labels:
     app: {{ $chartName }}
     component: {{ $chartName }}
-    environment: {{ include "ts-server-boilerplate.environment" . }}
+    environment: {{ include "jobnik-manager.environment" . }}
     release: {{ $releaseName }}
-    {{- include "ts-server-boilerplate.labels" . | nindent 4 }}
+    {{- include "jobnik-manager.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
@@ -23,15 +24,16 @@ spec:
       app: {{ $chartName }}
       release: {{ $releaseName }}
       run: {{ $releaseName }}-{{ $chartName }}
-      {{- include "ts-server-boilerplate.selectorLabels" . | nindent 6 }}
+      {{- include "jobnik-manager.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
         app: {{ $chartName }}
         release: {{ $releaseName }}
         run: {{ $releaseName }}-{{ $chartName }}
-        {{- include "ts-server-boilerplate.selectorLabels" . | nindent 8 }}
+        {{- include "jobnik-manager.labels" . | nindent 8 }}
       annotations:
+      {{ include "mc-labels-and-annotations.annotations" . | nindent 8 }}
       {{- if .Values.resetOnConfigChange }}
         checksum/configmap: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
       {{- end }}
@@ -67,6 +69,20 @@ spec:
               {{ toYaml .Values.extraVolumeMounts | nindent 12 }}
             {{- end }}
           env:
+            {{- if .Values.env.configManager.offlineMode }}
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $postgresSecretName }}
+                  key: username
+            {{- if not .Values.dbConfig.sslAuth.enabled }}               
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $postgresSecretName }}
+                  key: password
+            {{- end }}
+            {{- end }}
             - name: SERVER_PORT
               value: {{ .Values.env.targetPort | quote }}
             {{- if .Values.caSecretName }}
@@ -80,7 +96,7 @@ spec:
             {{- end }}            
           envFrom:
             - configMapRef:
-                name: {{ printf "%s-configmap" (include "ts-server-boilerplate.fullname" .) }}
+                name: {{ printf "%s-configmap" (include "jobnik-manager.fullname" .) }}
           ports:
             - name: http
               containerPort: {{ .Values.env.targetPort }}

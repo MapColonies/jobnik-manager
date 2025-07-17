@@ -1,4 +1,4 @@
-FROM node:20 as build
+FROM node:22 as build
 
 
 WORKDIR /tmp/buildApp
@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:20.19.0-alpine3.21 as production
+FROM node:22-alpine as production
 
 RUN apk add dumb-init
 
@@ -23,6 +23,7 @@ WORKDIR /usr/src/app
 COPY --chown=node:node package*.json ./
 COPY .husky/ .husky/
 COPY --chown=node:node ./src/db/prisma/schema.prisma ./db/prisma/schema.prisma
+COPY --chown=node:node ./src/db/prisma/migrations ./db/prisma/migrations
 
 RUN npm ci --only=production
 

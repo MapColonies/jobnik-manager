@@ -1,10 +1,10 @@
-{{- $tracingUrl := include "ts-server-boilerplate.tracingUrl" . -}}
-{{- $metricsUrl := include "ts-server-boilerplate.metricsUrl" . -}}
+{{- $tracingUrl := include "jobnik-manager.tracingUrl" . -}}
+{{- $metricsUrl := include "jobnik-manager.metricsUrl" . -}}
 {{- if .Values.enabled -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ printf "%s-configmap" (include "ts-server-boilerplate.fullname" .) }}
+  name: {{ printf "%s-configmap" (include "jobnik-manager.fullname" .) }}
 data:
   REQUEST_PAYLOAD_LIMIT: {{ .Values.env.requestPayloadLimit | quote }}
   RESPONSE_COMPRESSION_ENABLED: {{ .Values.env.responseCompressionEnabled | quote }}
@@ -18,8 +18,12 @@ data:
   TELEMETRY_METRICS_ENABLED: 'true'
   TELEMETRY_METRICS_URL: {{ $metricsUrl }}
   {{ end }}
+  DB_HOST: {{ .Values.dbConfig.host }}
+  DB_NAME: {{ .Values.dbConfig.database }}
+  DB_PORT: {{ .Values.dbConfig.port | default 5432 | quote }}
+  DB_ENABLE_SSL_AUTH: {{ .Values.dbConfig.sslAuth.enabled | quote }}
   npm_config_cache: /tmp/
-  {{- with .Values.configManagement }}
+  {{- with .Values.env.configManager }}
   CONFIG_NAME: {{ .name| quote }}
   CONFIG_VERSION: {{ .version | quote }}
   CONFIG_OFFLINE_MODE: {{ .offlineMode | quote }}
