@@ -21,7 +21,17 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
   };
   if (ssl.enabled) {
     delete poolConfig.password;
-    poolConfig.ssl = { key: readFileSync(ssl.key), cert: readFileSync(ssl.cert), ca: readFileSync(ssl.ca) };
+    try {
+      poolConfig.ssl = {
+        key: readFileSync(ssl.key),
+        cert: readFileSync(ssl.cert),
+        ca: readFileSync(ssl.ca),
+      };
+    } catch (error) {
+      throw new Error(
+        `Failed to load SSL certificates. Ensure the files exist and are accessible. Details: ${(error as Error).message}`
+      );
+    }
   }
   return poolConfig;
 };
