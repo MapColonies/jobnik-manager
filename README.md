@@ -46,6 +46,24 @@ This server provides a management interface for job trees and includes a RESTful
     ```
     > **Note:** This command uses a non-SSL connection. SSL-enabled connection option will be available in the next version.
 
+  * **Using Docker with SSL Certificates:**
+    * To generate a PKCS#12 file from your certificates:
+      ```bash
+      docker run --rm -v /path/to/certs:/certs -v /path/to/output:/output \
+        --entrypoint=openssl jobnik-manager \
+        pkcs12 -export -out /output/client-identity.p12 -inkey /certs/key.pem -in /certs/cert.pem
+      ```
+      > **Note:** You will be prompted for an export password for the P12 file. If you need to set it non-interactively, add `-passout pass:your_password` to the command.
+
+    * To run migrations with SSL connection:
+      ```bash
+      docker run --network=host \
+        -v /path/to/certs:/certs \
+        -e DATABASE_URL="postgresql://<db_user_name>:<db_password>@<db_host>:<db_port>/<db_name>?schema=<db_schema>&sslmode=require&sslidentity=/certs/client-identity.p12&sslpassword=<your_ssl_password>" \
+        --entrypoint=npx jobnik-manager prisma migrate deploy --schema ./db/prisma/schema.prisma
+      ```
+      > **Note:** According to Prisma's documentation, when using SSL certificates, the recommended approach is to use `sslidentity` with a PKCS#12 file instead of separate cert/key files. Make sure you've created this file using the instructions in the section above.
+
 > [!CAUTION]
 > **Remember to carefully manage environment variables.**
 > Ensure that the `DATABASE_URL` environment variable is correctly configured for each environment (development, staging, production).

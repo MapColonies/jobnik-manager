@@ -12,7 +12,7 @@ RUN npm run build
 
 FROM node:22-alpine as production
 
-RUN apk add dumb-init
+RUN apk add --no-cache dumb-init openssl
 
 ENV NODE_ENV=production
 ENV SERVER_PORT=8080
