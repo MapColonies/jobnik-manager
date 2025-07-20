@@ -6,7 +6,7 @@ import { createRequestSender, RequestSender } from '@map-colonies/openapi-helper
 import type { MatcherContext } from '@jest/expect';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
-import { JobName, JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
+import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
@@ -162,7 +162,7 @@ describe('job', function () {
     describe('Bad Path', function () {
       it('should return a 400 status code along with a specific validation error message detailing the missing required parameters for job creation', async function () {
         const badRequestBody = {
-          name: JobName.DEFAULT,
+          name: 'DEFAULT',
         } as unknown as JobCreateModel;
 
         const response = await requestSender.createJob({

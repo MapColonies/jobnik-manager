@@ -1167,11 +1167,8 @@ components:
         Finite states from which no further transitions are possible include: COMPLETED and FAILED.
     jobName:
       type: string
-      enum:
-        - INGESTION
-        - EXPORT
-        - DEFAULT
       example: DEFAULT
+      maxLength: 50
       description: Category or type of job processing being performed, used for filtering and system behaviors
     stageType:
       type: string

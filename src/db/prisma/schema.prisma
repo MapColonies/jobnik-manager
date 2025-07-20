@@ -26,7 +26,7 @@ model Job {
   updateTime   DateTime           @updatedAt @map("update_time")
   userMetadata Json               @default("{}") @map("user_metadata")
   priority     Priority           @default(VERY_LOW)
-  name         JobName            @default(DEFAULT)
+  name         String             @default("DEFAULT")
   stage        Stage[]
 
   @@map("job")
@@ -64,14 +64,6 @@ enum Priority {
   VERY_LOW  @map("Very-Low")
 
   @@map("priority_enum")
-}
-
-enum JobName {
-  INGESTION @map("Ingestion")
-  EXPORT    @map("Export")
-  DEFAULT   @map("Default")
-
-  @@map("job_name_enum")
 }
 
 model Stage {
