@@ -615,9 +615,8 @@ export type components = {
     /**
      * @description Category or type of job processing being performed, used for filtering and system behaviors
      * @example DEFAULT
-     * @enum {string}
      */
-    jobName: 'INGESTION' | 'EXPORT' | 'DEFAULT';
+    jobName: string;
     /**
      * @description Free-form string identifier for stage functionality, allowing flexible categorization
      *     of stage operations. Used for routing tasks to appropriate workers and
@@ -982,6 +981,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "JOB_DELETED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1036,6 +1038,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "JOB_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1092,6 +1097,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "JOB_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1157,6 +1165,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "JOB_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1470,6 +1481,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "STAGE_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1526,6 +1540,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "STAGE_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
@@ -1842,6 +1859,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
+          /** @example {
+           *       "code": "TASK_MODIFIED_SUCCESSFULLY"
+           *     } */
           'application/json': components['schemas']['defaultOkMessage'];
         };
       };
