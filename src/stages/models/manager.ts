@@ -282,8 +282,7 @@ export class StageManager {
 
   /**
    *
-   * @param jobId unique identifier of the job.
-   * This method retrieves the next order number for a new stage in a job.
+   * @param jobId unique identifier of the job. This method retrieves the next order number for a new stage in a job.
    * It checks the maximum order number of existing stages in the job and increments it by one.
    * If no stages exist, it returns 1 as the first order number.
    * @returns The next order number for a new stage in the job.
