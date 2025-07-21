@@ -18,6 +18,7 @@ let jobManager: JobManager;
 let stageManager: StageManager;
 let stageRepository: StageRepository;
 const prisma = new PrismaClient();
+type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
@@ -40,7 +41,6 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
-
           const { xstate, task, ...rest } = stageEntity;
 
           const expectedStage = [rest];
@@ -160,6 +160,27 @@ describe('JobManager', () => {
           expect(stage).toMatchObject(expectedStage);
           expect(stage[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
+
+        it('should return stages ordered by order field', async function () {
+          const jobId = faker.string.uuid();
+          const stage1 = createStageEntity({ jobId, order: 1, type: 'FIRST_STAGE' });
+          const stage2 = createStageEntity({ jobId, order: 2, type: 'SECOND_STAGE' });
+          const stage3 = createStageEntity({ jobId, order: 3, type: 'THIRD_STAGE' });
+
+          // Mock database to return stages in correct order (simulating orderBy)
+          const orderedStages = [stage1, stage2, stage3];
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
+          jest.spyOn(prisma.stage, 'findMany').mockResolvedValue(orderedStages);
+
+          const stages = await stageManager.getStagesByJobId(jobId);
+
+          expect(stages).toMatchObject([
+            { id: stage1.id, order: 1 },
+            { id: stage2.id, order: 2 },
+            { id: stage3.id, order: 3 },
+          ]);
+        });
       });
 
       describe('#BadPath', () => {
@@ -245,6 +266,7 @@ describe('JobManager', () => {
           const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
+          jest.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: 1 } } as StageAggregateResult);
 
           const anotherStagePayload = {
             data: {},
@@ -257,6 +279,7 @@ describe('JobManager', () => {
             id: uniqueStageId,
             userMetadata: anotherStagePayload.userMetadata,
             type: anotherStagePayload.type,
+            order: 2,
           });
 
           jest.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
@@ -275,6 +298,7 @@ describe('JobManager', () => {
           const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
+          jest.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
 
           const anotherStagePayload = {
             data: {},
@@ -288,6 +312,7 @@ describe('JobManager', () => {
             id: uniqueStageId,
             userMetadata: anotherStagePayload.userMetadata,
             type: anotherStagePayload.type,
+            order: 1,
           });
 
           jest.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
@@ -298,6 +323,125 @@ describe('JobManager', () => {
           const { xstate, task, ...rest } = anotherStageEntity;
 
           expect(stagesResponse).toMatchObject(rest);
+        });
+
+        it('should assign order 1 to the first stage in a job (internal logic)', async function () {
+          const uniqueJobId = faker.string.uuid();
+          const uniqueStageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: uniqueJobId, data: {} });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
+
+          const stagePayload = {
+            data: {},
+            type: 'SOME_STAGE_TYPE',
+            userMetadata: { testData: 'first' },
+          } satisfies StageCreateModel;
+
+          const expectedStageEntity = createStageEntity({
+            jobId: uniqueJobId,
+            id: uniqueStageId,
+            userMetadata: stagePayload.userMetadata,
+            type: stagePayload.type,
+            order: 1,
+          });
+
+          jest.spyOn(prisma.stage, 'create').mockResolvedValue(expectedStageEntity);
+
+          const result = await stageManager.addStage(uniqueJobId, stagePayload);
+
+          expect(result).toMatchObject({
+            id: expectedStageEntity.id,
+            order: 1,
+          });
+        });
+
+        it('should assign incremental order numbers for multiple stages in the same job (internal logic)', async function () {
+          const uniqueJobId = faker.string.uuid();
+          const uniqueStageId = faker.string.uuid();
+          const jobEntity = createJobEntity({ id: uniqueJobId, data: {} });
+
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
+          jest.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: 3 } } as StageAggregateResult);
+
+          const stagePayload = {
+            data: {},
+            type: 'FOURTH_STAGE_TYPE',
+            userMetadata: { testData: 'fourth' },
+          } satisfies StageCreateModel;
+
+          const expectedStageEntity = createStageEntity({
+            jobId: uniqueJobId,
+            id: uniqueStageId,
+            userMetadata: stagePayload.userMetadata,
+            type: stagePayload.type,
+            order: 4,
+          });
+
+          jest.spyOn(prisma.stage, 'create').mockResolvedValue(expectedStageEntity);
+
+          const result = await stageManager.addStage(uniqueJobId, stagePayload);
+
+          expect(result).toMatchObject({
+            id: expectedStageEntity.id,
+            order: 4,
+          });
+        });
+
+        it('should assign independent order numbers for stages in different jobs (internal logic)', async function () {
+          const jobId1 = faker.string.uuid();
+          const jobId2 = faker.string.uuid();
+          const stageId1 = faker.string.uuid();
+          const stageId2 = faker.string.uuid();
+
+          const jobEntity1 = createJobEntity({ id: jobId1, data: {} });
+          const jobEntity2 = createJobEntity({ id: jobId2, data: {} });
+
+          // For job1: already has 2 stages
+          jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity1).mockResolvedValueOnce(jobEntity2);
+          jest
+            .spyOn(prisma.stage, 'aggregate')
+            .mockResolvedValueOnce({ _max: { order: 2 } } as StageAggregateResult)
+            .mockResolvedValueOnce({ _max: { order: null } } as StageAggregateResult);
+
+          const stagePayload1 = {
+            data: {},
+            type: 'JOB1_STAGE',
+            userMetadata: { job: 'job1' },
+          } satisfies StageCreateModel;
+
+          const stagePayload2 = {
+            data: {},
+            type: 'JOB2_STAGE',
+            userMetadata: { job: 'job2' },
+          } satisfies StageCreateModel;
+
+          const expectedStageEntity1 = createStageEntity({
+            jobId: jobId1,
+            id: stageId1,
+            order: 3, // Should be 3 for job1
+          });
+
+          const expectedStageEntity2 = createStageEntity({
+            jobId: jobId2,
+            id: stageId2,
+            order: 1, // Should be 1 for job2
+          });
+
+          jest.spyOn(prisma.stage, 'create').mockResolvedValueOnce(expectedStageEntity1).mockResolvedValueOnce(expectedStageEntity2);
+
+          const result1 = await stageManager.addStage(jobId1, stagePayload1);
+          const result2 = await stageManager.addStage(jobId2, stagePayload2);
+
+          expect(result1).toMatchObject({
+            id: expectedStageEntity1.id,
+            order: 3,
+          });
+          expect(result2).toMatchObject({
+            id: expectedStageEntity2.id,
+            order: 1,
+          });
         });
       });
 
@@ -321,6 +465,7 @@ describe('JobManager', () => {
         it('should fail with a database error when adding stage', async function () {
           const jobEntity = createJobEntity({});
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
+          jest.spyOn(prisma.stage, 'aggregate').mockResolvedValueOnce({ _max: { order: null } } as StageAggregateResult); // No existing stages
           jest.spyOn(prisma.stage, 'create').mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.addStage(jobEntity.id, {} as unknown as StageCreateModel)).rejects.toThrow('db connection error');

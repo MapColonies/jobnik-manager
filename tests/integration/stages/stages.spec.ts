@@ -69,6 +69,7 @@ describe('stage', function () {
               type: createStageBody.type,
               data: createStageBody.data,
               userMetadata: createStageBody.userMetadata,
+              order: 1,
             },
           ],
         });
@@ -440,6 +441,55 @@ describe('stage', function () {
           body: [],
         });
       });
+
+      it('should return stages ordered by the order field', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        // Create multiple stages for the same job using API endpoints to ensure proper order assignment
+        await requestSender.addStage({
+          pathParams: { jobId: createdJobId },
+          requestBody: {
+            type: 'FIRST_STAGE',
+            data: {},
+            userMetadata: {},
+          },
+        });
+
+        await requestSender.addStage({
+          pathParams: { jobId: createdJobId },
+          requestBody: {
+            type: 'SECOND_STAGE',
+            data: {},
+            userMetadata: {},
+          },
+        });
+
+        await requestSender.addStage({
+          pathParams: { jobId: createdJobId },
+          requestBody: {
+            type: 'THIRD_STAGE',
+            data: {},
+            userMetadata: {},
+          },
+        });
+
+        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
+
+        if (getStageResponse.status !== StatusCodes.OK) {
+          throw new Error();
+        }
+
+        expect(getStageResponse).toSatisfyApiSpec();
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: [
+            { type: 'FIRST_STAGE', order: 1 },
+            { type: 'SECOND_STAGE', order: 2 },
+            { type: 'THIRD_STAGE', order: 3 },
+          ],
+        });
+      });
     });
 
     describe('Bad Path', function () {
@@ -625,7 +675,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { ...createStagesPayload, status: StageOperationStatus.CREATED },
+          body: { ...createStagesPayload, status: StageOperationStatus.CREATED, order: 1 },
         });
       });
 
@@ -670,6 +720,189 @@ describe('stage', function () {
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.CREATED,
           body: { status: StageOperationStatus.CREATED },
+        });
+      });
+
+      it('should create the first stage successfully', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagePayload = {
+          data: { testData: 'first stage' },
+          type: 'FIRST_STAGE_ORDER_TEST',
+          userMetadata: { order: 'first' },
+        } satisfies StageCreateModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagePayload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            ...createStagePayload,
+            status: StageOperationStatus.CREATED,
+            order: 1,
+          },
+        });
+      });
+
+      it('should create multiple stages successfully for the same job', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        // Create first stage
+        const stage1Payload = {
+          data: { testData: 'stage 1' },
+          type: 'STAGE_ORDER_TEST_1',
+          userMetadata: { sequence: 'first' },
+        } satisfies StageCreateModel;
+
+        const stage1Response = await requestSender.addStage({
+          requestBody: stage1Payload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(stage1Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 1,
+          },
+        });
+
+        // Create second stage
+        const stage2Payload = {
+          data: { testData: 'stage 2' },
+          type: 'STAGE_ORDER_TEST_2',
+          userMetadata: { sequence: 'second' },
+        } satisfies StageCreateModel;
+
+        const stage2Response = await requestSender.addStage({
+          requestBody: stage2Payload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(stage2Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 2,
+          },
+        });
+
+        // Create third stage
+        const stage3Payload = {
+          data: { testData: 'stage 3' },
+          type: 'STAGE_ORDER_TEST_3',
+          userMetadata: { sequence: 'third' },
+        } satisfies StageCreateModel;
+
+        const stage3Response = await requestSender.addStage({
+          requestBody: stage3Payload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(stage3Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 3,
+          },
+        });
+      });
+
+      it('should create stages independently for different jobs', async function () {
+        const job1 = await createJobRecord(createJobRequestBody, prisma);
+        const job2 = await createJobRecord(createJobRequestBody, prisma);
+
+        // Add two stages to job1
+        const job1Stage1Payload = {
+          data: { job: 'job1' },
+          type: 'JOB1_STAGE_1',
+          userMetadata: { jobOrder: 'job1-first' },
+        } satisfies StageCreateModel;
+
+        const job1Stage2Payload = {
+          data: { job: 'job1' },
+          type: 'JOB1_STAGE_2',
+          userMetadata: { jobOrder: 'job1-second' },
+        } satisfies StageCreateModel;
+
+        // Add one stage to job2
+        const job2Stage1Payload = {
+          data: { job: 'job2' },
+          type: 'JOB2_STAGE_1',
+          userMetadata: { jobOrder: 'job2-first' },
+        } satisfies StageCreateModel;
+
+        // Create stages
+        const job1Stage1Response = await requestSender.addStage({
+          requestBody: job1Stage1Payload,
+          pathParams: { jobId: job1.id },
+        });
+
+        const job1Stage2Response = await requestSender.addStage({
+          requestBody: job1Stage2Payload,
+          pathParams: { jobId: job1.id },
+        });
+
+        const job2Stage1Response = await requestSender.addStage({
+          requestBody: job2Stage1Payload,
+          pathParams: { jobId: job2.id },
+        });
+
+        expect(job1Stage1Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 1,
+          },
+        });
+
+        expect(job1Stage2Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 2,
+          },
+        });
+
+        expect(job2Stage1Response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            order: 1,
+          },
+        });
+      });
+
+      it('should return stages in correct sequence when fetching by job id', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        // Create multiple stages
+        const stages = [
+          { type: 'FIRST_STAGE', data: { sequence: 1 } },
+          { type: 'SECOND_STAGE', data: { sequence: 2 } },
+          { type: 'THIRD_STAGE', data: { sequence: 3 } },
+        ];
+
+        for (const stageData of stages) {
+          await requestSender.addStage({
+            requestBody: {
+              ...stageData,
+              userMetadata: {},
+            } satisfies StageCreateModel,
+            pathParams: { jobId: job.id },
+          });
+        }
+
+        // Fetch all stages for the job
+        const getStagesResponse = await requestSender.getStageByJobId({
+          pathParams: { jobId: job.id },
+        });
+
+        if (getStagesResponse.status !== StatusCodes.OK) {
+          throw new Error();
+        }
+
+        expect(getStagesResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: [{ order: 1 }, { order: 2 }, { order: 3 }],
         });
       });
     });

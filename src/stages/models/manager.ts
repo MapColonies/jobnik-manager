@@ -63,8 +63,11 @@ export class StageManager {
 
     const { startAsWaiting, ...bodyInput } = stagePayload;
 
+    const nextOrder = await this.getNextStageOrder(jobId);
+
     const input: Prisma.StageCreateInput = {
       ...bodyInput,
+      order: nextOrder,
       summary: defaultStatusCounts,
       status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
       job: {
@@ -131,6 +134,9 @@ export class StageManager {
       },
       include: {
         task: includeTasks,
+      },
+      orderBy: {
+        order: 'asc' as const,
       },
     };
 
@@ -272,5 +278,24 @@ export class StageManager {
     if (summary.total === summary.completed) {
       await this.updateStatus(stage.id, StageOperationStatus.COMPLETED, tx);
     }
+  }
+
+  /**
+   *
+   * @param jobId unique identifier of the job. This method retrieves the next order number for a new stage in a job.
+   * It checks the maximum order number of existing stages in the job and increments it by one.
+   * If no stages exist, it returns 1 as the first order number.
+   * @returns The next order number for a new stage in the job.
+   */
+  private async getNextStageOrder(jobId: string): Promise<number> {
+    const lastStageResult = await this.prisma.stage.aggregate({
+      where: { jobId },
+      _max: { order: true },
+    });
+
+    if (lastStageResult._max.order === null) {
+      return 1;
+    }
+    return lastStageResult._max.order + 1;
   }
 }

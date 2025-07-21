@@ -50,6 +50,7 @@ export const createStageEntity = (override: Partial<StageWithTasks>): StageWithT
     status: StageOperationStatus.CREATED,
     userMetadata: {},
     percentage: 0,
+    order: 1,
     xstate: stageInitializedPersistedSnapshot,
     task: undefined,
   } satisfies StageWithTasks;

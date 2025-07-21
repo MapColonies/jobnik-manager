@@ -337,10 +337,14 @@ paths:
       operationId: getStageByJobId
       parameters:
         - $ref: '#/components/parameters/includeTasks'
-      summary: Retrieve all stages for a specific job
+      summary: Retrieve all stages for a specific job in execution order
       description: |
-        Fetches all stages associated with the specified job ID.
-        Provides complete information about each stage including type, status, and progress.
+        Fetches all stages associated with the specified job ID, automatically ordered by 
+        their execution sequence (order field). Provides complete information about each 
+        stage including type, status, progress, and sequential order number.
+
+        Stages are returned in ascending order based on their order field (1, 2, 3, etc.)
+        to maintain the correct workflow execution sequence defined when stages were created.
 
         Optional inclusion of related task data via the should_return_tasks parameter,
         allowing clients to retrieve the complete job hierarchy in a single request.
@@ -376,12 +380,15 @@ paths:
   /jobs/{jobId}/stage:
     post:
       operationId: addStage
-      summary: Add a new stage to a job
+      summary: Add a new stage to a job with automatic ordering
       description: |
-        Appends a new stage to an existing job.
+        Appends a new stage to an existing job with automatic order assignment.
         The stage will be added after any existing stages in the job's workflow sequence.
+        Each stage is automatically assigned an incremental order number (1, 2, 3, etc.) 
+        within the scope of its parent job to maintain execution sequence.
 
         This endpoint allows for extending job workflows at runtime by adding new processing steps.
+        The order field ensures stages are processed in the correct sequence when retrieved.
 
         The job must exist and be in a valid state to accept new stages.
       parameters:
@@ -1105,6 +1112,11 @@ components:
       type: object
       additionalProperties: true
       description: Custom stage configuration data containing stage-specific parameters
+    order:
+      type: integer
+      minimum: 1
+      description: Sequential order number of the stage within its job, used for maintaining execution sequence
+      example: 1
     priority:
       type: string
       enum:
@@ -1292,6 +1304,7 @@ components:
             Input payload for creating a new processing stage.
             Defines the stage type, custom configuration data, and user-defined metadata.
             Used when adding stages to jobs or creating stages as part of job creation.
+            The system automatically assigns an incremental order number to maintain execution sequence.
             The startAsWaiting flag allows for creating stages that are not immediately active,
             enabling more complex workflows where stages can be prepared in advance.
     createStagePayload:
@@ -1315,6 +1328,7 @@ components:
             - id
             - summary
             - jobId
+            - order
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -1326,6 +1340,8 @@ components:
               $ref: '#/components/schemas/stageOperationStatus'
             jobId:
               $ref: '#/components/schemas/jobId'
+            order:
+              $ref: '#/components/schemas/order'
           description: |
             Complete stage information returned by the API, including all fields from the 
             creation payload plus system-generated fields like ID, progress statistics,

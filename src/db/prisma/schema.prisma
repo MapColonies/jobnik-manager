@@ -74,6 +74,7 @@ model Stage {
   job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
   jobId String @map("job_id") @db.Uuid
 
+  order        Int                  @default(1)
   percentage   Int                  @default(0)
   /// [UserMetadata]
   userMetadata Json                 @default("{}") @map("user_metadata")

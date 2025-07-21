@@ -577,6 +577,11 @@ export type components = {
       [key: string]: unknown;
     };
     /**
+     * @description Sequential order number of the stage within its job, used for maintaining execution sequence
+     * @example 1
+     */
+    order: number;
+    /**
      * @description Relative importance of the job, affecting processing order
      * @example LOW
      * @enum {string}
@@ -698,6 +703,7 @@ export type components = {
       percentage?: components['schemas']['percentage'];
       status?: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
+      order: components['schemas']['order'];
     };
     getStageResponse: components['schemas']['stageResponse'] & {
       /** @description Associated tasks belonging to this stage */
