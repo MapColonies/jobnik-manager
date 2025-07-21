@@ -40,4 +40,5 @@ export const createStageBody = {
   summary: defaultStatusCounts,
   xstate: persistedSnapshot,
   userMetadata: {},
+  order: 1,
 } satisfies Prisma.StageCreateManyInput;
