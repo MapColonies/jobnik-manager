@@ -1,6 +1,8 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
+import type { Tracer } from '@opentelemetry/api';
+import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { StageManager } from '@src/stages/models/manager';
@@ -9,8 +11,8 @@ import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/s
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
-import { UpdateSummaryCount } from '@src/stages/models/models';
-import { PrismaTransaction } from '@src/db/types';
+import type { UpdateSummaryCount } from '@src/stages/models/models';
+import type { PrismaTransaction } from '@src/db/types';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -68,10 +70,12 @@ export class TaskManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
+    @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
     @inject(JobManager) private readonly jobManager: JobManager
   ) {}
 
+  @withSpanAsyncV4
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
     const createTaskActor = createActor(taskStateMachine).start();
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
@@ -138,6 +142,7 @@ export class TaskManager {
    * @param params - Optional filtering parameters for tasks
    * @returns Promise resolving to array of task models
    */
+  @withSpanAsyncV4
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
     const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
@@ -158,6 +163,7 @@ export class TaskManager {
     return convertArrayPrismaTaskToTaskResponse(tasks);
   }
 
+  @withSpanAsyncV4
   public async getTaskById(taskId: string): Promise<TaskModel> {
     const task = await this.getTaskEntityById(taskId);
 
@@ -168,6 +174,7 @@ export class TaskManager {
     return convertPrismaToTaskResponse(task);
   }
 
+  @withSpanAsyncV4
   public async getTasksByStageId(stageId: string): Promise<TaskModel[]> {
     // To validate existence of stage, if not will throw StageNotFoundError
     await this.stageManager.getStageById(stageId);
@@ -183,6 +190,7 @@ export class TaskManager {
     return result;
   }
 
+  @withSpanAsyncV4
   public async updateUserMetadata(taskId: string, userMetadata: Record<string, unknown>): Promise<void> {
     const updateQueryBody = {
       where: {
@@ -203,6 +211,7 @@ export class TaskManager {
     }
   }
 
+  @withSpanAsyncV4
   public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
     const task = await this.getTaskEntityById(taskId);
 
@@ -220,6 +229,7 @@ export class TaskManager {
    * @returns The dequeued task model with updated status
    * @throws TaskNotFoundError when no suitable task is found
    */
+  @withSpanAsyncV4
   public async dequeue(stageType: string): Promise<TaskModel> {
     const queryBody = generatePrioritizedTaskQuery(stageType);
 
@@ -238,6 +248,7 @@ export class TaskManager {
    * @param taskId unique identifier of the task.
    * @returns The task entity if found, otherwise null.
    */
+  @withSpanAsyncV4
   public async getTaskEntityById(taskId: string, tx?: PrismaTransaction): Promise<TaskPrismaObject | null> {
     const prisma = tx ?? this.prisma;
     const queryBody = {
@@ -257,6 +268,7 @@ export class TaskManager {
    * @returns The updated task object
    * @throws InvalidUpdateError when the status transition is invalid or update fails
    */
+  @withSpanAsyncV4
   private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
     return this.prisma.$transaction(async (tx) => {
       const previousStatus = task.status;

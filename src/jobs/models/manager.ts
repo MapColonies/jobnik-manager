@@ -1,12 +1,14 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
+import type { Tracer } from '@opentelemetry/api';
+import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
 import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
-import { PrismaTransaction } from '@src/db/types';
+import { type PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -15,9 +17,11 @@ import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 export class JobManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
-    @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient
+    @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
+    @inject(SERVICES.TRACER) public readonly tracer: Tracer
   ) {}
 
+  @withSpanAsyncV4
   public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
     let queryBody = undefined;
 
@@ -40,6 +44,7 @@ export class JobManager {
     return result;
   }
 
+  @withSpanAsyncV4
   public async createJob(body: JobCreateModel): Promise<JobModel> {
     try {
       const createJobActor = createActor(jobStateMachine).start();
@@ -57,6 +62,7 @@ export class JobManager {
     }
   }
 
+  @withSpanAsyncV4
   public async getJobById(jobId: string, includeStages?: boolean): Promise<JobModel> {
     const job = await this.getJobEntityById(jobId, { includeStages });
 
@@ -67,6 +73,7 @@ export class JobManager {
     return this.convertPrismaToJobResponse(job);
   }
 
+  @withSpanAsyncV4
   public async updateUserMetadata(jobId: string, userMetadata: Record<string, unknown>): Promise<void> {
     const updateQueryBody = {
       where: {
@@ -87,6 +94,7 @@ export class JobManager {
     }
   }
 
+  @withSpanAsyncV4
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
     const job = await this.getJobEntityById(jobId);
 
@@ -110,6 +118,7 @@ export class JobManager {
     await this.prisma.job.update(updateQueryBody);
   }
 
+  @withSpanAsyncV4
   public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
     const prisma = tx ?? this.prisma;
 
@@ -143,6 +152,7 @@ export class JobManager {
     await prisma.job.update(updateQueryBody);
   }
 
+  @withSpanAsyncV4
   public async deleteJob(jobId: string): Promise<void> {
     const job = await this.getJobEntityById(jobId);
 
@@ -171,6 +181,7 @@ export class JobManager {
    * @param options Configuration options for the query
    * @returns The job entity if found, otherwise null.
    */
+  @withSpanAsyncV4
   public async getJobEntityById<IncludeStages extends boolean = false>(
     jobId: string,
     options: { includeStages?: IncludeStages; tx?: PrismaTransaction } = {}
