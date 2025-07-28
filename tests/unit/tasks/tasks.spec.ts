@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
+import { trace } from '@opentelemetry/api';
 import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
@@ -10,6 +11,7 @@ import { TaskManager } from '@src/tasks/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
+import { SERVICE_NAME } from '@src/common/constants';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '../data';
 
@@ -18,16 +20,17 @@ let stageManager: StageManager;
 let taskManager: TaskManager;
 let stageRepository: StageRepository;
 
+const tracer = trace.getTracer(SERVICE_NAME);
 const prisma = new PrismaClient();
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, stageRepository, jobManager);
-    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, stageManager, jobManager);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
+    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, jobManager);
   });
 
   afterEach(() => {

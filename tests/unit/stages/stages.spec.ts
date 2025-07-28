@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
+import { trace } from '@opentelemetry/api';
 import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
@@ -11,12 +12,14 @@ import { StageCreateModel, StageIncludingJob, UpdateSummaryCount } from '@src/st
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
+import { SERVICE_NAME } from '@src/common/constants';
 import { jobEntityWithAbortStatus, jobEntityWithStages, jobId, pendingStageXstatePersistentSnapshot, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, createTaskEntity, StageWithTasks } from '../generator';
 
 let jobManager: JobManager;
 let stageManager: StageManager;
 let stageRepository: StageRepository;
+const tracer = trace.getTracer(SERVICE_NAME);
 const prisma = new PrismaClient();
 type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
 
@@ -24,9 +27,9 @@ const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND
 
 describe('JobManager', () => {
   beforeEach(function () {
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, stageRepository, jobManager);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
   });
 
   afterEach(() => {

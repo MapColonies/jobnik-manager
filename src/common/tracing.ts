@@ -1,4 +1,5 @@
 import { Tracing } from '@map-colonies/telemetry';
+import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { IGNORED_INCOMING_TRACE_ROUTES, IGNORED_OUTGOING_TRACE_ROUTES } from './constants';
 
 let tracing: Tracing | undefined;
@@ -6,6 +7,7 @@ let tracing: Tracing | undefined;
 export function tracingFactory(options: ConstructorParameters<typeof Tracing>[0]): Tracing {
   tracing = new Tracing({
     ...options,
+    instrumentations: [new PrismaInstrumentation()],
     autoInstrumentationsConfigMap: {
       '@opentelemetry/instrumentation-http': {
         ignoreIncomingRequestHook: (request): boolean =>
