@@ -66,6 +66,18 @@ describe('JobManager', () => {
           expect(stages).toMatchObject(expectedStage);
           expect(stages[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
+
+        it('should return array with all stages when no criteria is provided', async function () {
+          const stageEntity = createStageEntity({});
+          jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+
+          const stages = await stageManager.getStages(undefined);
+          const { xstate, task, ...rest } = stageEntity;
+
+          const expectedStage = [rest];
+
+          expect(stages).toMatchObject(expectedStage);
+        });
       });
 
       describe('#SadPath', () => {
