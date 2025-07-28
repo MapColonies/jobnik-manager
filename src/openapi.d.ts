@@ -186,7 +186,7 @@ export type paths = {
      *     allowing clients to retrieve the complete job hierarchy in a single request.
      *
      */
-    get: operations['getStageByJobId'];
+    get: operations['getStagesByJobId'];
     put?: never;
     post?: never;
     delete?: never;
@@ -205,7 +205,7 @@ export type paths = {
     get?: never;
     put?: never;
     /**
-     * Add a new stage to a job with automatic ordering
+     * Add a new stage as the last stage in the job workflow
      * @description Appends a new stage to an existing job with automatic order assignment.
      *     The stage will be added after any existing stages in the job's workflow sequence.
      *     Each stage is automatically assigned an incremental order number (1, 2, 3, etc.)
@@ -647,15 +647,9 @@ export type components = {
      * @example unknown
      */
     stageType: string;
-    /**
-     * @description Flag indicating whether to include complete stage details in job response payloads
-     * @example false
-     */
+    /** @description Flag indicating whether to include complete stage details in job response payloads */
     returnStage: boolean;
-    /**
-     * @description Flag indicating whether to include complete task details in stage response payloads
-     * @example false
-     */
+    /** @description Flag indicating whether to include complete task details in stage response payloads */
     returnTask: boolean;
     /**
      * @description Application-specific custom data container that can store arbitrary client information without affecting core operations
@@ -703,7 +697,7 @@ export type components = {
      *     Includes optional stage data when requested via query parameters, allowing clients
      *     to retrieve the complete job hierarchy in a single request.
      *      */
-    jobResponse: {
+    job: {
       id: components['schemas']['jobId'];
       status?: components['schemas']['jobOperationStatus'];
       percentage?: components['schemas']['percentage'];
@@ -871,7 +865,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['jobResponse'][];
+          'application/json': components['schemas']['job'][];
         };
       };
       /** @description Invalid query parameters */
@@ -913,7 +907,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['jobResponse'];
+          'application/json': components['schemas']['job'];
         };
       };
       /** @description Invalid request, could not create job */
@@ -957,7 +951,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['jobResponse'];
+          'application/json': components['schemas']['job'];
         };
       };
       /** @description Invalid request, could not get job */
@@ -1226,7 +1220,7 @@ export interface operations {
       };
     };
   };
-  getStageByJobId: {
+  getStagesByJobId: {
     parameters: {
       query?: {
         /** @description When true, includes task data in the response */

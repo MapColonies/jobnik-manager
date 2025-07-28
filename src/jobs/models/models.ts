@@ -1,7 +1,7 @@
 import { Prisma } from '@prismaClient';
 import type { components, operations } from '@src/openapi';
 
-type JobModel = components['schemas']['jobResponse'];
+type JobModel = components['schemas']['job'];
 type JobCreateModel = components['schemas']['createJobPayload'];
 type JobGetParams = components['parameters'];
 type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];

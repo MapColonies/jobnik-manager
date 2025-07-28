@@ -341,7 +341,7 @@ describe('stage', function () {
     });
   });
 
-  describe('#getStageByJobId', function () {
+  describe('#getStagesByJobId', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the stages', async function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
@@ -355,7 +355,7 @@ describe('stage', function () {
           prisma
         );
 
-        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
+        const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: createdJobId } });
 
         if (getStageResponse.status !== StatusCodes.OK) {
           throw new Error();
@@ -383,7 +383,7 @@ describe('stage', function () {
           prisma
         );
 
-        const getStageResponse = await requestSender.getStageByJobId({
+        const getStageResponse = await requestSender.getStagesByJobId({
           pathParams: { jobId: createdJobId },
           queryParams: { should_return_tasks: true },
         });
@@ -415,7 +415,7 @@ describe('stage', function () {
           prisma
         );
 
-        const getStageResponse = await requestSender.getStageByJobId({
+        const getStageResponse = await requestSender.getStagesByJobId({
           pathParams: { jobId: createdJobId },
           queryParams: { should_return_tasks: false },
         });
@@ -433,7 +433,7 @@ describe('stage', function () {
         const job = await createJobRecord(createJobRequestBody, prisma);
         const createdJobId = job.id;
 
-        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
+        const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: createdJobId } });
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
@@ -474,7 +474,7 @@ describe('stage', function () {
           },
         });
 
-        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: createdJobId } });
+        const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: createdJobId } });
 
         if (getStageResponse.status !== StatusCodes.OK) {
           throw new Error();
@@ -494,7 +494,7 @@ describe('stage', function () {
 
     describe('Bad Path', function () {
       it('should return status code 400 when supplying bad uuid', async function () {
-        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: 'someInvalidJobId' } });
+        const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: 'someInvalidJobId' } });
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
@@ -504,7 +504,7 @@ describe('stage', function () {
       });
 
       it('should return status code 404 when a job with the given uuid does not exists', async function () {
-        const getStageResponse = await requestSender.getStageByJobId({ pathParams: { jobId: faker.string.uuid() } });
+        const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
@@ -518,7 +518,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
 
-        const response = await requestSender.getStageByJobId({ pathParams: { jobId: faker.string.uuid() } });
+        const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
@@ -892,7 +892,7 @@ describe('stage', function () {
         }
 
         // Fetch all stages for the job
-        const getStagesResponse = await requestSender.getStageByJobId({
+        const getStagesResponse = await requestSender.getStagesByJobId({
           pathParams: { jobId: job.id },
         });
 

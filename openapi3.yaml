@@ -33,7 +33,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/jobResponse'
+                  $ref: '#/components/schemas/job'
         '400':
           description: Invalid query parameters
           content:
@@ -104,7 +104,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/jobResponse'
+                $ref: '#/components/schemas/job'
               examples:
                 simple_job_response:
                   summary: Response for simple job creation
@@ -198,7 +198,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/jobResponse'
+                $ref: '#/components/schemas/job'
               examples:
                 job_with_stages:
                   summary: Job with complete stage and task hierarchy
@@ -524,7 +524,7 @@ paths:
     parameters:
       - $ref: '#/components/parameters/jobId'
     get:
-      operationId: getStageByJobId
+      operationId: getStagesByJobId
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve all stages for a specific job in execution order
@@ -570,7 +570,7 @@ paths:
   /jobs/{jobId}/stage:
     post:
       operationId: addStage
-      summary: Add a new stage to a job with automatic ordering
+      summary: Add a new stage as the last stage in the job workflow
       description: |
         Appends a new stage to an existing job with automatic order assignment.
         The stage will be added after any existing stages in the job's workflow sequence.
@@ -603,9 +603,6 @@ paths:
                     validation_rules:
                       - 'not_null: [id, timestamp]'
                       - 'range: [amount, 0, 1000000]'
-                    retry_policy:
-                      max_retries: 3
-                      backoff_strategy: 'exponential'
                   userMetadata:
                     estimated_duration: '2h'
                     resource_requirements:
@@ -1500,11 +1497,9 @@ components:
         for filtering in API requests. Can be any descriptive name up to 50 characters.
     returnStage:
       type: boolean
-      example: false
       description: Flag indicating whether to include complete stage details in job response payloads
     returnTask:
       type: boolean
-      example: false
       description: Flag indicating whether to include complete task details in stage response payloads
     userMetadata:
       type: object
@@ -1576,7 +1571,7 @@ components:
         Input payload for creating a new job in the system.
         Contains all required configuration for job execution, including processing mode,
         custom parameters, metadata.
-    jobResponse:
+    job:
       type: object
       required:
         - id
