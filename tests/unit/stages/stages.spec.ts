@@ -128,7 +128,7 @@ describe('JobManager', () => {
       });
     });
 
-    describe('#getStageByJobId', () => {
+    describe('#getStagesByJobId', () => {
       describe('#HappyPath', () => {
         it('should return stage object by provided job id', async function () {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
