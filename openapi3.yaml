@@ -63,19 +63,113 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/createJobPayload'
+            examples:
+              simple_job:
+                summary: Simple job with minimal configuration
+                description: Basic job creation with default priority
+                value:
+                  name: 'data_processing'
+                  data:
+                    input_path: '/data/raw/batch_001'
+                    output_path: '/data/processed/batch_001'
+                    format: 'parquet'
+              complex_job:
+                summary: Complex job with full configuration
+                description: Job with high priority and custom metadata
+                value:
+                  name: 'critical_analysis'
+                  data:
+                    input_sources:
+                      - '/data/source1/*.csv'
+                      - '/data/source2/*.json'
+                    transformations:
+                      - type: 'filter'
+                        conditions: ["status = 'active'", "created_date > '2024-01-01'"]
+                      - type: 'aggregate'
+                        group_by: ['region', 'category']
+                        metrics: ['sum(revenue)', 'count(transactions)']
+                    output_config:
+                      format: 'delta'
+                      partitions: ['year', 'month']
+                      compression: 'snappy'
+                  priority: 'VERY_HIGH'
+                  userMetadata:
+                    department: 'analytics'
+                    owner: 'data-team@company.com'
+                    deadline: '2025-08-01T00:00:00Z'
+                    cost_center: 'CC-12345'
       responses:
         '201':
           description: Job created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/createJobResponse'
+                $ref: '#/components/schemas/jobResponse'
+              examples:
+                simple_job_response:
+                  summary: Response for simple job creation
+                  value:
+                    id: '550e8400-e29b-41d4-a716-446655440000'
+                    name: 'data_processing'
+                    status: 'CREATED'
+                    percentage: 0
+                    priority: 'MEDIUM'
+                    creationTime: '2025-07-27T10:30:00Z'
+                    updateTime: '2025-07-27T10:30:00Z'
+                    data:
+                      input_path: '/data/raw/batch_001'
+                      output_path: '/data/processed/batch_001'
+                      format: 'parquet'
+                    userMetadata: {}
+                complex_job_response:
+                  summary: Response for complex job creation
+                  value:
+                    id: '660f9511-f3ac-52e5-b827-557766551111'
+                    name: 'critical_analysis'
+                    status: 'CREATED'
+                    percentage: 0
+                    priority: 'VERY_HIGH'
+                    creationTime: '2025-07-27T10:30:00Z'
+                    updateTime: '2025-07-27T10:30:00Z'
+                    data:
+                      input_sources:
+                        - '/data/source1/*.csv'
+                        - '/data/source2/*.json'
+                      transformations:
+                        - type: 'filter'
+                          conditions: ["status = 'active'", "created_date > '2024-01-01'"]
+                        - type: 'aggregate'
+                          group_by: ['region', 'category']
+                          metrics: ['sum(revenue)', 'count(transactions)']
+                      output_config:
+                        format: 'delta'
+                        partitions: ['year', 'month']
+                        compression: 'snappy'
+                    userMetadata:
+                      department: 'analytics'
+                      owner: 'data-team@company.com'
+                      deadline: '2025-08-01T00:00:00Z'
+                      cost_center: 'CC-12345'
         '400':
           description: Invalid request, could not create job
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
+              examples:
+                validation_error:
+                  summary: Validation error
+                  description: Request failed due to missing required fields
+                  value:
+                    message: "Validation failed: 'name' is required and must be a non-empty string. 'data' is required and must be an object."
+                invalid_priority:
+                  summary: Invalid priority value
+                  value:
+                    message: "Invalid priority value 'SUPER_HIGH'. Valid values are: VERY_HIGH, HIGH, MEDIUM, LOW, VERY_LOW."
+                malformed_data:
+                  summary: Malformed request data
+                  value:
+                    message: 'Invalid JSON format in request body. Expected object but received array at line 1, column 1.'
         '500':
           description: Internal server error
           content:
@@ -105,6 +199,102 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/jobResponse'
+              examples:
+                job_with_stages:
+                  summary: Job with complete stage and task hierarchy
+                  description: Full job details when should_return_stages=true
+                  value:
+                    id: '550e8400-e29b-41d4-a716-446655440000'
+                    name: 'ml_pipeline'
+                    status: 'IN_PROGRESS'
+                    percentage: 45
+                    priority: 'HIGH'
+                    creationTime: '2025-07-27T08:00:00Z'
+                    updateTime: '2025-07-27T10:30:00Z'
+                    data:
+                      model_type: 'random_forest'
+                      training_data: '/data/ml/training_set.parquet'
+                      features: ['age', 'income', 'location', 'purchase_history']
+                      target: 'churn_probability'
+                      hyperparameters:
+                        n_estimators: 100
+                        max_depth: 10
+                        min_samples_split: 5
+                    userMetadata:
+                      experiment_id: 'EXP-2025-001'
+                      researcher: 'ml-team@company.com'
+                      budget: '$5000'
+                    stages:
+                      - id: 'stage-001'
+                        type: 'data_preparation'
+                        status: 'COMPLETED'
+                        percentage: 100
+                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        order: 1
+                        data:
+                          validation_split: 0.2
+                          preprocessing_steps: ['normalize', 'encode_categorical']
+                        summary:
+                          pending: 0
+                          inProgress: 0
+                          completed: 5
+                          failed: 0
+                          created: 0
+                          retried: 0
+                          total: 5
+                      - id: 'stage-002'
+                        type: 'model_training'
+                        status: 'IN_PROGRESS'
+                        percentage: 60
+                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        order: 2
+                        data:
+                          cross_validation_folds: 5
+                          early_stopping: true
+                        summary:
+                          pending: 1
+                          inProgress: 2
+                          completed: 2
+                          failed: 0
+                          created: 0
+                          retried: 0
+                          total: 5
+                      - id: 'stage-003'
+                        type: 'model_evaluation'
+                        status: 'WAITING'
+                        percentage: 0
+                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        order: 3
+                        data:
+                          metrics: ['accuracy', 'precision', 'recall', 'f1_score']
+                          validation_dataset: '/data/ml/validation_set.parquet'
+                        summary:
+                          pending: 3
+                          inProgress: 0
+                          completed: 0
+                          failed: 0
+                          created: 0
+                          retried: 0
+                          total: 3
+                simple_job:
+                  summary: Simple job without stages
+                  description: Basic job details when should_return_stages=false
+                  value:
+                    id: '660f9511-f3ac-52e5-b827-557766551111'
+                    name: 'data_backup'
+                    status: 'COMPLETED'
+                    percentage: 100
+                    priority: 'LOW'
+                    creationTime: '2025-07-26T14:00:00Z'
+                    updateTime: '2025-07-26T15:30:00Z'
+                    data:
+                      source_path: '/data/production'
+                      destination: 's3://backup-bucket/2025-07-26'
+                      compression: 'gzip'
+                      encryption: true
+                    userMetadata:
+                      backup_type: 'daily'
+                      retention_days: 30
         '400':
           description: Invalid request, could not get job
           content:
@@ -401,6 +591,42 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/createStagePayloadRequest'
+            examples:
+              processing_stage:
+                summary: Data processing stage
+                description: Stage for data transformation and validation
+                value:
+                  type: 'data_processing'
+                  data:
+                    processing_type: 'batch'
+                    chunk_size: 1000
+                    validation_rules:
+                      - 'not_null: [id, timestamp]'
+                      - 'range: [amount, 0, 1000000]'
+                    retry_policy:
+                      max_retries: 3
+                      backoff_strategy: 'exponential'
+                  userMetadata:
+                    estimated_duration: '2h'
+                    resource_requirements:
+                      cpu: '4 cores'
+                      memory: '8GB'
+              waiting_stage:
+                summary: Manual approval stage
+                description: Stage that waits for manual intervention
+                value:
+                  type: 'manual_approval'
+                  startAsWaiting: true
+                  data:
+                    approval_type: 'quality_check'
+                    reviewers: ['senior-analyst@company.com']
+                    checklist:
+                      - 'Data quality metrics within acceptable range'
+                      - 'No PII detected in output'
+                      - 'Performance benchmarks met'
+                  userMetadata:
+                    priority: 'high'
+                    sla: '24h'
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -711,6 +937,60 @@ paths:
               type: array
               items:
                 $ref: '#/components/schemas/createTaskPayload'
+            examples:
+              file_processing_tasks:
+                summary: Multiple file processing tasks
+                description: Batch creation of tasks for processing multiple files
+                value:
+                  - data:
+                      file_path: '/data/input/file_001.csv'
+                      output_path: '/data/processed/file_001.parquet'
+                      transformation: 'csv_to_parquet'
+                    userMetadata:
+                      file_size: '125MB'
+                      estimated_time: '5m'
+                    maxAttempts: 3
+                  - data:
+                      file_path: '/data/input/file_002.csv'
+                      output_path: '/data/processed/file_002.parquet'
+                      transformation: 'csv_to_parquet'
+                    userMetadata:
+                      file_size: '89MB'
+                      estimated_time: '3m'
+                    maxAttempts: 3
+                  - data:
+                      file_path: '/data/input/file_003.csv'
+                      output_path: '/data/processed/file_003.parquet'
+                      transformation: 'csv_to_parquet'
+                    userMetadata:
+                      file_size: '256MB'
+                      estimated_time: '8m'
+                    maxAttempts: 5
+              api_integration_tasks:
+                summary: API integration tasks with different configurations
+                value:
+                  - data:
+                      endpoint: 'https://api.external.com/customers'
+                      method: 'GET'
+                      headers:
+                        Authorization: 'Bearer ${API_TOKEN}'
+                      pagination:
+                        page_size: 100
+                        max_pages: 50
+                    userMetadata:
+                      source: 'customer_system'
+                      priority: 'high'
+                  - data:
+                      endpoint: 'https://api.external.com/orders'
+                      method: 'GET'
+                      headers:
+                        Authorization: 'Bearer ${API_TOKEN}'
+                      query_params:
+                        start_date: '2025-01-01'
+                        end_date: '2025-07-27'
+                    userMetadata:
+                      source: 'order_system'
+                      priority: 'medium'
       responses:
         '201':
           description: Tasks successfully created and added to the stage
@@ -938,6 +1218,22 @@ paths:
                   $ref: '#/components/schemas/taskOperationStatus'
               required:
                 - status
+            examples:
+              complete_task:
+                summary: Mark task as completed
+                description: Update task status to COMPLETED after successful execution
+                value:
+                  status: 'COMPLETED'
+              fail_task:
+                summary: Mark task as failed
+                description: Update task status to FAILED when processing encounters errors
+                value:
+                  status: 'FAILED'
+              retry_task:
+                summary: Mark task for retry
+                description: Update task status to RETRIED for automatic retry processing
+                value:
+                  status: 'RETRIED'
       responses:
         '200':
           description: Task status successfully changed
@@ -987,7 +1283,7 @@ components:
       description: Unique identifier for the task
       required: true
       schema:
-        type: string
+        $ref: '#/components/schemas/taskId'
     paramsTaskStatus:
       in: query
       name: status
@@ -1056,7 +1352,7 @@ components:
     paramStageType:
       in: query
       name: stage_type
-      description: Filter results by stage identifier
+      description: Filter results by stage type (e.g., processing, validation)
       required: false
       schema:
         $ref: '#/components/schemas/stageType'
@@ -1100,9 +1396,11 @@ components:
       description: Completion percentage of a job, stage, or task (0-100)
     attempts:
       type: integer
+      minimum: 0
       description: Number of times a task has been attempted
     maxAttempts:
       type: integer
+      minimum: 1
       description: Maximum number of retries allowed for a task
     stageId:
       type: string
@@ -1126,7 +1424,17 @@ components:
         - LOW
         - VERY_LOW
       example: LOW
-      description: Relative importance of the job, affecting processing order
+      description: |
+        Priority level that determines the relative importance of the job for processing order.
+        Higher priority jobs are processed before lower priority ones when system resources
+        are constrained. Priority affects task dequeuing order and scheduling decisions.
+
+        Priority levels from highest to lowest:
+        - VERY_HIGH: Critical jobs requiring immediate processing
+        - HIGH: Important jobs with elevated priority
+        - MEDIUM: Standard priority for regular operations
+        - LOW: Non-urgent jobs that can be delayed
+        - VERY_LOW: Background jobs with minimal priority
     successMessages:
       type: string
       enum:
@@ -1192,13 +1500,16 @@ components:
         for filtering in API requests. Can be any descriptive name up to 50 characters.
     returnStage:
       type: boolean
+      example: false
       description: Flag indicating whether to include complete stage details in job response payloads
     returnTask:
       type: boolean
+      example: false
       description: Flag indicating whether to include complete task details in stage response payloads
     userMetadata:
       type: object
       additionalProperties: true
+      default: {}
       description: Application-specific custom data container that can store arbitrary client information without affecting core operations
     summary:
       description: |
@@ -1209,24 +1520,31 @@ components:
       properties:
         pending:
           type: integer
+          minimum: 0
           description: Number of tasks awaiting execution
         inProgress:
           type: integer
+          minimum: 0
           description: Number of tasks currently being processed
         completed:
           type: integer
+          minimum: 0
           description: Number of tasks that finished successfully
         failed:
           type: integer
+          minimum: 0
           description: Number of tasks that encountered errors and could not be completed
         created:
           type: integer
+          minimum: 0
           description: Number of tasks in initial state before becoming pending
         retried:
           type: integer
+          minimum: 0
           description: Number of tasks scheduled for re-execution after failure
         total:
           type: integer
+          minimum: 0
           description: Total count of tasks belonging to the stage
       required:
         - pending
@@ -1245,12 +1563,14 @@ components:
         data:
           $ref: '#/components/schemas/jobPayload'
         priority:
-          $ref: '#/components/schemas/priority'
+          allOf:
+            - $ref: '#/components/schemas/priority'
+            - default: MEDIUM
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
       required:
         - data
-        - userMetadata
+        - name
       additionalProperties: false
       description: |
         Input payload for creating a new job in the system.
@@ -1263,7 +1583,15 @@ components:
         - name
         - data
         - userMetadata
-      description: job Response model
+      description: |
+        Complete job information with status and metadata.
+
+        Comprehensive job response model containing all job details including configuration,
+        execution status, progress tracking, and associated metadata. This schema represents
+        the complete state of a job in the system and is returned by job retrieval operations.
+
+        Includes optional stage data when requested via query parameters, allowing clients
+        to retrieve the complete job hierarchy in a single request.
       properties:
         id:
           $ref: '#/components/schemas/jobId'
@@ -1319,7 +1647,6 @@ components:
       required:
         - data
         - type
-        - userMetadata
     stageResponse:
       allOf:
         - $ref: '#/components/schemas/createStagePayload'
@@ -1420,33 +1747,6 @@ components:
         - attempts
         - maxAttempts
       additionalProperties: false
-    createJobResponse:
-      type: object
-      description: |
-        Response returned after successful job creation, containing the complete
-        job details including the generated job ID and initial status information.
-      properties:
-        id:
-          $ref: '#/components/schemas/jobId'
-        data:
-          $ref: '#/components/schemas/jobPayload'
-        status:
-          $ref: '#/components/schemas/jobOperationStatus'
-        percentage:
-          $ref: '#/components/schemas/percentage'
-        creationTime:
-          $ref: '#/components/schemas/creationTime'
-        updateTime:
-          $ref: '#/components/schemas/updateTime'
-        userMetadata:
-          $ref: '#/components/schemas/userMetadata'
-        priority:
-          $ref: '#/components/schemas/priority'
-        name:
-          $ref: '#/components/schemas/jobName'
-      additionalProperties: false
-      required:
-        - id
     errorMessage:
       type: object
       description: |

@@ -174,9 +174,13 @@ export type paths = {
       cookie?: never;
     };
     /**
-     * Retrieve all stages for a specific job
-     * @description Fetches all stages associated with the specified job ID.
-     *     Provides complete information about each stage including type, status, and progress.
+     * Retrieve all stages for a specific job in execution order
+     * @description Fetches all stages associated with the specified job ID, automatically ordered by
+     *     their execution sequence (order field). Provides complete information about each
+     *     stage including type, status, progress, and sequential order number.
+     *
+     *     Stages are returned in ascending order based on their order field (1, 2, 3, etc.)
+     *     to maintain the correct workflow execution sequence defined when stages were created.
      *
      *     Optional inclusion of related task data via the should_return_tasks parameter,
      *     allowing clients to retrieve the complete job hierarchy in a single request.
@@ -201,11 +205,14 @@ export type paths = {
     get?: never;
     put?: never;
     /**
-     * Add a new stage to a job
-     * @description Appends a new stage to an existing job.
+     * Add a new stage to a job with automatic ordering
+     * @description Appends a new stage to an existing job with automatic order assignment.
      *     The stage will be added after any existing stages in the job's workflow sequence.
+     *     Each stage is automatically assigned an incremental order number (1, 2, 3, etc.)
+     *     within the scope of its parent job to maintain execution sequence.
      *
      *     This endpoint allows for extending job workflows at runtime by adding new processing steps.
+     *     The order field ensures stages are processed in the correct sequence when retrieved.
      *
      *     The job must exist and be in a valid state to accept new stages.
      *
@@ -424,7 +431,7 @@ export type paths = {
       query?: {
         /** @description Filter results by stage identifier */
         stage_id?: components['parameters']['paramStageId'];
-        /** @description Filter results by stage identifier */
+        /** @description Filter results by stage type (e.g., processing, validation) */
         stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];
@@ -582,7 +589,17 @@ export type components = {
      */
     order: number;
     /**
-     * @description Relative importance of the job, affecting processing order
+     * @description Priority level that determines the relative importance of the job for processing order.
+     *     Higher priority jobs are processed before lower priority ones when system resources
+     *     are constrained. Priority affects task dequeuing order and scheduling decisions.
+     *
+     *     Priority levels from highest to lowest:
+     *     - VERY_HIGH: Critical jobs requiring immediate processing
+     *     - HIGH: Important jobs with elevated priority
+     *     - MEDIUM: Standard priority for regular operations
+     *     - LOW: Non-urgent jobs that can be delayed
+     *     - VERY_LOW: Background jobs with minimal priority
+     *
      * @example LOW
      * @enum {string}
      */
@@ -630,11 +647,20 @@ export type components = {
      * @example unknown
      */
     stageType: string;
-    /** @description Flag indicating whether to include complete stage details in job response payloads */
+    /**
+     * @description Flag indicating whether to include complete stage details in job response payloads
+     * @example false
+     */
     returnStage: boolean;
-    /** @description Flag indicating whether to include complete task details in stage response payloads */
+    /**
+     * @description Flag indicating whether to include complete task details in stage response payloads
+     * @example false
+     */
     returnTask: boolean;
-    /** @description Application-specific custom data container that can store arbitrary client information without affecting core operations */
+    /**
+     * @description Application-specific custom data container that can store arbitrary client information without affecting core operations
+     * @default {}
+     */
     userMetadata: {
       [key: string]: unknown;
     };
@@ -663,12 +689,20 @@ export type components = {
      *     custom parameters, metadata.
      *      */
     createJobPayload: {
-      name?: components['schemas']['jobName'];
+      name: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
-      priority?: components['schemas']['priority'];
-      userMetadata: components['schemas']['userMetadata'];
+      priority?: components['schemas']['priority'] & unknown;
+      userMetadata?: components['schemas']['userMetadata'];
     };
-    /** @description job Response model */
+    /** @description Complete job information with status and metadata.
+     *
+     *     Comprehensive job response model containing all job details including configuration,
+     *     execution status, progress tracking, and associated metadata. This schema represents
+     *     the complete state of a job in the system and is returned by job retrieval operations.
+     *
+     *     Includes optional stage data when requested via query parameters, allowing clients
+     *     to retrieve the complete job hierarchy in a single request.
+     *      */
     jobResponse: {
       id: components['schemas']['jobId'];
       status?: components['schemas']['jobOperationStatus'];
@@ -695,7 +729,7 @@ export type components = {
     createStagePayload: {
       type: components['schemas']['stageType'];
       data: components['schemas']['stagePayload'];
-      userMetadata: components['schemas']['userMetadata'];
+      userMetadata?: components['schemas']['userMetadata'];
     };
     stageResponse: components['schemas']['createStagePayload'] & {
       id: components['schemas']['stageId'];
@@ -745,20 +779,6 @@ export type components = {
       attempts: components['schemas']['attempts'];
       maxAttempts: components['schemas']['maxAttempts'];
     };
-    /** @description Response returned after successful job creation, containing the complete
-     *     job details including the generated job ID and initial status information.
-     *      */
-    createJobResponse: {
-      id: components['schemas']['jobId'];
-      data?: components['schemas']['jobPayload'];
-      status?: components['schemas']['jobOperationStatus'];
-      percentage?: components['schemas']['percentage'];
-      creationTime?: components['schemas']['creationTime'];
-      updateTime?: components['schemas']['updateTime'];
-      userMetadata?: components['schemas']['userMetadata'];
-      priority?: components['schemas']['priority'];
-      name?: components['schemas']['jobName'];
-    };
     /** @description Standard error response structure used when API operations encounter problems.
      *     Contains a human-readable message and optional stack trace for debugging.
      *      */
@@ -791,7 +811,7 @@ export type components = {
     /** @description Unique identifier for the stage */
     stageId: components['schemas']['stageId'];
     /** @description Unique identifier for the task */
-    taskId: string;
+    taskId: components['schemas']['taskId'];
     /** @description Filter tasks by their operational status */
     paramsTaskStatus: components['schemas']['taskOperationStatus'];
     /** @description Filter jobs by their name/type */
@@ -810,7 +830,7 @@ export type components = {
     paramStageId: components['schemas']['stageId'];
     /** @description Filter results by job identifier */
     paramJobId: components['schemas']['jobId'];
-    /** @description Filter results by stage identifier */
+    /** @description Filter results by stage type (e.g., processing, validation) */
     paramStageType: components['schemas']['stageType'];
     /** @description Stage type identifier for dequeuing tasks */
     stageType: components['schemas']['stageType'];
@@ -893,7 +913,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['createJobResponse'];
+          'application/json': components['schemas']['jobResponse'];
         };
       };
       /** @description Invalid request, could not create job */
@@ -1318,7 +1338,7 @@ export interface operations {
       query?: {
         /** @description Filter results by job identifier */
         job_id?: components['parameters']['paramJobId'];
-        /** @description Filter results by stage identifier */
+        /** @description Filter results by stage type (e.g., processing, validation) */
         stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
          *     Used to find stages in specific execution states.
@@ -1740,7 +1760,7 @@ export interface operations {
       query?: {
         /** @description Filter results by stage identifier */
         stage_id?: components['parameters']['paramStageId'];
-        /** @description Filter results by stage identifier */
+        /** @description Filter results by stage type (e.g., processing, validation) */
         stage_type?: components['parameters']['paramStageType'];
         /** @description Filter results by update time, starting from this date/time */
         from_date?: components['parameters']['fromDate'];

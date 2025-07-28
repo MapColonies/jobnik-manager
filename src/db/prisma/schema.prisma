@@ -26,7 +26,7 @@ model Job {
   updateTime   DateTime           @updatedAt @map("update_time")
   userMetadata Json               @default("{}") @map("user_metadata")
   priority     Priority           @default(VERY_LOW)
-  name         String             @default("DEFAULT")
+  name         String             
   stage        Stage[]
 
   @@map("job")
@@ -102,7 +102,7 @@ model Task {
   stage        Stage               @relation(fields: [stageId], references: [id], onDelete: Cascade)
   stageId      String              @map("stage_id") @db.Uuid
   attempts     Int                 @default(0)
-  maxAttempts  Int                 @default(0) @map("max_attempts")
+  maxAttempts  Int                 @default(1) @map("max_attempts")
 
   @@map("task")
 }

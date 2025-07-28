@@ -8,7 +8,7 @@ import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helpe
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { PrismaTransaction } from '@src/db/types';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
-import type { JobCreateModel, JobCreateResponse, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
+import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -40,14 +40,14 @@ export class JobManager {
     return result;
   }
 
-  public async createJob(body: JobCreateModel): Promise<JobCreateResponse> {
+  public async createJob(body: JobCreateModel): Promise<JobModel> {
     try {
       const createJobActor = createActor(jobStateMachine).start();
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
       const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
       const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
-      const res = this.convertPrismaToJobResponse(createdJob as JobPrismaObject<false>);
+      const res = this.convertPrismaToJobResponse(createdJob);
 
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
