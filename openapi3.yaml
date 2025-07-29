@@ -66,7 +66,7 @@ paths:
             examples:
               simple_job:
                 summary: Simple job with minimal configuration
-                description: Basic job creation with default priority
+                description: Basic job creation with default priority (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
                 value:
                   name: 'data_processing'
                   data:
@@ -98,6 +98,36 @@ paths:
                     owner: 'data-team@company.com'
                     deadline: '2025-08-01T00:00:00Z'
                     cost_center: 'CC-12345'
+              job_with_tracing:
+                summary: Job with explicit tracing context
+                description: Job creation with provided distributed tracing context
+                value:
+                  name: 'traced_processing'
+                  data:
+                    input_path: '/data/traced/batch_001'
+                    output_path: '/data/output/batch_001'
+                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                  tracestate: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
+              job_with_partial_tracing:
+                summary: Job with only traceparent
+                description: Job creation with traceparent but no tracestate (tracestate will be null)
+                value:
+                  name: 'partial_traced_job'
+                  data:
+                    source: 'external_api'
+                    destination: 'data_warehouse'
+                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+              job_auto_inject_example:
+                summary: Job with automatic trace injection
+                description: |
+                  Job creation without tracing fields - demonstrates automatic injection behavior.
+                  The system will inject both traceparent and tracestate from the active OpenTelemetry context.
+                  Note: tracestate may still be null even after injection if not available in the context.
+                value:
+                  name: 'auto_traced_job'
+                  data:
+                    processing_mode: 'async'
+                    priority_level: 'normal'
       responses:
         '201':
           description: Job created successfully
@@ -594,7 +624,7 @@ paths:
             examples:
               processing_stage:
                 summary: Data processing stage
-                description: Stage for data transformation and validation
+                description: Stage for data transformation and validation (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
                 value:
                   type: 'data_processing'
                   data:
@@ -624,6 +654,16 @@ paths:
                   userMetadata:
                     priority: 'high'
                     sla: '24h'
+              stage_with_tracing:
+                summary: Stage with distributed tracing
+                description: Stage creation with provided tracing context
+                value:
+                  type: 'data_validation'
+                  data:
+                    validation_type: 'schema_check'
+                    strict_mode: true
+                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                  tracestate: 'vendor=trace123,service=validation'
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -937,7 +977,7 @@ paths:
             examples:
               file_processing_tasks:
                 summary: Multiple file processing tasks
-                description: Batch creation of tasks for processing multiple files
+                description: Batch creation of tasks for processing multiple files (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
                 value:
                   - data:
                       file_path: '/data/input/file_001.csv'
@@ -988,6 +1028,22 @@ paths:
                     userMetadata:
                       source: 'order_system'
                       priority: 'medium'
+              tasks_with_tracing:
+                summary: Tasks with distributed tracing context
+                description: Task creation with tracing information for observability
+                value:
+                  - data:
+                      process_type: 'data_enrichment'
+                      input_dataset: 'customer_profiles'
+                      enrichment_sources: ['demographic_api', 'credit_api']
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                    tracestate: 'customer=enrich123,priority=high'
+                    maxAttempts: 2
+                  - data:
+                      process_type: 'data_validation'
+                      validation_rules: ['email_format', 'phone_format']
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-11a268bb4ba902b7-01'
+                    maxAttempts: 1
       responses:
         '201':
           description: Tasks successfully created and added to the stage
@@ -1432,6 +1488,24 @@ components:
         - MEDIUM: Standard priority for regular operations
         - LOW: Non-urgent jobs that can be delayed
         - VERY_LOW: Background jobs with minimal priority
+    traceparent:
+      type: string
+      description: |
+        Traceparent identifier for distributed tracing.
+        When creating resources, this field is optional - if not provided, the system will automatically inject 
+        both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
+        In response objects, this field is always present and required.
+      pattern: '^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$'
+      example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+    tracestate:
+      type: string
+      nullable: true
+      description: |
+        Tracestate identifier for distributed tracing (optional, can be null).
+        When creating resources without providing traceparent, the system will attempt to inject 
+        tracestate from the active OpenTelemetry context, but it may still be null if not available in the context.
+      pattern: '^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,]*(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,]*)*$'
+      example: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
     successMessages:
       type: string
       enum:
@@ -1563,6 +1637,10 @@ components:
             - default: MEDIUM
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
         - name
@@ -1571,6 +1649,11 @@ components:
         Input payload for creating a new job in the system.
         Contains all required configuration for job execution, including processing mode,
         custom parameters, metadata.
+
+        Tracing fields (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
     job:
       type: object
       required:
@@ -1578,6 +1661,7 @@ components:
         - name
         - data
         - userMetadata
+        - traceparent
       description: |
         Complete job information with status and metadata.
 
@@ -1606,6 +1690,10 @@ components:
           $ref: '#/components/schemas/priority'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
         stages:
           type: array
           items:
@@ -1632,6 +1720,14 @@ components:
             enabling more complex workflows where stages can be prepared in advance.
     createStagePayload:
       type: object
+      description: |
+        Input payload for creating a new stage within a job.
+        Contains stage type, operational parameters, and optional user metadata.
+
+        Tracing fields (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         type:
           $ref: '#/components/schemas/stageType'
@@ -1639,6 +1735,10 @@ components:
           $ref: '#/components/schemas/stagePayload'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
         - type
@@ -1651,6 +1751,7 @@ components:
             - summary
             - jobId
             - order
+            - traceparent
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -1699,6 +1800,11 @@ components:
         Input payload for creating a new task within a stage.
         Contains task type, operational parameters, and optional retry configuration.
         Used when adding tasks to existing stages.
+
+        Tracing fields (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         data:
           $ref: '#/components/schemas/taskPayload'
@@ -1706,6 +1812,10 @@ components:
           $ref: '#/components/schemas/userMetadata'
         maxAttempts:
           $ref: '#/components/schemas/maxAttempts'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
       additionalProperties: false
@@ -1734,6 +1844,10 @@ components:
           $ref: '#/components/schemas/attempts'
         maxAttempts:
           $ref: '#/components/schemas/maxAttempts'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - id
         - data
@@ -1741,6 +1855,7 @@ components:
         - status
         - attempts
         - maxAttempts
+        - traceparent
       additionalProperties: false
     errorMessage:
       type: object

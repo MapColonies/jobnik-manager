@@ -605,6 +605,16 @@ export type components = {
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
     /**
+     * @description Traceparent identifier for distributed tracing
+     * @example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+     */
+    traceparent: string;
+    /**
+     * @description Tracestate identifier for distributed tracing
+     * @example rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
+     */
+    tracestate: string;
+    /**
      * @description Standard success message codes used in API responses
      * @example JOB_MODIFIED_SUCCESSFULLY
      * @enum {string}
@@ -687,6 +697,8 @@ export type components = {
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'] & unknown;
       userMetadata?: components['schemas']['userMetadata'];
+      traceparent?: components['schemas']['traceparent'];
+      tracestate?: components['schemas']['tracestate'];
     };
     /** @description Complete job information with status and metadata.
      *
@@ -707,6 +719,8 @@ export type components = {
       data: components['schemas']['jobPayload'];
       priority?: components['schemas']['priority'];
       userMetadata: components['schemas']['userMetadata'];
+      traceparent: components['schemas']['traceparent'];
+      tracestate?: components['schemas']['tracestate'];
       stages?: components['schemas']['stageResponse'][];
     };
     createStagePayloadRequest: components['schemas']['createStagePayload'] & {
@@ -724,6 +738,8 @@ export type components = {
       type: components['schemas']['stageType'];
       data: components['schemas']['stagePayload'];
       userMetadata?: components['schemas']['userMetadata'];
+      traceparent?: components['schemas']['traceparent'];
+      tracestate?: components['schemas']['tracestate'];
     };
     stageResponse: components['schemas']['createStagePayload'] & {
       id: components['schemas']['stageId'];
@@ -757,6 +773,8 @@ export type components = {
       data: components['schemas']['taskPayload'];
       userMetadata?: components['schemas']['userMetadata'];
       maxAttempts?: components['schemas']['maxAttempts'];
+      traceparent?: components['schemas']['traceparent'];
+      tracestate?: components['schemas']['tracestate'];
     };
     /** @description Complete task information returned by the API, including all configuration
      *     data along with execution status, attempt tracking, and associated stage reference.
@@ -772,6 +790,8 @@ export type components = {
       status: components['schemas']['taskOperationStatus'];
       attempts: components['schemas']['attempts'];
       maxAttempts: components['schemas']['maxAttempts'];
+      traceparent: components['schemas']['traceparent'];
+      tracestate?: components['schemas']['tracestate'];
     };
     /** @description Standard error response structure used when API operations encounter problems.
      *     Contains a human-readable message and optional stack trace for debugging.

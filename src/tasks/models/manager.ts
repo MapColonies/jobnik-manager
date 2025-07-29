@@ -5,6 +5,7 @@ import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
+import { resolveTraceContext } from '@src/common/tracing';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -100,18 +101,21 @@ export class TaskManager {
       throw new InvalidUpdateError(tasksErrorMessages.addTaskNotAllowed);
     }
 
-    const taskInput = tasksPayload.map(
-      (taskData) =>
-        ({
-          attempts: 0,
-          maxAttempts: taskData.maxAttempts,
-          data: taskData.data,
-          xstate: persistenceSnapshot,
-          userMetadata: taskData.userMetadata,
-          status: TaskOperationStatus.CREATED,
-          stageId,
-        }) satisfies Prisma.TaskCreateManyInput
-    );
+    const taskInput = tasksPayload.map((taskData) => {
+      const { traceparent, tracestate } = resolveTraceContext(taskData);
+
+      return {
+        attempts: 0,
+        maxAttempts: taskData.maxAttempts,
+        data: taskData.data,
+        xstate: persistenceSnapshot,
+        userMetadata: taskData.userMetadata,
+        status: TaskOperationStatus.CREATED,
+        stageId,
+        traceparent,
+        tracestate,
+      } satisfies Prisma.TaskCreateManyInput;
+    });
 
     const queryBody = {
       data: taskInput,
