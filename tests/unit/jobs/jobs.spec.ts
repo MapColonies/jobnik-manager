@@ -83,7 +83,7 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobs(undefined);
 
-          const { xstate, stage, ...rest } = jobEntity;
+          const { xstate, stage, tracestate, ...rest } = jobEntity;
           const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
           expect(jobs).toMatchObject(expectedJob);

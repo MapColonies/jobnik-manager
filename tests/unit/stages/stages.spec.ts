@@ -72,7 +72,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages(undefined);
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
