@@ -44,7 +44,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
@@ -59,7 +59,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE', should_return_tasks: true });
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
@@ -72,7 +72,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages(undefined);
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
@@ -100,7 +100,7 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStageById(stageId);
 
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = rest;
 
@@ -117,7 +117,7 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStageById(stageId);
 
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = rest;
 
@@ -151,7 +151,7 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
           const expectedStage = [rest];
 
           expect(stage).toMatchObject(expectedStage);
@@ -168,7 +168,7 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
-          const { xstate, task, ...rest } = stageEntity;
+          const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
@@ -302,7 +302,7 @@ describe('JobManager', () => {
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
           // Extract unnecessary fields from the stage object and assemble the expected result
-          const { xstate, task, ...rest } = anotherStageEntity;
+          const { xstate, task, tracestate, ...rest } = anotherStageEntity;
 
           expect(stagesResponse).toMatchObject(rest);
         });
@@ -335,7 +335,7 @@ describe('JobManager', () => {
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
           // Extract unnecessary fields from the stage object and assemble the expected result
-          const { xstate, task, ...rest } = anotherStageEntity;
+          const { xstate, task, tracestate, ...rest } = anotherStageEntity;
 
           expect(stagesResponse).toMatchObject(rest);
         });

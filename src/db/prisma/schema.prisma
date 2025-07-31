@@ -26,8 +26,10 @@ model Job {
   updateTime   DateTime           @updatedAt @map("update_time")
   userMetadata Json               @default("{}") @map("user_metadata")
   priority     Priority           @default(VERY_LOW)
-  name         String             
+  name         String
   stage        Stage[]
+  traceparent  String             
+  tracestate   String?             
 
   @@map("job")
 }
@@ -67,13 +69,11 @@ enum Priority {
 }
 
 model Stage {
-  id   String @id @default(uuid()) @db.Uuid
+  id           String               @id @default(uuid()) @db.Uuid
   /// [StageData]
-  data Json   @default("{}")
-
-  job   Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  jobId String @map("job_id") @db.Uuid
-
+  data         Json                 @default("{}")
+  job          Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  jobId        String               @map("job_id") @db.Uuid
   order        Int                  @default(1)
   percentage   Int                  @default(0)
   /// [UserMetadata]
@@ -85,6 +85,8 @@ model Stage {
   xstate       Json
   type         String               @default("unknown") @db.VarChar(50)
   task         Task[]
+  traceparent  String               
+  tracestate   String?               
 
   @@map("stage")
 }
@@ -103,6 +105,8 @@ model Task {
   stageId      String              @map("stage_id") @db.Uuid
   attempts     Int                 @default(0)
   maxAttempts  Int                 @default(1) @map("max_attempts")
+  traceparent  String              
+  tracestate   String?              
 
   @@map("task")
 }

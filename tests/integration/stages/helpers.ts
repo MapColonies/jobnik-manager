@@ -41,4 +41,6 @@ export const createStageBody = {
   xstate: persistedSnapshot,
   userMetadata: {},
   order: 1,
+  traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+  tracestate: null,
 } satisfies Prisma.StageCreateManyInput;

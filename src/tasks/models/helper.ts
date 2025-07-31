@@ -7,13 +7,14 @@ import { TaskModel } from './models';
  * @returns TaskModel
  */
 export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>): TaskModel {
-  const { data, userMetadata, xstate, creationTime, updateTime, ...rest } = prismaObjects;
+  const { data, userMetadata, xstate, creationTime, tracestate, updateTime, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
     userMetadata: userMetadata as { [key: string]: unknown },
     updateTime: updateTime.toISOString(),
     creationTime: creationTime.toISOString(),
+    tracestate: tracestate ?? undefined,
   };
 
   return Object.assign(rest, transformedFields);

@@ -17,4 +17,6 @@ export const createTaskBody = {
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},
+  traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+  tracestate: null,
 } satisfies Prisma.TaskCreateManyInput;
