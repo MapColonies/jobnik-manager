@@ -9,7 +9,7 @@ import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { type PrismaTransaction } from '@src/db/types';
-import { resolveTraceContext } from '@src/common/tracing';
+import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';

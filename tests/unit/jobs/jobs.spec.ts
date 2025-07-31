@@ -64,7 +64,15 @@ describe('JobManager', () => {
           const jobs = await jobManager.getJobs({ priority: Priority.MEDIUM });
 
           const { xstate, stage, ...rest } = mediumPriorityJob;
-          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+          const expectedJob = [
+            {
+              ...rest,
+              stages: stage,
+              creationTime: rest.creationTime.toISOString(),
+              updateTime: rest.updateTime.toISOString(),
+              tracestate: undefined,
+            },
+          ];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -99,7 +107,13 @@ describe('JobManager', () => {
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
           const { xstate, stage, ...rest } = jobEntityWithoutStages;
-          const expectedJob = { ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() };
+          const expectedJob = {
+            ...rest,
+            stages: stage,
+            tracestate: undefined,
+            creationTime: rest.creationTime.toISOString(),
+            updateTime: rest.updateTime.toISOString(),
+          };
 
           expect(jobs).toMatchObject(expectedJob);
         });

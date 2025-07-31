@@ -151,6 +151,7 @@ paths:
                       output_path: '/data/processed/batch_001'
                       format: 'parquet'
                     userMetadata: {}
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
                 complex_job_response:
                   summary: Response for complex job creation
                   value:
@@ -180,6 +181,8 @@ paths:
                       owner: 'data-team@company.com'
                       deadline: '2025-08-01T00:00:00Z'
                       cost_center: 'CC-12345'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
+                    tracestate: 'analytics=dept123,priority=very_high'
         '400':
           description: Invalid request, could not create job
           content:
@@ -241,6 +244,7 @@ paths:
                     priority: 'HIGH'
                     creationTime: '2025-07-27T08:00:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
                     data:
                       model_type: 'random_forest'
                       training_data: '/data/ml/training_set.parquet'
@@ -317,6 +321,7 @@ paths:
                     priority: 'LOW'
                     creationTime: '2025-07-26T14:00:00Z'
                     updateTime: '2025-07-26T15:30:00Z'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
                     data:
                       source_path: '/data/production'
                       destination: 's3://backup-bucket/2025-07-26'
@@ -671,6 +676,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/stageResponse'
+              examples:
+                processing_stage_response:
+                  summary: Response for data processing stage creation
+                  value:
+                    id: 'stage-001'
+                    type: 'data_processing'
+                    status: 'CREATED'
+                    percentage: 0
+                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    order: 1
+                    data:
+                      processing_type: 'batch'
+                      chunk_size: 1000
+                      validation_rules:
+                        - 'not_null: [id, timestamp]'
+                        - 'range: [amount, 0, 1000000]'
+                    userMetadata:
+                      estimated_duration: '2h'
+                      resource_requirements:
+                        cpu: '4 cores'
+                        memory: '8GB'
+                    summary:
+                      pending: 0
+                      inProgress: 0
+                      completed: 0
+                      failed: 0
+                      created: 0
+                      retried: 0
+                      total: 0
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-33c489dd6db902b7-01'
+                    tracestate: 'processing=batch001,stage=data_proc'
+                waiting_stage_response:
+                  summary: Response for manual approval stage creation
+                  value:
+                    id: 'stage-002'
+                    type: 'manual_approval'
+                    status: 'WAITING'
+                    percentage: 0
+                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    order: 2
+                    data:
+                      approval_type: 'quality_check'
+                      reviewers: ['senior-analyst@company.com']
+                      checklist:
+                        - 'Data quality metrics within acceptable range'
+                        - 'No PII detected in output'
+                        - 'Performance benchmarks met'
+                    userMetadata:
+                      priority: 'high'
+                      sla: '24h'
+                    summary:
+                      pending: 0
+                      inProgress: 0
+                      completed: 0
+                      failed: 0
+                      created: 0
+                      retried: 0
+                      total: 0
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-44d59aee7ec902b7-01'
         '400':
           description: Invalid request format.
           content:
@@ -1053,6 +1117,101 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/taskResponse'
+              examples:
+                file_processing_tasks_response:
+                  summary: Response for multiple file processing tasks creation
+                  value:
+                    - id: 'task-001'
+                      data:
+                        file_path: '/data/input/file_001.csv'
+                        output_path: '/data/processed/file_001.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: 'stage-001'
+                      userMetadata:
+                        file_size: '125MB'
+                        estimated_time: '5m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-55e6abbf8fd902b7-01'
+                      tracestate: 'file=001,processing=csv_parquet'
+                    - id: 'task-002'
+                      data:
+                        file_path: '/data/input/file_002.csv'
+                        output_path: '/data/processed/file_002.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: 'stage-001'
+                      userMetadata:
+                        file_size: '89MB'
+                        estimated_time: '3m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-66f7bcc090e902b7-01'
+                      tracestate: 'file=002,processing=csv_parquet'
+                    - id: 'task-003'
+                      data:
+                        file_path: '/data/input/file_003.csv'
+                        output_path: '/data/processed/file_003.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: 'stage-001'
+                      userMetadata:
+                        file_size: '256MB'
+                        estimated_time: '8m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 5
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-77081dd1a1f902b7-01'
+                      tracestate: 'file=003,processing=csv_parquet'
+                api_integration_tasks_response:
+                  summary: Response for API integration tasks creation
+                  value:
+                    - id: 'task-004'
+                      data:
+                        endpoint: 'https://api.external.com/customers'
+                        method: 'GET'
+                        headers:
+                          Authorization: 'Bearer ${API_TOKEN}'
+                        pagination:
+                          page_size: 100
+                          max_pages: 50
+                      stageId: 'stage-002'
+                      userMetadata:
+                        source: 'customer_system'
+                        priority: 'high'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-88192ee2b20902b7-01'
+                      tracestate: 'api=customers,source=external'
+                    - id: 'task-005'
+                      data:
+                        endpoint: 'https://api.external.com/orders'
+                        method: 'GET'
+                        headers:
+                          Authorization: 'Bearer ${API_TOKEN}'
+                        query_params:
+                          start_date: '2025-01-01'
+                          end_date: '2025-07-27'
+                      stageId: 'stage-002'
+                      userMetadata:
+                        source: 'order_system'
+                        priority: 'medium'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-99203ff3c31902b7-01'
+                      tracestate: 'api=orders,source=external'
         '400':
           description: Invalid request format or validation error
           content:
@@ -1499,7 +1658,6 @@ components:
       example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
     tracestate:
       type: string
-      nullable: true
       description: |
         Tracestate identifier for distributed tracing (optional, can be null).
         When creating resources without providing traceparent, the system will attempt to inject 

@@ -9,7 +9,13 @@ type JobTestCreateModel = JobCreateModel & { id?: string };
 export const createJobRecord = async (body: JobTestCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
 
-  const input = { ...body, xstate: persistedSnapshot } satisfies Prisma.JobCreateInput;
+  const traceparent = body.traceparent ?? '00-00000000000000000000000000000000-0000000000000000-00';
+  const input = {
+    ...body,
+    xstate: persistedSnapshot,
+    traceparent,
+    tracestate: body.tracestate ?? null,
+  } satisfies Prisma.JobCreateInput;
 
   const res = await prisma.job.create({ data: input, include: { stage: true } });
   return res;

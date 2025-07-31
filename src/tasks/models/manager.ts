@@ -5,7 +5,7 @@ import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
-import { resolveTraceContext } from '@src/common/tracing';
+import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
 import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
 import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';

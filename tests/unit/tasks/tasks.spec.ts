@@ -48,7 +48,7 @@ describe('JobManager', () => {
           const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -60,7 +60,7 @@ describe('JobManager', () => {
           const tasks = await taskManager.getTasks({});
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -93,7 +93,7 @@ describe('JobManager', () => {
           const task = await taskManager.getTaskById(taskId);
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = { ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
+          const expectedTask = { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
 
           expect(task).toMatchObject(expectedTask);
         });
@@ -128,7 +128,7 @@ describe('JobManager', () => {
           const stage = await taskManager.getTasksByStageId(stageEntity.id);
 
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(stage).toMatchObject(expectedTask);
         });
@@ -213,7 +213,9 @@ describe('JobManager', () => {
           // Extract unnecessary fields from the job object and assemble the expected result
           const { creationTime, updateTime, xstate, ...rest } = taskEntity;
 
-          expect(tasksResponse).toMatchObject([{ ...rest, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }]);
+          expect(tasksResponse).toMatchObject([
+            { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
+          ]);
         });
       });
 

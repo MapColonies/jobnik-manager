@@ -605,12 +605,19 @@ export type components = {
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
     /**
-     * @description Traceparent identifier for distributed tracing
+     * @description Traceparent identifier for distributed tracing.
+     *     When creating resources, this field is optional - if not provided, the system will automatically inject
+     *     both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
+     *     In response objects, this field is always present and required.
+     *
      * @example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
      */
     traceparent: string;
     /**
-     * @description Tracestate identifier for distributed tracing
+     * @description Tracestate identifier for distributed tracing (optional, can be null).
+     *     When creating resources without providing traceparent, the system will attempt to inject
+     *     tracestate from the active OpenTelemetry context, but it may still be null if not available in the context.
+     *
      * @example rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
      */
     tracestate: string;
@@ -691,6 +698,11 @@ export type components = {
     /** @description Input payload for creating a new job in the system.
      *     Contains all required configuration for job execution, including processing mode,
      *     custom parameters, metadata.
+     *
+     *     Tracing fields (traceparent, tracestate) are optional:
+     *     - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+     *     - If traceparent is not provided, the system automatically injects both traceparent and tracestate
+     *       from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
      *      */
     createJobPayload: {
       name: components['schemas']['jobName'];
@@ -734,6 +746,14 @@ export type components = {
        */
       startAsWaiting?: boolean;
     };
+    /** @description Input payload for creating a new stage within a job.
+     *     Contains stage type, operational parameters, and optional user metadata.
+     *
+     *     Tracing fields (traceparent, tracestate) are optional:
+     *     - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+     *     - If traceparent is not provided, the system automatically injects both traceparent and tracestate
+     *       from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
+     *      */
     createStagePayload: {
       type: components['schemas']['stageType'];
       data: components['schemas']['stagePayload'];
@@ -768,6 +788,11 @@ export type components = {
     /** @description Input payload for creating a new task within a stage.
      *     Contains task type, operational parameters, and optional retry configuration.
      *     Used when adding tasks to existing stages.
+     *
+     *     Tracing fields (traceparent, tracestate) are optional:
+     *     - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+     *     - If traceparent is not provided, the system automatically injects both traceparent and tracestate
+     *       from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
      *      */
     createTaskPayload: {
       data: components['schemas']['taskPayload'];

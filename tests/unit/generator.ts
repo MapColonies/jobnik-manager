@@ -37,6 +37,8 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
+    traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+    tracestate: null,
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
@@ -53,6 +55,8 @@ export const createStageEntity = (override: Partial<StageWithTasks>): StageWithT
     order: 1,
     xstate: stageInitializedPersistedSnapshot,
     task: undefined,
+    traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+    tracestate: null,
   } satisfies StageWithTasks;
 
   return { ...stageEntity, ...override };
@@ -70,6 +74,8 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
     creationTime: new Date(),
     updateTime: new Date(),
     xstate: taskInitializedPersistedSnapshot,
+    traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+    tracestate: null,
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };
