@@ -17,12 +17,17 @@ paths:
         - $ref: '#/components/parameters/priority'
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve jobs matching specified criteria
-      description: |
+      description: >
         Returns a filtered list of jobs based on the provided query parameters.
-        Supports filtering by job mode, name, date range, priority.
-        Optional inclusion of related stage data via the should_return_stages parameter.
 
-        Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
+        Supports filtering by job mode, name, date range, priority.
+
+        Optional inclusion of related stage data via the should_return_stages
+        parameter.
+
+
+        Returns an empty array ([]) when no jobs match the specified criteria,
+        rather than an error.
       tags:
         - jobs
       responses:
@@ -49,11 +54,16 @@ paths:
     post:
       operationId: createJob
       summary: Create a new job with configuration and metadata
-      description: |
-        Creates a new job in the system with user-defined configuration and metadata.
+      description: >
+        Creates a new job in the system with user-defined configuration and
+        metadata.
+
         Supports customizable priorities and job-specific data payloads.
 
-        The job will be created with an initial status of CREATED and can be tracked
+
+        The job will be created with an initial status of CREATED and can be
+        tracked
+
         throughout its lifecycle using the returned job ID.
       tags:
         - jobs
@@ -68,36 +78,44 @@ paths:
                 summary: Simple job with minimal configuration
                 description: Basic job creation with default priority
                 value:
-                  name: 'data_processing'
+                  name: data_processing
                   data:
-                    input_path: '/data/raw/batch_001'
-                    output_path: '/data/processed/batch_001'
-                    format: 'parquet'
+                    input_path: /data/raw/batch_001
+                    output_path: /data/processed/batch_001
+                    format: parquet
               complex_job:
                 summary: Complex job with full configuration
                 description: Job with high priority and custom metadata
                 value:
-                  name: 'critical_analysis'
+                  name: critical_analysis
                   data:
                     input_sources:
-                      - '/data/source1/*.csv'
-                      - '/data/source2/*.json'
+                      - /data/source1/*.csv
+                      - /data/source2/*.json
                     transformations:
-                      - type: 'filter'
-                        conditions: ["status = 'active'", "created_date > '2024-01-01'"]
-                      - type: 'aggregate'
-                        group_by: ['region', 'category']
-                        metrics: ['sum(revenue)', 'count(transactions)']
+                      - type: filter
+                        conditions:
+                          - status = 'active'
+                          - created_date > '2024-01-01'
+                      - type: aggregate
+                        group_by:
+                          - region
+                          - category
+                        metrics:
+                          - sum(revenue)
+                          - count(transactions)
                     output_config:
-                      format: 'delta'
-                      partitions: ['year', 'month']
-                      compression: 'snappy'
-                  priority: 'VERY_HIGH'
+                      format: delta
+                      partitions:
+                        - year
+                        - month
+                      compression: snappy
+                  priority: VERY_HIGH
                   userMetadata:
-                    department: 'analytics'
-                    owner: 'data-team@company.com'
+                    department: analytics
+                    owner: data-team@company.com
                     deadline: '2025-08-01T00:00:00Z'
-                    cost_center: 'CC-12345'
+                    cost_center: CC-12345
       responses:
         '201':
           description: Job created successfully
@@ -109,47 +127,55 @@ paths:
                 simple_job_response:
                   summary: Response for simple job creation
                   value:
-                    id: '550e8400-e29b-41d4-a716-446655440000'
-                    name: 'data_processing'
-                    status: 'CREATED'
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    name: data_processing
+                    status: CREATED
                     percentage: 0
-                    priority: 'MEDIUM'
+                    priority: MEDIUM
                     creationTime: '2025-07-27T10:30:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
                     data:
-                      input_path: '/data/raw/batch_001'
-                      output_path: '/data/processed/batch_001'
-                      format: 'parquet'
+                      input_path: /data/raw/batch_001
+                      output_path: /data/processed/batch_001
+                      format: parquet
                     userMetadata: {}
                 complex_job_response:
                   summary: Response for complex job creation
                   value:
-                    id: '660f9511-f3ac-52e5-b827-557766551111'
-                    name: 'critical_analysis'
-                    status: 'CREATED'
+                    id: 660f9511-f3ac-52e5-b827-557766551111
+                    name: critical_analysis
+                    status: CREATED
                     percentage: 0
-                    priority: 'VERY_HIGH'
+                    priority: VERY_HIGH
                     creationTime: '2025-07-27T10:30:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
                     data:
                       input_sources:
-                        - '/data/source1/*.csv'
-                        - '/data/source2/*.json'
+                        - /data/source1/*.csv
+                        - /data/source2/*.json
                       transformations:
-                        - type: 'filter'
-                          conditions: ["status = 'active'", "created_date > '2024-01-01'"]
-                        - type: 'aggregate'
-                          group_by: ['region', 'category']
-                          metrics: ['sum(revenue)', 'count(transactions)']
+                        - type: filter
+                          conditions:
+                            - status = 'active'
+                            - created_date > '2024-01-01'
+                        - type: aggregate
+                          group_by:
+                            - region
+                            - category
+                          metrics:
+                            - sum(revenue)
+                            - count(transactions)
                       output_config:
-                        format: 'delta'
-                        partitions: ['year', 'month']
-                        compression: 'snappy'
+                        format: delta
+                        partitions:
+                          - year
+                          - month
+                        compression: snappy
                     userMetadata:
-                      department: 'analytics'
-                      owner: 'data-team@company.com'
+                      department: analytics
+                      owner: data-team@company.com
                       deadline: '2025-08-01T00:00:00Z'
-                      cost_center: 'CC-12345'
+                      cost_center: CC-12345
         '400':
           description: Invalid request, could not create job
           content:
@@ -161,15 +187,22 @@ paths:
                   summary: Validation error
                   description: Request failed due to missing required fields
                   value:
-                    message: "Validation failed: 'name' is required and must be a non-empty string. 'data' is required and must be an object."
+                    message: >-
+                      Validation failed: 'name' is required and must be a
+                      non-empty string. 'data' is required and must be an
+                      object.
                 invalid_priority:
                   summary: Invalid priority value
                   value:
-                    message: "Invalid priority value 'SUPER_HIGH'. Valid values are: VERY_HIGH, HIGH, MEDIUM, LOW, VERY_LOW."
+                    message: >-
+                      Invalid priority value 'SUPER_HIGH'. Valid values are:
+                      VERY_HIGH, HIGH, MEDIUM, LOW, VERY_LOW.
                 malformed_data:
                   summary: Malformed request data
                   value:
-                    message: 'Invalid JSON format in request body. Expected object but received array at line 1, column 1.'
+                    message: >-
+                      Invalid JSON format in request body. Expected object but
+                      received array at line 1, column 1.
         '500':
           description: Internal server error
           content:
@@ -184,12 +217,17 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve a specific job by its ID
-      description: |
+      description: >
         Fetches detailed information about a job using its unique identifier.
+
         Includes job configuration, status, metadata, and completion percentage.
 
-        Optional inclusion of related stage data via the should_return_stages parameter,
-        which allows clients to retrieve the complete job hierarchy in a single request.
+
+        Optional inclusion of related stage data via the should_return_stages
+        parameter,
+
+        which allows clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -204,36 +242,42 @@ paths:
                   summary: Job with complete stage and task hierarchy
                   description: Full job details when should_return_stages=true
                   value:
-                    id: '550e8400-e29b-41d4-a716-446655440000'
-                    name: 'ml_pipeline'
-                    status: 'IN_PROGRESS'
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    name: ml_pipeline
+                    status: IN_PROGRESS
                     percentage: 45
-                    priority: 'HIGH'
+                    priority: HIGH
                     creationTime: '2025-07-27T08:00:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
                     data:
-                      model_type: 'random_forest'
-                      training_data: '/data/ml/training_set.parquet'
-                      features: ['age', 'income', 'location', 'purchase_history']
-                      target: 'churn_probability'
+                      model_type: random_forest
+                      training_data: /data/ml/training_set.parquet
+                      features:
+                        - age
+                        - income
+                        - location
+                        - purchase_history
+                      target: churn_probability
                       hyperparameters:
                         n_estimators: 100
                         max_depth: 10
                         min_samples_split: 5
                     userMetadata:
-                      experiment_id: 'EXP-2025-001'
-                      researcher: 'ml-team@company.com'
-                      budget: '$5000'
+                      experiment_id: EXP-2025-001
+                      researcher: ml-team@company.com
+                      budget: $5000
                     stages:
-                      - id: 'stage-001'
-                        type: 'data_preparation'
-                        status: 'COMPLETED'
+                      - id: stage-001
+                        type: data_preparation
+                        status: COMPLETED
                         percentage: 100
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 1
                         data:
                           validation_split: 0.2
-                          preprocessing_steps: ['normalize', 'encode_categorical']
+                          preprocessing_steps:
+                            - normalize
+                            - encode_categorical
                         summary:
                           pending: 0
                           inProgress: 0
@@ -242,11 +286,11 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-002'
-                        type: 'model_training'
-                        status: 'IN_PROGRESS'
+                      - id: stage-002
+                        type: model_training
+                        status: IN_PROGRESS
                         percentage: 60
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 2
                         data:
                           cross_validation_folds: 5
@@ -259,15 +303,19 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-003'
-                        type: 'model_evaluation'
-                        status: 'WAITING'
+                      - id: stage-003
+                        type: model_evaluation
+                        status: WAITING
                         percentage: 0
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 3
                         data:
-                          metrics: ['accuracy', 'precision', 'recall', 'f1_score']
-                          validation_dataset: '/data/ml/validation_set.parquet'
+                          metrics:
+                            - accuracy
+                            - precision
+                            - recall
+                            - f1_score
+                          validation_dataset: /data/ml/validation_set.parquet
                         summary:
                           pending: 3
                           inProgress: 0
@@ -280,20 +328,20 @@ paths:
                   summary: Simple job without stages
                   description: Basic job details when should_return_stages=false
                   value:
-                    id: '660f9511-f3ac-52e5-b827-557766551111'
-                    name: 'data_backup'
-                    status: 'COMPLETED'
+                    id: 660f9511-f3ac-52e5-b827-557766551111
+                    name: data_backup
+                    status: COMPLETED
                     percentage: 100
-                    priority: 'LOW'
+                    priority: LOW
                     creationTime: '2025-07-26T14:00:00Z'
                     updateTime: '2025-07-26T15:30:00Z'
                     data:
-                      source_path: '/data/production'
-                      destination: 's3://backup-bucket/2025-07-26'
-                      compression: 'gzip'
+                      source_path: /data/production
+                      destination: s3://backup-bucket/2025-07-26
+                      compression: gzip
                       encryption: true
                     userMetadata:
-                      backup_type: 'daily'
+                      backup_type: daily
                       retention_days: 30
         '400':
           description: Invalid request, could not get job
@@ -316,15 +364,25 @@ paths:
     delete:
       operationId: deleteJob
       summary: Delete a job and all its associated resources (stages, tasks)
-      description: |
-        Permanently removes a job and all its associated stages and tasks from the system.
-        This operation cascades to delete all child resources and cannot be undone.
+      description: >
+        Permanently removes a job and all its associated stages and tasks from
+        the system.
+
+        This operation cascades to delete all child resources and cannot be
+        undone.
+
 
         The job must exist in the system for this operation to succeed.
-        Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
-        Attempting to delete a job in any other state will result in a 400 error.
 
-        Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
+        Jobs can only be deleted when they are in a finite state (COMPLETED,
+        FAILED, or ABORTED).
+
+        Attempting to delete a job in any other state will result in a 400
+        error.
+
+
+        Returns a success message with code JOB_DELETED_SUCCESSFULLY when
+        completed.
       tags:
         - jobs
       responses:
@@ -360,12 +418,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/jobId'
       summary: Update job's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific job.
-        This endpoint allows clients to attach or modify arbitrary data related to a job
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a job
+
         without affecting the job's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - jobs
@@ -408,12 +472,19 @@ paths:
     patch:
       operationId: updateJobPriority
       summary: Modify job's priority level
-      description: |
+      description: >
         Updates the priority level for a specific job.
-        This affects how the job is scheduled relative to other jobs in the system.
 
-        Higher priority jobs will be processed before lower priority ones when resources
-        are constrained. Priority changes take effect immediately and apply to all 
+        This affects how the job is scheduled relative to other jobs in the
+        system.
+
+
+        Higher priority jobs will be processed before lower priority ones when
+        resources
+
+        are constrained. Priority changes take effect immediately and apply to
+        all 
+
         pending tasks associated with the job.
       tags:
         - jobs
@@ -445,14 +516,14 @@ paths:
               schema:
                 type: string
           content: {}
-        '404':
-          description: Job not found
+        '400':
+          description: Invalid priority value or other request error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/errorMessage'
-        '400':
-          description: Invalid priority value or other request error
+        '404':
+          description: Job not found
           content:
             application/json:
               schema:
@@ -469,16 +540,28 @@ paths:
     put:
       operationId: updateStatus
       summary: Change job's operational status
-      description: |
-        Updates the operational status of a job, which may cascade changes to all 
-        related stages and tasks. This endpoint can be used to pause, resume, abort,
+      description: >
+        Updates the operational status of a job, which may cascade changes to
+        all 
+
+        related stages and tasks. This endpoint can be used to pause, resume,
+        abort,
+
         or otherwise control the execution flow of a job.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed job or completing a failed job without
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
+        operations like resuming a completed job or completing a failed job
+        without
+
         proper remediation.
 
-        When a job's status is changed, the system will automatically update timestamps
+
+        When a job's status is changed, the system will automatically update
+        timestamps
+
         and completion percentages as appropriate.
       tags:
         - jobs
@@ -528,16 +611,28 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve all stages for a specific job in execution order
-      description: |
-        Fetches all stages associated with the specified job ID, automatically ordered by 
-        their execution sequence (order field). Provides complete information about each 
+      description: >
+        Fetches all stages associated with the specified job ID, automatically
+        ordered by 
+
+        their execution sequence (order field). Provides complete information
+        about each 
+
         stage including type, status, progress, and sequential order number.
 
-        Stages are returned in ascending order based on their order field (1, 2, 3, etc.)
-        to maintain the correct workflow execution sequence defined when stages were created.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        allowing clients to retrieve the complete job hierarchy in a single request.
+        Stages are returned in ascending order based on their order field (1, 2,
+        3, etc.)
+
+        to maintain the correct workflow execution sequence defined when stages
+        were created.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        allowing clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -571,14 +666,24 @@ paths:
     post:
       operationId: addStage
       summary: Add a new stage as the last stage in the job workflow
-      description: |
+      description: >
         Appends a new stage to an existing job with automatic order assignment.
-        The stage will be added after any existing stages in the job's workflow sequence.
-        Each stage is automatically assigned an incremental order number (1, 2, 3, etc.) 
+
+        The stage will be added after any existing stages in the job's workflow
+        sequence.
+
+        Each stage is automatically assigned an incremental order number (1, 2,
+        3, etc.) 
+
         within the scope of its parent job to maintain execution sequence.
 
-        This endpoint allows for extending job workflows at runtime by adding new processing steps.
-        The order field ensures stages are processed in the correct sequence when retrieved.
+
+        This endpoint allows for extending job workflows at runtime by adding
+        new processing steps.
+
+        The order field ensures stages are processed in the correct sequence
+        when retrieved.
+
 
         The job must exist and be in a valid state to accept new stages.
       parameters:
@@ -596,34 +701,35 @@ paths:
                 summary: Data processing stage
                 description: Stage for data transformation and validation
                 value:
-                  type: 'data_processing'
+                  type: data_processing
                   data:
-                    processing_type: 'batch'
+                    processing_type: batch
                     chunk_size: 1000
                     validation_rules:
                       - 'not_null: [id, timestamp]'
                       - 'range: [amount, 0, 1000000]'
                   userMetadata:
-                    estimated_duration: '2h'
+                    estimated_duration: 2h
                     resource_requirements:
-                      cpu: '4 cores'
-                      memory: '8GB'
+                      cpu: 4 cores
+                      memory: 8GB
               waiting_stage:
                 summary: Manual approval stage
                 description: Stage that waits for manual intervention
                 value:
-                  type: 'manual_approval'
+                  type: manual_approval
                   startAsWaiting: true
                   data:
-                    approval_type: 'quality_check'
-                    reviewers: ['senior-analyst@company.com']
+                    approval_type: quality_check
+                    reviewers:
+                      - senior-analyst@company.com
                     checklist:
-                      - 'Data quality metrics within acceptable range'
-                      - 'No PII detected in output'
-                      - 'Performance benchmarks met'
+                      - Data quality metrics within acceptable range
+                      - No PII detected in output
+                      - Performance benchmarks met
                   userMetadata:
-                    priority: 'high'
-                    sla: '24h'
+                    priority: high
+                    sla: 24h
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -658,12 +764,18 @@ paths:
         - $ref: '#/components/parameters/stageStatus'
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve stages matching specified criteria
-      description: |
-        Returns a filtered list of stages based on the provided query parameters.
+      description: >
+        Returns a filtered list of stages based on the provided query
+        parameters.
+
         Supports filtering by job ID, stage type, and status.
 
-        Optional inclusion of related task data via the should_return_tasks parameter
-        allows clients to retrieve the complete stage hierarchy in a single request.
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter
+
+        allows clients to retrieve the complete stage hierarchy in a single
+        request.
       tags:
         - stages
       responses:
@@ -695,12 +807,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve a specific stage by its ID
-      description: |
+      description: >
         Fetches detailed information about a stage using its unique identifier.
-        Includes stage configuration, status, metadata, and completion information.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        which allows clients to retrieve the complete stage hierarchy in a single request.
+        Includes stage configuration, status, metadata, and completion
+        information.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        which allows clients to retrieve the complete stage hierarchy in a
+        single request.
       tags:
         - stages
       responses:
@@ -734,12 +852,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Get stage progress summary
-      description: |
+      description: >
         Retrieves aggregated statistics about the tasks within a specific stage.
-        Provides counts of tasks by status (pending, in progress, completed, etc.) 
+
+        Provides counts of tasks by status (pending, in progress, completed,
+        etc.) 
+
         and a total task count for monitoring stage progress.
 
-        This endpoint is useful for displaying progress indicators or status dashboards
+
+        This endpoint is useful for displaying progress indicators or status
+        dashboards
+
         without needing to retrieve and process all individual task details.
       tags:
         - stages
@@ -774,12 +898,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Update stage's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific stage.
-        This endpoint allows clients to attach or modify arbitrary data related to a stage
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a stage
+
         without affecting the stage's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - stages
@@ -822,16 +952,28 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Change stage's operational status
-      description: |
-        Updates the operational status of a stage, which may cascade changes to all 
-        related tasks. This endpoint can be used to pause, resume, abort, or otherwise 
+      description: >
+        Updates the operational status of a stage, which may cascade changes to
+        all 
+
+        related tasks. This endpoint can be used to pause, resume, abort, or
+        otherwise 
+
         control the execution flow of a stage.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed stage or completing a failed stage without
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
+        operations like resuming a completed stage or completing a failed stage
+        without
+
         proper remediation.
 
-        Changes to a stage's status may affect the parent job's status if certain 
+
+        Changes to a stage's status may affect the parent job's status if
+        certain 
+
         conditions are met.
       tags:
         - stages
@@ -879,9 +1021,11 @@ paths:
     get:
       operationId: getTasksByStageId
       summary: Retrieve all tasks for a specific stage
-      description: |
+      description: >
         Fetches all tasks associated with the specified stage ID.
-        Provides complete information about each task including type, status, and attempt count.
+
+        Provides complete information about each task including type, status,
+        and attempt count.
       responses:
         '200':
           description: Successfully retrieved tasks for the specified stage
@@ -914,12 +1058,19 @@ paths:
     post:
       operationId: addTasks
       summary: Add new tasks to an existing stage
-      description: |
+      description: >
         Creates and appends new tasks to an existing stage.
-        This endpoint allows for extending stage processing capabilities by adding more work units.
 
-        Task objects require type and data properties, with optional user metadata and 
-        maximum attempt configuration. Tasks are created with an initial status of PENDING.
+        This endpoint allows for extending stage processing capabilities by
+        adding more work units.
+
+
+        Task objects require type and data properties, with optional user
+        metadata and 
+
+        maximum attempt configuration. Tasks are created with an initial status
+        of PENDING.
+
 
         The stage must exist and be in a valid state to accept new tasks.
       parameters:
@@ -940,54 +1091,54 @@ paths:
                 description: Batch creation of tasks for processing multiple files
                 value:
                   - data:
-                      file_path: '/data/input/file_001.csv'
-                      output_path: '/data/processed/file_001.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_001.csv
+                      output_path: /data/processed/file_001.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '125MB'
-                      estimated_time: '5m'
+                      file_size: 125MB
+                      estimated_time: 5m
                     maxAttempts: 3
                   - data:
-                      file_path: '/data/input/file_002.csv'
-                      output_path: '/data/processed/file_002.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_002.csv
+                      output_path: /data/processed/file_002.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '89MB'
-                      estimated_time: '3m'
+                      file_size: 89MB
+                      estimated_time: 3m
                     maxAttempts: 3
                   - data:
-                      file_path: '/data/input/file_003.csv'
-                      output_path: '/data/processed/file_003.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_003.csv
+                      output_path: /data/processed/file_003.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '256MB'
-                      estimated_time: '8m'
+                      file_size: 256MB
+                      estimated_time: 8m
                     maxAttempts: 5
               api_integration_tasks:
                 summary: API integration tasks with different configurations
                 value:
                   - data:
-                      endpoint: 'https://api.external.com/customers'
-                      method: 'GET'
+                      endpoint: https://api.external.com/customers
+                      method: GET
                       headers:
-                        Authorization: 'Bearer ${API_TOKEN}'
+                        Authorization: Bearer ${API_TOKEN}
                       pagination:
                         page_size: 100
                         max_pages: 50
                     userMetadata:
-                      source: 'customer_system'
-                      priority: 'high'
+                      source: customer_system
+                      priority: high
                   - data:
-                      endpoint: 'https://api.external.com/orders'
-                      method: 'GET'
+                      endpoint: https://api.external.com/orders
+                      method: GET
                       headers:
-                        Authorization: 'Bearer ${API_TOKEN}'
+                        Authorization: Bearer ${API_TOKEN}
                       query_params:
                         start_date: '2025-01-01'
                         end_date: '2025-07-27'
                     userMetadata:
-                      source: 'order_system'
-                      priority: 'medium'
+                      source: order_system
+                      priority: medium
       responses:
         '201':
           description: Tasks successfully created and added to the stage
@@ -1021,15 +1172,25 @@ paths:
     patch:
       operationId: dequeueTask
       summary: Find and claim the highest priority pending task of specified stage type
-      description: |
-        Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status, 
-        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+      description: >
+        Retrieves the highest priority task of the specified stage type that is
+        in PENDING or RETRIED status, 
+
+        and automatically updates its status to IN_PROGRESS. This endpoint
+        implements a priority-based 
+
         work queue pattern where workers can claim the next available task.
 
-        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
-        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
 
-        If successful, returns the complete task details with status updated to IN_PROGRESS.
+        The endpoint considers task priority (inherited from the parent job),
+        searches only for tasks 
+
+        that are in valid states (PENDING or RETRIED), and updates related stage
+        and job status if needed.
+
+
+        If successful, returns the complete task details with status updated to
+        IN_PROGRESS.
       tags:
         - stages
       responses:
@@ -1067,12 +1228,18 @@ paths:
     get:
       operationId: getTasksByCriteria
       summary: Retrieve tasks matching specified criteria
-      description: |
+      description: >
         Returns a filtered list of tasks based on the provided query parameters.
-        Supports filtering by stage ID, task type, date range, and operational status.
 
-        This endpoint is useful for monitoring task progress across multiple stages and jobs,
-        enabling clients to build custom dashboards or track specific task types.
+        Supports filtering by stage ID, task type, date range, and operational
+        status.
+
+
+        This endpoint is useful for monitoring task progress across multiple
+        stages and jobs,
+
+        enabling clients to build custom dashboards or track specific task
+        types.
       responses:
         '200':
           description: Successfully retrieved matching tasks
@@ -1108,9 +1275,11 @@ paths:
     get:
       operationId: getTaskById
       summary: Retrieve a specific task by its ID
-      description: |
+      description: >
         Fetches detailed information about a task using its unique identifier.
-        Returns complete task data including type, status, payload, and attempt information.
+
+        Returns complete task data including type, status, payload, and attempt
+        information.
       responses:
         '200':
           description: Task data retrieved successfully
@@ -1144,12 +1313,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/taskId'
       summary: Update task's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific task.
-        This endpoint allows clients to attach or modify arbitrary data related to a task
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a task
+
         without affecting the task's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - tasks
@@ -1192,15 +1367,25 @@ paths:
     put:
       operationId: updateTaskStatus
       summary: Change task's operational status
-      description: |
-        Updates the operational status of a task, which may trigger cascading updates
-        to the parent stage and job. This endpoint can be used to mark tasks as complete, 
+      description: >
+        Updates the operational status of a task, which may trigger cascading
+        updates
+
+        to the parent stage and job. This endpoint can be used to mark tasks as
+        complete, 
+
         failed, aborted, or otherwise control the execution flow.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
+
+        Status changes follow a state machine that enforces valid transitions,
+        preventing
+
         operations like completing a paused task without proper resumption.
 
-        When a task's status is changed, the system will automatically update the parent stage's
+
+        When a task's status is changed, the system will automatically update
+        the parent stage's
+
         summary statistics and may affect the stage's overall status.
       tags:
         - tasks
@@ -1220,17 +1405,17 @@ paths:
                 summary: Mark task as completed
                 description: Update task status to COMPLETED after successful execution
                 value:
-                  status: 'COMPLETED'
+                  status: COMPLETED
               fail_task:
                 summary: Mark task as failed
                 description: Update task status to FAILED when processing encounters errors
                 value:
-                  status: 'FAILED'
+                  status: FAILED
               retry_task:
                 summary: Mark task for retry
                 description: Update task status to RETRIED for automatic retry processing
                 value:
-                  status: 'RETRIED'
+                  status: RETRIED
       responses:
         '200':
           description: Task status successfully changed
@@ -1257,7 +1442,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/errorMessage'
 security: []
-
 components:
   parameters:
     jobId:
@@ -1410,7 +1594,9 @@ components:
     order:
       type: integer
       minimum: 1
-      description: Sequential order number of the stage within its job, used for maintaining execution sequence
+      description: >-
+        Sequential order number of the stage within its job, used for
+        maintaining execution sequence
       example: 1
     priority:
       type: string
@@ -1421,16 +1607,27 @@ components:
         - LOW
         - VERY_LOW
       example: LOW
-      description: |
-        Priority level that determines the relative importance of the job for processing order.
-        Higher priority jobs are processed before lower priority ones when system resources
-        are constrained. Priority affects task dequeuing order and scheduling decisions.
+      description: >
+        Priority level that determines the relative importance of the job for
+        processing order.
+
+        Higher priority jobs are processed before lower priority ones when
+        system resources
+
+        are constrained. Priority affects task dequeuing order and scheduling
+        decisions.
+
 
         Priority levels from highest to lowest:
+
         - VERY_HIGH: Critical jobs requiring immediate processing
+
         - HIGH: Important jobs with elevated priority
+
         - MEDIUM: Standard priority for regular operations
+
         - LOW: Non-urgent jobs that can be delayed
+
         - VERY_LOW: Background jobs with minimal priority
     successMessages:
       type: string
@@ -1452,9 +1649,12 @@ components:
         - PAUSED
         - CREATED
       example: CREATED
-      description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+      description: >
+        Execution state of a stage within a job's workflow, tracking progress
+        through its lifecycle.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED, FAILED, and ABORTED.
     stageOperationStatus:
       type: string
       enum:
@@ -1466,9 +1666,12 @@ components:
         - WAITING
         - CREATED
       example: CREATED
-      description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-        Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+      description: >
+        Execution state of a stage within a job's workflow, tracking progress
+        through its lifecycle.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED, FAILED, and ABORTED.
     taskOperationStatus:
       type: string
       enum:
@@ -1479,37 +1682,56 @@ components:
         - CREATED
         - RETRIED
       example: CREATED
-      description: |
-        Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
-        Finite states from which no further transitions are possible include: COMPLETED and FAILED.
+      description: >
+        Current operational state of a task, including specialized states like
+        RETRIED for task-specific error handling.
+
+        Finite states from which no further transitions are possible include:
+        COMPLETED and FAILED.
     jobName:
       type: string
       example: DEFAULT
       maxLength: 50
-      description: Category or type of job processing being performed, used for filtering and system behaviors
+      description: >-
+        Category or type of job processing being performed, used for filtering
+        and system behaviors
     stageType:
       type: string
       maxLength: 50
       example: unknown
-      description: |
-        Free-form string identifier for stage functionality, allowing flexible categorization
+      description: >
+        Free-form string identifier for stage functionality, allowing flexible
+        categorization
+
         of stage operations. Used for routing tasks to appropriate workers and
-        for filtering in API requests. Can be any descriptive name up to 50 characters.
+
+        for filtering in API requests. Can be any descriptive name up to 50
+        characters.
     returnStage:
       type: boolean
-      description: Flag indicating whether to include complete stage details in job response payloads
+      description: >-
+        Flag indicating whether to include complete stage details in job
+        response payloads
     returnTask:
       type: boolean
-      description: Flag indicating whether to include complete task details in stage response payloads
+      description: >-
+        Flag indicating whether to include complete task details in stage
+        response payloads
     userMetadata:
       type: object
       additionalProperties: true
       default: {}
-      description: Application-specific custom data container that can store arbitrary client information without affecting core operations
+      description: >-
+        Application-specific custom data container that can store arbitrary
+        client information without affecting core operations
     summary:
-      description: |
-        Aggregated task statistics grouped by operational status, providing a complete overview of stage progress.
-        Used for monitoring progress, generating dashboards, and determining when stages/jobs are complete.
+      description: >
+        Aggregated task statistics grouped by operational status, providing a
+        complete overview of stage progress.
+
+        Used for monitoring progress, generating dashboards, and determining
+        when stages/jobs are complete.
+
         The total field should always equal the sum of all other status counts.
       type: object
       properties:
@@ -1567,9 +1789,12 @@ components:
         - data
         - name
       additionalProperties: false
-      description: |
+      description: >
         Input payload for creating a new job in the system.
-        Contains all required configuration for job execution, including processing mode,
+
+        Contains all required configuration for job execution, including
+        processing mode,
+
         custom parameters, metadata.
     job:
       type: object
@@ -1578,14 +1803,23 @@ components:
         - name
         - data
         - userMetadata
-      description: |
+      description: >
         Complete job information with status and metadata.
 
-        Comprehensive job response model containing all job details including configuration,
-        execution status, progress tracking, and associated metadata. This schema represents
-        the complete state of a job in the system and is returned by job retrieval operations.
 
-        Includes optional stage data when requested via query parameters, allowing clients
+        Comprehensive job response model containing all job details including
+        configuration,
+
+        execution status, progress tracking, and associated metadata. This
+        schema represents
+
+        the complete state of a job in the system and is returned by job
+        retrieval operations.
+
+
+        Includes optional stage data when requested via query parameters,
+        allowing clients
+
         to retrieve the complete job hierarchy in a single request.
       properties:
         id:
@@ -1617,19 +1851,36 @@ components:
           properties:
             startAsWaiting:
               type: boolean
-              description: |
-                Optional flag indicating whether the stage should be created in a waiting state.
-                If true, the stage will not start processing immediately and will require
-                manual intervention to begin execution. Useful for staging workflows where
-                stages need to be prepared but not executed until all dependencies are met.
+              description: >
+                Optional flag indicating whether the stage should be created in
+                a waiting state.
+
+                If true, the stage will not start processing immediately and
+                will require
+
+                manual intervention to begin execution. Useful for staging
+                workflows where
+
+                stages need to be prepared but not executed until all
+                dependencies are met.
               example: false
-          description: |
+          description: >
             Input payload for creating a new processing stage.
-            Defines the stage type, custom configuration data, and user-defined metadata.
-            Used when adding stages to jobs or creating stages as part of job creation.
-            The system automatically assigns an incremental order number to maintain execution sequence.
-            The startAsWaiting flag allows for creating stages that are not immediately active,
-            enabling more complex workflows where stages can be prepared in advance.
+
+            Defines the stage type, custom configuration data, and user-defined
+            metadata.
+
+            Used when adding stages to jobs or creating stages as part of job
+            creation.
+
+            The system automatically assigns an incremental order number to
+            maintain execution sequence.
+
+            The startAsWaiting flag allows for creating stages that are not
+            immediately active,
+
+            enabling more complex workflows where stages can be prepared in
+            advance.
     createStagePayload:
       type: object
       properties:
@@ -1664,17 +1915,25 @@ components:
               $ref: '#/components/schemas/jobId'
             order:
               $ref: '#/components/schemas/order'
-          description: |
-            Complete stage information returned by the API, including all fields from the 
-            creation payload plus system-generated fields like ID, progress statistics,
+          description: >
+            Complete stage information returned by the API, including all fields
+            from the 
+
+            creation payload plus system-generated fields like ID, progress
+            statistics,
+
             execution status, and parent job reference.
     getStageResponse:
       allOf:
         - $ref: '#/components/schemas/stageResponse'
         - type: object
-          description: |
-            Extended stage response that includes associated tasks when requested with 
-            should_return_tasks=true. Used to retrieve the complete stage hierarchy
+          description: >
+            Extended stage response that includes associated tasks when
+            requested with 
+
+            should_return_tasks=true. Used to retrieve the complete stage
+            hierarchy
+
             in a single API call.
           properties:
             tasks:
@@ -1689,15 +1948,21 @@ components:
     taskPayload:
       type: object
       additionalProperties: true
-      description: |
+      description: >
         Custom task configuration data containing operation-specific parameters.
-        The schema varies based on task type and contains all necessary information
+
+        The schema varies based on task type and contains all necessary
+        information
+
         for task execution by workers.
     createTaskPayload:
       type: object
-      description: |
+      description: >
         Input payload for creating a new task within a stage.
-        Contains task type, operational parameters, and optional retry configuration.
+
+        Contains task type, operational parameters, and optional retry
+        configuration.
+
         Used when adding tasks to existing stages.
       properties:
         data:
@@ -1711,9 +1976,13 @@ components:
       additionalProperties: false
     taskResponse:
       type: object
-      description: |
-        Complete task information returned by the API, including all configuration
-        data along with execution status, attempt tracking, and associated stage reference.
+      description: >
+        Complete task information returned by the API, including all
+        configuration
+
+        data along with execution status, attempt tracking, and associated stage
+        reference.
+
         Used when retrieving task details or after task creation.
       properties:
         id:
@@ -1744,9 +2013,12 @@ components:
       additionalProperties: false
     errorMessage:
       type: object
-      description: |
-        Standard error response structure used when API operations encounter problems.
-        Contains a human-readable message and optional stack trace for debugging.
+      description: >
+        Standard error response structure used when API operations encounter
+        problems.
+
+        Contains a human-readable message and optional stack trace for
+        debugging.
       properties:
         message:
           type: string
@@ -1770,9 +2042,12 @@ components:
         - code
     error:
       type: object
-      description: |
-        Simplified error response format used for common validation and client errors,
-        containing just the essential error message without additional debugging data.
+      description: >
+        Simplified error response format used for common validation and client
+        errors,
+
+        containing just the essential error message without additional debugging
+        data.
       required:
         - message
       properties:
