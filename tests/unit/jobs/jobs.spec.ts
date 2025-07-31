@@ -68,6 +68,18 @@ describe('JobManager', () => {
 
           expect(jobs).toMatchObject(expectedJob);
         });
+
+        it('should return all formatted jobs when no criteria is provided', async function () {
+          const jobEntity = { ...jobEntityWithoutStages };
+          jest.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
+
+          const jobs = await jobManager.getJobs(undefined);
+
+          const { xstate, stage, ...rest } = jobEntity;
+          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+
+          expect(jobs).toMatchObject(expectedJob);
+        });
       });
 
       describe('#SadPath', () => {
