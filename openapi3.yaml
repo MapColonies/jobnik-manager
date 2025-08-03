@@ -98,6 +98,16 @@ paths:
                     owner: 'data-team@company.com'
                     deadline: '2025-08-01T00:00:00Z'
                     cost_center: 'CC-12345'
+              job_with_tracing:
+                summary: Job with explicit tracing context
+                description: Job creation with provided distributed tracing context
+                value:
+                  name: 'traced_processing'
+                  data:
+                    input_path: '/data/traced/batch_001'
+                    output_path: '/data/output/batch_001'
+                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                  tracestate: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
       responses:
         '201':
           description: Job created successfully
@@ -121,6 +131,7 @@ paths:
                       output_path: '/data/processed/batch_001'
                       format: 'parquet'
                     userMetadata: {}
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
                 complex_job_response:
                   summary: Response for complex job creation
                   value:
@@ -150,6 +161,8 @@ paths:
                       owner: 'data-team@company.com'
                       deadline: '2025-08-01T00:00:00Z'
                       cost_center: 'CC-12345'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
+                    tracestate: 'analytics=dept123,priority=very_high'
         '400':
           description: Invalid request, could not create job
           content:
@@ -211,6 +224,7 @@ paths:
                     priority: 'HIGH'
                     creationTime: '2025-07-27T08:00:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
                     data:
                       model_type: 'random_forest'
                       training_data: '/data/ml/training_set.parquet'
@@ -225,7 +239,7 @@ paths:
                       researcher: 'ml-team@company.com'
                       budget: '$5000'
                     stages:
-                      - id: 'stage-001'
+                      - id: 'dd301d64-69b2-4b49-ba26-fb2a87fa0150'
                         type: 'data_preparation'
                         status: 'COMPLETED'
                         percentage: 100
@@ -242,7 +256,8 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-002'
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
+                      - id: '2d9b2481-ec1c-4efd-9350-f33bd79d51eb'
                         type: 'model_training'
                         status: 'IN_PROGRESS'
                         percentage: 60
@@ -259,7 +274,8 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-003'
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
+                      - id: '637c05f3-e0b0-4c26-a791-89308c58e316'
                         type: 'model_evaluation'
                         status: 'WAITING'
                         percentage: 0
@@ -276,6 +292,7 @@ paths:
                           created: 0
                           retried: 0
                           total: 3
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
                 simple_job:
                   summary: Simple job without stages
                   description: Basic job details when should_return_stages=false
@@ -287,6 +304,7 @@ paths:
                     priority: 'LOW'
                     creationTime: '2025-07-26T14:00:00Z'
                     updateTime: '2025-07-26T15:30:00Z'
+                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
                     data:
                       source_path: '/data/production'
                       destination: 's3://backup-bucket/2025-07-26'
@@ -624,6 +642,16 @@ paths:
                   userMetadata:
                     priority: 'high'
                     sla: '24h'
+              stage_with_tracing:
+                summary: Stage with distributed tracing
+                description: Stage creation with provided tracing context
+                value:
+                  type: 'data_validation'
+                  data:
+                    validation_type: 'schema_check'
+                    strict_mode: true
+                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                  tracestate: 'vendor=trace123,service=validation'
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -631,6 +659,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/stageResponse'
+              examples:
+                processing_stage_response:
+                  summary: Response for data processing stage creation
+                  value:
+                    id: 'e9db7d16-a84c-4297-a45d-e59665760084'
+                    type: 'data_processing'
+                    status: 'CREATED'
+                    percentage: 0
+                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    order: 1
+                    data:
+                      processing_type: 'batch'
+                      chunk_size: 1000
+                      validation_rules:
+                        - 'not_null: [id, timestamp]'
+                        - 'range: [amount, 0, 1000000]'
+                    userMetadata:
+                      estimated_duration: '2h'
+                      resource_requirements:
+                        cpu: '4 cores'
+                        memory: '8GB'
+                    summary:
+                      pending: 0
+                      inProgress: 0
+                      completed: 0
+                      failed: 0
+                      created: 0
+                      retried: 0
+                      total: 0
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-33c489dd6db902b7-01'
+                    tracestate: 'processing=batch001,stage=data_proc'
+                waiting_stage_response:
+                  summary: Response for manual approval stage creation
+                  value:
+                    id: '4f45bec6-08c4-4f7a-a3ea-be65eddc1235'
+                    type: 'manual_approval'
+                    status: 'WAITING'
+                    percentage: 0
+                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    order: 2
+                    data:
+                      approval_type: 'quality_check'
+                      reviewers: ['senior-analyst@company.com']
+                      checklist:
+                        - 'Data quality metrics within acceptable range'
+                        - 'No PII detected in output'
+                        - 'Performance benchmarks met'
+                    userMetadata:
+                      priority: 'high'
+                      sla: '24h'
+                    summary:
+                      pending: 0
+                      inProgress: 0
+                      completed: 0
+                      failed: 0
+                      created: 0
+                      retried: 0
+                      total: 0
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-44d59aee7ec902b7-01'
         '400':
           description: Invalid request format.
           content:
@@ -988,6 +1075,22 @@ paths:
                     userMetadata:
                       source: 'order_system'
                       priority: 'medium'
+              tasks_with_tracing:
+                summary: Tasks with distributed tracing context
+                description: Task creation with tracing information for observability
+                value:
+                  - data:
+                      process_type: 'data_enrichment'
+                      input_dataset: 'customer_profiles'
+                      enrichment_sources: ['demographic_api', 'credit_api']
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                    tracestate: 'customer=enrich123,priority=high'
+                    maxAttempts: 2
+                  - data:
+                      process_type: 'data_validation'
+                      validation_rules: ['email_format', 'phone_format']
+                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-11a268bb4ba902b7-01'
+                    maxAttempts: 1
       responses:
         '201':
           description: Tasks successfully created and added to the stage
@@ -997,6 +1100,101 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/taskResponse'
+              examples:
+                file_processing_tasks_response:
+                  summary: Response for multiple file processing tasks creation
+                  value:
+                    - id: '3f09f17d-029e-417f-b84e-d6782efc2371'
+                      data:
+                        file_path: '/data/input/file_001.csv'
+                        output_path: '/data/processed/file_001.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: '5251e4cb-3f34-4be7-812f-dca3fa6e733a'
+                      userMetadata:
+                        file_size: '125MB'
+                        estimated_time: '5m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-55e6abbf8fd902b7-01'
+                      tracestate: 'file=001,processing=csv_parquet'
+                    - id: '469e8a0c-9232-4144-920f-fb5cef356ff7'
+                      data:
+                        file_path: '/data/input/file_002.csv'
+                        output_path: '/data/processed/file_002.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: '6e1e2e25-22ee-4e24-b394-c544d253ff43'
+                      userMetadata:
+                        file_size: '89MB'
+                        estimated_time: '3m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-66f7bcc090e902b7-01'
+                      tracestate: 'file=002,processing=csv_parquet'
+                    - id: '6a7ecf04-4455-41d1-aa04-8786178cb4a3'
+                      data:
+                        file_path: '/data/input/file_003.csv'
+                        output_path: '/data/processed/file_003.parquet'
+                        transformation: 'csv_to_parquet'
+                      stageId: '714ef37c-218f-4818-a166-cbc13d2850a6'
+                      userMetadata:
+                        file_size: '256MB'
+                        estimated_time: '8m'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 5
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-77081dd1a1f902b7-01'
+                      tracestate: 'file=003,processing=csv_parquet'
+                api_integration_tasks_response:
+                  summary: Response for API integration tasks creation
+                  value:
+                    - id: 'ddfad658-da33-4573-b5a3-d70a204a3e0b'
+                      data:
+                        endpoint: 'https://api.external.com/customers'
+                        method: 'GET'
+                        headers:
+                          Authorization: 'Bearer ${API_TOKEN}'
+                        pagination:
+                          page_size: 100
+                          max_pages: 50
+                      stageId: 'a09866f1-74f1-49c1-b996-268586ad346d'
+                      userMetadata:
+                        source: 'customer_system'
+                        priority: 'high'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-88192ee2b20902b7-01'
+                      tracestate: 'api=customers,source=external'
+                    - id: 'df59d74e-f442-4e66-b8c9-b312ad948c47'
+                      data:
+                        endpoint: 'https://api.external.com/orders'
+                        method: 'GET'
+                        headers:
+                          Authorization: 'Bearer ${API_TOKEN}'
+                        query_params:
+                          start_date: '2025-01-01'
+                          end_date: '2025-07-27'
+                      stageId: '4daa6a5c-da33-4cbe-8e4a-dbc00182fcfa'
+                      userMetadata:
+                        source: 'order_system'
+                        priority: 'medium'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-99203ff3c31902b7-01'
+                      tracestate: 'api=orders,source=external'
         '400':
           description: Invalid request format or validation error
           content:
@@ -1432,6 +1630,24 @@ components:
         - MEDIUM: Standard priority for regular operations
         - LOW: Non-urgent jobs that can be delayed
         - VERY_LOW: Background jobs with minimal priority
+    traceparent:
+      type: string
+      description: |
+        Traceparent identifier for distributed tracing.
+        When creating resources, this field is optional - if not provided, the system will automatically inject 
+        both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
+        In response objects, this field is always present and required.
+        [here the offical W3C docs](https://www.w3.org/TR/trace-context/)
+      pattern: '^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$'
+      example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+    tracestate:
+      type: string
+      description: |
+        Tracestate identifier for distributed tracing (optional, can be null).
+        When creating resources without providing traceparent, the system will attempt to inject 
+        tracestate from the active OpenTelemetry context, but it may still be null if not available in the context.
+      pattern: '^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+)*$'
+      example: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
     successMessages:
       type: string
       enum:
@@ -1563,6 +1779,10 @@ components:
             - default: MEDIUM
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
         - name
@@ -1571,6 +1791,11 @@ components:
         Input payload for creating a new job in the system.
         Contains all required configuration for job execution, including processing mode,
         custom parameters, metadata.
+
+        Tracing fields (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
     job:
       type: object
       required:
@@ -1578,6 +1803,7 @@ components:
         - name
         - data
         - userMetadata
+        - traceparent
       description: |
         Complete job information with status and metadata.
 
@@ -1606,6 +1832,10 @@ components:
           $ref: '#/components/schemas/priority'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
         stages:
           type: array
           items:
@@ -1632,6 +1862,14 @@ components:
             enabling more complex workflows where stages can be prepared in advance.
     createStagePayload:
       type: object
+      description: |
+        Input payload for creating a new stage within a job.
+        Contains stage type, operational parameters, and optional user metadata.
+
+        Tracing fields (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         type:
           $ref: '#/components/schemas/stageType'
@@ -1639,6 +1877,10 @@ components:
           $ref: '#/components/schemas/stagePayload'
         userMetadata:
           $ref: '#/components/schemas/userMetadata'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
         - type
@@ -1651,6 +1893,7 @@ components:
             - summary
             - jobId
             - order
+            - traceparent
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -1664,6 +1907,8 @@ components:
               $ref: '#/components/schemas/jobId'
             order:
               $ref: '#/components/schemas/order'
+            traceparent:
+              $ref: '#/components/schemas/traceparent'
           description: |
             Complete stage information returned by the API, including all fields from the 
             creation payload plus system-generated fields like ID, progress statistics,
@@ -1699,6 +1944,11 @@ components:
         Input payload for creating a new task within a stage.
         Contains task type, operational parameters, and optional retry configuration.
         Used when adding tasks to existing stages.
+
+        Trace propagation  (traceparent, tracestate) are optional:
+        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
+        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+          from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         data:
           $ref: '#/components/schemas/taskPayload'
@@ -1706,6 +1956,10 @@ components:
           $ref: '#/components/schemas/userMetadata'
         maxAttempts:
           $ref: '#/components/schemas/maxAttempts'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - data
       additionalProperties: false
@@ -1734,6 +1988,10 @@ components:
           $ref: '#/components/schemas/attempts'
         maxAttempts:
           $ref: '#/components/schemas/maxAttempts'
+        traceparent:
+          $ref: '#/components/schemas/traceparent'
+        tracestate:
+          $ref: '#/components/schemas/tracestate'
       required:
         - id
         - data
@@ -1741,6 +1999,7 @@ components:
         - status
         - attempts
         - maxAttempts
+        - traceparent
       additionalProperties: false
     errorMessage:
       type: object

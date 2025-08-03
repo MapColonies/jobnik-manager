@@ -9,6 +9,7 @@ import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
 import { type PrismaTransaction } from '@src/db/types';
+import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -50,7 +51,14 @@ export class JobManager {
       const createJobActor = createActor(jobStateMachine).start();
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
-      const input = { ...body, xstate: persistenceSnapshot } satisfies Prisma.JobCreateInput;
+      const { traceparent, tracestate } = resolveTraceContext(body);
+
+      const input = {
+        ...body,
+        xstate: persistenceSnapshot,
+        traceparent,
+        tracestate,
+      } satisfies Prisma.JobCreateInput;
       const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
       const res = this.convertPrismaToJobResponse(createdJob);
 
@@ -207,13 +215,14 @@ export class JobManager {
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<true>): JobModel;
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<false>): JobModel;
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
-    const { data, creationTime, userMetadata, updateTime, xstate, stage, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, updateTime, tracestate, xstate, stage, ...rest } = prismaObjects;
 
     const transformedFields = {
       data: data as Record<string, never>,
       creationTime: creationTime.toISOString(),
       userMetadata: userMetadata as { [key: string]: unknown },
       updateTime: updateTime.toISOString(),
+      tracestate: tracestate ?? undefined,
       stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
     };
 

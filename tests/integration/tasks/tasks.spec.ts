@@ -2,6 +2,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
+import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
@@ -20,6 +21,7 @@ import {
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
 } from '@tests/unit/data';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createTaskBody, createTaskRecords } from './helpers';
@@ -27,6 +29,11 @@ import { createTaskBody, createTaskRecords } from './helpers';
 describe('task', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
+
+  const memoryExporter = new InMemorySpanExporter();
+  const spanProcessor = new SimpleSpanProcessor(memoryExporter);
+  const provider = new NodeTracerProvider({ spanProcessors: [spanProcessor] });
+  provider.register();
 
   beforeAll(async function () {
     await initConfig(true);
@@ -47,6 +54,7 @@ describe('task', function () {
 
   afterEach(async () => {
     await prisma.$disconnect();
+    memoryExporter.reset();
   });
 
   describe('#getTasks', function () {
@@ -375,6 +383,117 @@ describe('task', function () {
           body: [createTasksPayload],
         });
       });
+
+      it('should return 201 status code and create the tasks with generated traceparent from active span', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        const createTasksPayload = {
+          data: {},
+          userMetadata: {},
+        } satisfies TaskCreateModel;
+
+        const createTaskResponse = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        await memoryExporter.forceFlush();
+        const createTaskSpan = memoryExporter.getFinishedSpans().find((span) => span.name === 'addTasks');
+        const finishedSpanContext = createTaskSpan?.spanContext();
+
+        if (createTaskResponse.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(createTaskResponse).toSatisfyApiSpec();
+        expect(createTaskResponse).toMatchObject({
+          body: [{ traceparent: `00-${finishedSpanContext?.traceId}-${finishedSpanContext?.spanId}-0${finishedSpanContext?.traceFlags}` }],
+        });
+      });
+
+      it('should return 201 status code and create the tasks with provided traceparent and tracestate', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        const createTasksPayload = {
+          data: {},
+          userMetadata: {},
+          traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+          tracestate: 'foo=bar',
+        } satisfies TaskCreateModel;
+
+        const createTaskResponse = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        expect(createTaskResponse).toSatisfyApiSpec();
+        expect(createTaskResponse).toMatchObject({
+          body: [
+            {
+              traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+              tracestate: 'foo=bar',
+            },
+          ],
+        });
+      });
+
+      it('should return 201 status code and create the tasks with provided traceparent without tracestate', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+
+        const createTasksPayload = {
+          data: {},
+          userMetadata: {},
+          traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+        } satisfies TaskCreateModel;
+
+        const createTaskResponse = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        if (!Array.isArray(createTaskResponse.body)) {
+          throw new Error('Expected response body to be an array');
+        }
+
+        expect(createTaskResponse).toSatisfyApiSpec();
+        expect(createTaskResponse).toMatchObject({
+          body: [
+            {
+              status: JobOperationStatus.CREATED,
+              traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+            },
+          ],
+        });
+
+        expect(createTaskResponse.body[0]).not.toHaveProperty('tracestate');
+      });
     });
 
     describe('Bad Path', function () {
@@ -433,6 +552,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -448,6 +568,34 @@ describe('task', function () {
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: tasksErrorMessages.addTaskNotAllowed },
+        });
+      });
+
+      it('should return 400 when the request contains an invalid traceparent format', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: createdJobId,
+          },
+          prisma
+        );
+        const createTasksPayload = {
+          data: {},
+          userMetadata: {},
+          traceparent: 'INVALID_TRACEPARENT',
+        } satisfies TaskCreateModel;
+
+        const createTaskResponse = await requestSender.addTasks({
+          requestBody: [createTasksPayload],
+          pathParams: { stageId: stage.id },
+        });
+
+        expect(createTaskResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/body\/0\/traceparent must match pattern/) as MatcherContext },
         });
       });
 
@@ -729,6 +877,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -772,6 +921,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -809,7 +959,13 @@ describe('task', function () {
       it('should return 200 status code and available task and move stage and job to in progress', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
         const job = await addJobRecord(
-          { ...createJobRequestBody, id: faker.string.uuid(), xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: pendingStageXstatePersistentSnapshot,
+            status: JobOperationStatus.PENDING,
+            traceparent: DEFAULT_TRACEPARENT,
+          },
           prisma
         );
         const stage = await addStageRecord(
@@ -854,6 +1010,7 @@ describe('task', function () {
             priority: Priority.LOW,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -879,6 +1036,7 @@ describe('task', function () {
             priority: Priority.MEDIUM,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -911,6 +1069,7 @@ describe('task', function () {
             priority: Priority.HIGH,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1006,6 +1165,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1049,7 +1209,13 @@ describe('task', function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
         const job = await addJobRecord(
           // synthetic create a job with in-progress state for future failure on update
-          { ...createJobRequestBody, id: faker.string.uuid(), xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: inProgressStageXstatePersistentSnapshot,
+            status: JobOperationStatus.PENDING,
+            traceparent: DEFAULT_TRACEPARENT,
+          },
           prisma
         );
         const stage = await addStageRecord(
@@ -1089,6 +1255,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );

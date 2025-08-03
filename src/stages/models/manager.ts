@@ -7,6 +7,7 @@ import type { PrismaClient } from '@prismaClient';
 import { JobOperationStatus, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
+import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -66,6 +67,7 @@ export class StageManager {
     }
 
     const { startAsWaiting, ...bodyInput } = stagePayload;
+    const { traceparent, tracestate } = resolveTraceContext(stagePayload);
 
     const nextOrder = await this.getNextStageOrder(jobId);
 
@@ -80,6 +82,8 @@ export class StageManager {
         },
       },
       xstate: stagePersistenceSnapshot,
+      traceparent,
+      tracestate,
     };
 
     const queryBody: Prisma.StageCreateArgs = {

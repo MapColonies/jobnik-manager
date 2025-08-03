@@ -2,6 +2,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
+import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { MatcherContext } from '@jest/expect';
@@ -16,6 +17,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from './helpers';
@@ -23,6 +25,11 @@ import { addJobRecord, addStageRecord, createStageBody } from './helpers';
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
   let prisma: PrismaClient;
+
+  const memoryExporter = new InMemorySpanExporter();
+  const spanProcessor = new SimpleSpanProcessor(memoryExporter);
+  const provider = new NodeTracerProvider({ spanProcessors: [spanProcessor] });
+  provider.register();
 
   const dumpUuid = faker.string.uuid();
 
@@ -45,6 +52,7 @@ describe('stage', function () {
 
   afterEach(async () => {
     await prisma.$disconnect();
+    memoryExporter.reset();
   });
 
   describe('#getStages', function () {
@@ -114,6 +122,7 @@ describe('stage', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -905,6 +914,97 @@ describe('stage', function () {
           body: [{ order: 1 }, { order: 2 }, { order: 3 }],
         });
       });
+
+      it('should return 201 status code and add the stage with generated traceparent from active span', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: 'SOME_STAGE_WITHOUT_TRACEPARENT',
+          userMetadata: {},
+        } satisfies StageCreateModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        await memoryExporter.forceFlush();
+        const addStageSpan = memoryExporter.getFinishedSpans().find((span) => span.name === 'addStage');
+        const finishedSpanContext = addStageSpan?.spanContext();
+
+        if (addStageResponse.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: { traceparent: `00-${finishedSpanContext?.traceId}-${finishedSpanContext?.spanId}-0${finishedSpanContext?.traceFlags}` },
+        });
+      });
+
+      it('should return 201 status code and add the stage with provided traceparent and tracestate', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: 'SOME_STAGE_WITH_TRACEPARENT_AND_TRACESTATE',
+          userMetadata: {},
+          traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+          tracestate: 'foo=bar',
+        } satisfies StageCreateModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        if (addStageResponse.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(addStageResponse).toSatisfyApiSpec();
+
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+            tracestate: 'foo=bar',
+          },
+        });
+      });
+
+      it('should return 201 status code and add the stage with provided traceparent without tracestate', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: 'SOME_STAGE_WITH_TRACEPARENT_WITHOUT_TRACESTATE',
+          userMetadata: {},
+          traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+        } satisfies StageCreateModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        if (addStageResponse.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            status: JobOperationStatus.CREATED,
+            traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+          },
+        });
+
+        expect(addStageResponse.body).not.toHaveProperty('tracestate');
+      });
     });
 
     describe('Bad Path', function () {
@@ -954,6 +1054,28 @@ describe('stage', function () {
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
+        });
+      });
+
+      it('should return 400 when the request contains an invalid traceparent format', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+
+        const createStagesPayload = {
+          data: {},
+          type: 'SOME_STAGE_WITH_INVALID_TRACEPARENT',
+          userMetadata: {},
+          traceparent: 'INVALID_TRACEPARENT',
+        } satisfies StageCreateModel;
+
+        const addStageResponse = await requestSender.addStage({
+          requestBody: createStagesPayload,
+          pathParams: { jobId: job.id },
+        });
+
+        expect(addStageResponse).toSatisfyApiSpec();
+        expect(addStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext },
         });
       });
 
@@ -1025,7 +1147,13 @@ describe('stage', function () {
 
       it("should return 201 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
         const job = await addJobRecord(
-          { ...createJobRequestBody, id: faker.string.uuid(), xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING },
+          {
+            ...createJobRequestBody,
+            id: faker.string.uuid(),
+            xstate: pendingStageXstatePersistentSnapshot,
+            traceparent: DEFAULT_TRACEPARENT,
+            status: JobOperationStatus.PENDING,
+          },
           prisma
         );
 

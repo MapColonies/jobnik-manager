@@ -31,12 +31,13 @@ const defaultStatusCounts = Object.fromEntries(Object.values(summaryCountsMapper
  * @returns StageModel
  */
 function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
-  const { data, userMetadata, task, xstate, ...rest } = prismaObjects;
+  const { data, userMetadata, task, tracestate, xstate, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
     userMetadata: userMetadata as Record<string, unknown>,
     tasks: Array.isArray(task) ? convertArrayPrismaTaskToTaskResponse(task) : undefined,
+    tracestate: tracestate ?? undefined,
   };
   return Object.assign(rest, transformedFields);
 }

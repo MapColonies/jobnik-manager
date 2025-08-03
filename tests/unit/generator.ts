@@ -7,6 +7,7 @@ import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { defaultStatusCounts } from '@src/stages/models/helper';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 const taskInitializedPersistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
@@ -37,6 +38,8 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
     updateTime: new Date(),
     userMetadata: {},
     xstate: createActor(jobStateMachine).start().getPersistedSnapshot(),
+    traceparent: DEFAULT_TRACEPARENT,
+    tracestate: null,
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
@@ -53,6 +56,8 @@ export const createStageEntity = (override: Partial<StageWithTasks>): StageWithT
     order: 1,
     xstate: stageInitializedPersistedSnapshot,
     task: undefined,
+    traceparent: DEFAULT_TRACEPARENT,
+    tracestate: null,
   } satisfies StageWithTasks;
 
   return { ...stageEntity, ...override };
@@ -70,6 +75,8 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
     creationTime: new Date(),
     updateTime: new Date(),
     xstate: taskInitializedPersistedSnapshot,
+    traceparent: DEFAULT_TRACEPARENT,
+    tracestate: null,
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };

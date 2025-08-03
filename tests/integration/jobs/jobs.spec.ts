@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import jsLogger from '@map-colonies/js-logger';
+import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
@@ -15,8 +16,14 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
+
+const memoryExporter = new InMemorySpanExporter();
+const spanProcessor = new SimpleSpanProcessor(memoryExporter);
+const provider = new NodeTracerProvider({ spanProcessors: [spanProcessor] });
+provider.register();
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -41,6 +48,7 @@ describe('job', function () {
 
   afterEach(async () => {
     await prisma.$disconnect();
+    memoryExporter.reset();
   });
 
   describe('#FindJobs', function () {
@@ -52,6 +60,7 @@ describe('job', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -146,7 +155,7 @@ describe('job', function () {
 
   describe('#CreateJob', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and create the job', async function () {
+      it('should return 201 status code and create the job', async function () {
         const response = await requestSender.createJob({
           requestBody: createJobRequestBody,
         });
@@ -156,6 +165,68 @@ describe('job', function () {
           status: StatusCodes.CREATED,
           body: { status: JobOperationStatus.CREATED, ...createJobRequestBody },
         });
+      });
+
+      it('should return 201 status code and create the job with generated traceparent from active span', async function () {
+        const response = await requestSender.createJob({
+          requestBody: { ...createJobRequestBody, traceparent: undefined },
+        });
+
+        if (response.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        await memoryExporter.forceFlush();
+        const finishedSpanContext = memoryExporter.getFinishedSpans()[0]?.spanContext();
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            status: JobOperationStatus.CREATED,
+            traceparent: `00-${finishedSpanContext?.traceId}-${finishedSpanContext?.spanId}-0${finishedSpanContext?.traceFlags}`,
+          },
+        });
+      });
+
+      it('should return 201 status code and create the job with provided traceparent and tracestate', async function () {
+        const response = await requestSender.createJob({
+          requestBody: { ...createJobRequestBody, traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01', tracestate: 'foo=bar' },
+        });
+
+        if (response.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            status: JobOperationStatus.CREATED,
+            traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+            tracestate: 'foo=bar',
+          },
+        });
+      });
+
+      it('should return 201 status code and create the job with provided traceparent without tracestate', async function () {
+        const response = await requestSender.createJob({
+          requestBody: { ...createJobRequestBody, traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01', tracestate: undefined },
+        });
+
+        if (response.status !== StatusCodes.CREATED) {
+          throw new Error();
+        }
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.CREATED,
+          body: {
+            status: JobOperationStatus.CREATED,
+            traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
+          },
+        });
+        expect(response.body).not.toHaveProperty('tracestate');
       });
     });
 
@@ -177,6 +248,18 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: { message: expect.stringMatching(/request\/body must have required property/) as MatcherContext },
+        });
+      });
+
+      it('should return 400 when the request contains an invalid traceparent format', async function () {
+        const createJobResponse = await requestSender.createJob({
+          requestBody: { ...createJobRequestBody, traceparent: 'INVALID_TRACEPARENT', tracestate: undefined },
+        });
+
+        expect(createJobResponse).toSatisfyApiSpec();
+        expect(createJobResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext },
         });
       });
     });
