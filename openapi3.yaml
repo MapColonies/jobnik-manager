@@ -1646,7 +1646,7 @@ components:
         Tracestate identifier for distributed tracing (optional, can be null).
         When creating resources without providing traceparent, the system will attempt to inject 
         tracestate from the active OpenTelemetry context, but it may still be null if not available in the context.
-      pattern: '^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,]*(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,]*)*$'
+      pattern: '^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+)*$'
       example: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
     successMessages:
       type: string
