@@ -17,10 +17,7 @@ export interface ResolvedTraceContext {
 /**
  * Type that represents a payload with optional trace context fields
  */
-export interface OptionalTraceContext {
-  readonly traceparent?: string;
-  readonly tracestate?: string | null;
-}
+export type OptionalTraceContext = Partial<ResolvedTraceContext>;
 
 /**
  * Resolves trace context values for database operations.

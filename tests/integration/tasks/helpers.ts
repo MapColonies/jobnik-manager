@@ -1,9 +1,9 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { type Prisma, type PrismaClient } from '@prismaClient';
-import {} from '@src/stages/models/stageStateMachine';
 import { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 
 const persistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
 
@@ -17,6 +17,6 @@ export const createTaskBody = {
   data: {},
   xstate: persistedSnapshot,
   userMetadata: {},
-  traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+  traceparent: DEFAULT_TRACEPARENT,
   tracestate: null,
 } satisfies Prisma.TaskCreateManyInput;

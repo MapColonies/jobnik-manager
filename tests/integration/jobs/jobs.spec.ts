@@ -16,6 +16,7 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
@@ -59,7 +60,7 @@ describe('job', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );

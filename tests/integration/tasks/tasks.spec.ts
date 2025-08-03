@@ -21,6 +21,7 @@ import {
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
 } from '@tests/unit/data';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createTaskBody, createTaskRecords } from './helpers';
@@ -551,7 +552,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -876,7 +877,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -920,7 +921,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -963,7 +964,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1009,7 +1010,7 @@ describe('task', function () {
             priority: Priority.LOW,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1035,7 +1036,7 @@ describe('task', function () {
             priority: Priority.MEDIUM,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1068,7 +1069,7 @@ describe('task', function () {
             priority: Priority.HIGH,
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1164,7 +1165,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1213,7 +1214,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1254,7 +1255,7 @@ describe('task', function () {
             id: faker.string.uuid(),
             xstate: inProgressStageXstatePersistentSnapshot,
             status: JobOperationStatus.IN_PROGRESS,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );

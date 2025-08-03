@@ -17,6 +17,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from './helpers';
@@ -121,7 +122,7 @@ describe('stage', function () {
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
             status: JobOperationStatus.PENDING,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
           },
           prisma
         );
@@ -1150,7 +1151,7 @@ describe('stage', function () {
             ...createJobRequestBody,
             id: faker.string.uuid(),
             xstate: pendingStageXstatePersistentSnapshot,
-            traceparent: '00-00000000000000000000000000000000-0000000000000000-00',
+            traceparent: DEFAULT_TRACEPARENT,
             status: JobOperationStatus.PENDING,
           },
           prisma
