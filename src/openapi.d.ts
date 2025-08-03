@@ -609,7 +609,7 @@ export type components = {
      *     When creating resources, this field is optional - if not provided, the system will automatically inject
      *     both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
      *     In response objects, this field is always present and required.
-     *     [here the offical W3C docs](https://www.w3.org/TR/trace-context/)
+     *     [here is the offical W3C spec](https://www.w3.org/TR/trace-context/)
      *
      * @example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
      */
