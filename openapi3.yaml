@@ -66,7 +66,7 @@ paths:
             examples:
               simple_job:
                 summary: Simple job with minimal configuration
-                description: Basic job creation with default priority (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
+                description: Basic job creation with default priority
                 value:
                   name: 'data_processing'
                   data:
