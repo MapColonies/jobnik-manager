@@ -609,6 +609,7 @@ export type components = {
      *     When creating resources, this field is optional - if not provided, the system will automatically inject
      *     both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
      *     In response objects, this field is always present and required.
+     *     [here the offical W3C docs](https://www.w3.org/TR/trace-context/)
      *
      * @example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
      */
@@ -768,6 +769,7 @@ export type components = {
       status?: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
       order: components['schemas']['order'];
+      traceparent: components['schemas']['traceparent'];
     };
     getStageResponse: components['schemas']['stageResponse'] & {
       /** @description Associated tasks belonging to this stage */
@@ -789,7 +791,7 @@ export type components = {
      *     Contains task type, operational parameters, and optional retry configuration.
      *     Used when adding tasks to existing stages.
      *
-     *     Tracing fields (traceparent, tracestate) are optional:
+     *     Trace propagation  (traceparent, tracestate) are optional:
      *     - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
      *     - If traceparent is not provided, the system automatically injects both traceparent and tracestate
      *       from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)

@@ -3,13 +3,14 @@ import { faker } from '@faker-js/faker';
 import { type Prisma, type PrismaClient } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
+import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 
 type JobTestCreateModel = JobCreateModel & { id?: string };
 
 export const createJobRecord = async (body: JobTestCreateModel, prisma: PrismaClient): Promise<JobPrismaObject> => {
   const persistedSnapshot = createActor(jobStateMachine).start().getPersistedSnapshot();
 
-  const traceparent = body.traceparent ?? '00-00000000000000000000000000000000-0000000000000000-00';
+  const traceparent = body.traceparent ?? DEFAULT_TRACEPARENT;
   const input = {
     ...body,
     xstate: persistedSnapshot,

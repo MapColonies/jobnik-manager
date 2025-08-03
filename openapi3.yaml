@@ -108,26 +108,6 @@ paths:
                     output_path: '/data/output/batch_001'
                   traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
                   tracestate: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
-              job_with_partial_tracing:
-                summary: Job with only traceparent
-                description: Job creation with traceparent but no tracestate (tracestate will be null)
-                value:
-                  name: 'partial_traced_job'
-                  data:
-                    source: 'external_api'
-                    destination: 'data_warehouse'
-                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
-              job_auto_inject_example:
-                summary: Job with automatic trace injection
-                description: |
-                  Job creation without tracing fields - demonstrates automatic injection behavior.
-                  The system will inject both traceparent and tracestate from the active OpenTelemetry context.
-                  Note: tracestate may still be null even after injection if not available in the context.
-                value:
-                  name: 'auto_traced_job'
-                  data:
-                    processing_mode: 'async'
-                    priority_level: 'normal'
       responses:
         '201':
           description: Job created successfully
@@ -259,7 +239,7 @@ paths:
                       researcher: 'ml-team@company.com'
                       budget: '$5000'
                     stages:
-                      - id: 'stage-001'
+                      - id: 'dd301d64-69b2-4b49-ba26-fb2a87fa0150'
                         type: 'data_preparation'
                         status: 'COMPLETED'
                         percentage: 100
@@ -276,7 +256,8 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-002'
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
+                      - id: '2d9b2481-ec1c-4efd-9350-f33bd79d51eb'
                         type: 'model_training'
                         status: 'IN_PROGRESS'
                         percentage: 60
@@ -293,7 +274,8 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                      - id: 'stage-003'
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
+                      - id: '637c05f3-e0b0-4c26-a791-89308c58e316'
                         type: 'model_evaluation'
                         status: 'WAITING'
                         percentage: 0
@@ -310,6 +292,7 @@ paths:
                           created: 0
                           retried: 0
                           total: 3
+                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
                 simple_job:
                   summary: Simple job without stages
                   description: Basic job details when should_return_stages=false
@@ -629,7 +612,7 @@ paths:
             examples:
               processing_stage:
                 summary: Data processing stage
-                description: Stage for data transformation and validation (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
+                description: Stage for data transformation and validation
                 value:
                   type: 'data_processing'
                   data:
@@ -680,7 +663,7 @@ paths:
                 processing_stage_response:
                   summary: Response for data processing stage creation
                   value:
-                    id: 'stage-001'
+                    id: 'e9db7d16-a84c-4297-a45d-e59665760084'
                     type: 'data_processing'
                     status: 'CREATED'
                     percentage: 0
@@ -710,7 +693,7 @@ paths:
                 waiting_stage_response:
                   summary: Response for manual approval stage creation
                   value:
-                    id: 'stage-002'
+                    id: '4f45bec6-08c4-4f7a-a3ea-be65eddc1235'
                     type: 'manual_approval'
                     status: 'WAITING'
                     percentage: 0
@@ -1041,7 +1024,7 @@ paths:
             examples:
               file_processing_tasks:
                 summary: Multiple file processing tasks
-                description: Batch creation of tasks for processing multiple files (no tracing fields - system will auto-inject both traceparent and tracestate from active OpenTelemetry context)
+                description: Batch creation of tasks for processing multiple files
                 value:
                   - data:
                       file_path: '/data/input/file_001.csv'
@@ -1121,12 +1104,12 @@ paths:
                 file_processing_tasks_response:
                   summary: Response for multiple file processing tasks creation
                   value:
-                    - id: 'task-001'
+                    - id: '3f09f17d-029e-417f-b84e-d6782efc2371'
                       data:
                         file_path: '/data/input/file_001.csv'
                         output_path: '/data/processed/file_001.parquet'
                         transformation: 'csv_to_parquet'
-                      stageId: 'stage-001'
+                      stageId: '5251e4cb-3f34-4be7-812f-dca3fa6e733a'
                       userMetadata:
                         file_size: '125MB'
                         estimated_time: '5m'
@@ -1137,12 +1120,12 @@ paths:
                       updateTime: '2025-07-27T10:30:00Z'
                       traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-55e6abbf8fd902b7-01'
                       tracestate: 'file=001,processing=csv_parquet'
-                    - id: 'task-002'
+                    - id: '469e8a0c-9232-4144-920f-fb5cef356ff7'
                       data:
                         file_path: '/data/input/file_002.csv'
                         output_path: '/data/processed/file_002.parquet'
                         transformation: 'csv_to_parquet'
-                      stageId: 'stage-001'
+                      stageId: '6e1e2e25-22ee-4e24-b394-c544d253ff43'
                       userMetadata:
                         file_size: '89MB'
                         estimated_time: '3m'
@@ -1153,12 +1136,12 @@ paths:
                       updateTime: '2025-07-27T10:30:00Z'
                       traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-66f7bcc090e902b7-01'
                       tracestate: 'file=002,processing=csv_parquet'
-                    - id: 'task-003'
+                    - id: '6a7ecf04-4455-41d1-aa04-8786178cb4a3'
                       data:
                         file_path: '/data/input/file_003.csv'
                         output_path: '/data/processed/file_003.parquet'
                         transformation: 'csv_to_parquet'
-                      stageId: 'stage-001'
+                      stageId: '714ef37c-218f-4818-a166-cbc13d2850a6'
                       userMetadata:
                         file_size: '256MB'
                         estimated_time: '8m'
@@ -1172,7 +1155,7 @@ paths:
                 api_integration_tasks_response:
                   summary: Response for API integration tasks creation
                   value:
-                    - id: 'task-004'
+                    - id: 'ddfad658-da33-4573-b5a3-d70a204a3e0b'
                       data:
                         endpoint: 'https://api.external.com/customers'
                         method: 'GET'
@@ -1181,7 +1164,7 @@ paths:
                         pagination:
                           page_size: 100
                           max_pages: 50
-                      stageId: 'stage-002'
+                      stageId: 'a09866f1-74f1-49c1-b996-268586ad346d'
                       userMetadata:
                         source: 'customer_system'
                         priority: 'high'
@@ -1192,7 +1175,7 @@ paths:
                       updateTime: '2025-07-27T10:30:00Z'
                       traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-88192ee2b20902b7-01'
                       tracestate: 'api=customers,source=external'
-                    - id: 'task-005'
+                    - id: 'df59d74e-f442-4e66-b8c9-b312ad948c47'
                       data:
                         endpoint: 'https://api.external.com/orders'
                         method: 'GET'
@@ -1201,7 +1184,7 @@ paths:
                         query_params:
                           start_date: '2025-01-01'
                           end_date: '2025-07-27'
-                      stageId: 'stage-002'
+                      stageId: '4daa6a5c-da33-4cbe-8e4a-dbc00182fcfa'
                       userMetadata:
                         source: 'order_system'
                         priority: 'medium'
@@ -1654,6 +1637,7 @@ components:
         When creating resources, this field is optional - if not provided, the system will automatically inject 
         both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
         In response objects, this field is always present and required.
+        [here the offical W3C docs](https://www.w3.org/TR/trace-context/)
       pattern: '^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$'
       example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
     tracestate:
@@ -1923,6 +1907,8 @@ components:
               $ref: '#/components/schemas/jobId'
             order:
               $ref: '#/components/schemas/order'
+            traceparent:
+              $ref: '#/components/schemas/traceparent'
           description: |
             Complete stage information returned by the API, including all fields from the 
             creation payload plus system-generated fields like ID, progress statistics,
@@ -1959,7 +1945,7 @@ components:
         Contains task type, operational parameters, and optional retry configuration.
         Used when adding tasks to existing stages.
 
-        Tracing fields (traceparent, tracestate) are optional:
+        Trace propagation  (traceparent, tracestate) are optional:
         - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
         - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
           from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)

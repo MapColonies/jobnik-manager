@@ -1,5 +1,6 @@
 import { context, propagation } from '@opentelemetry/api';
 
+export const DEFAULT_TRACEPARENT = '00-00000000000000000000000000000000-0000000000000000-00';
 export interface Carrier {
   traceparent?: string;
   tracestate?: string;
@@ -42,7 +43,7 @@ export function resolveTraceContext(payload: OptionalTraceContext): ResolvedTrac
   propagation.inject(context.active(), traceContext);
 
   return {
-    traceparent: traceContext.traceparent ?? '00-00000000000000000000000000000000-0000000000000000-00',
+    traceparent: traceContext.traceparent ?? DEFAULT_TRACEPARENT,
     tracestate: traceContext.tracestate ?? null,
   };
 }
