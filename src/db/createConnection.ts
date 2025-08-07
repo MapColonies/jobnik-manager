@@ -36,8 +36,19 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
 
 export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {
   const adapter = new PrismaPg(poolConfig, { schema });
-  const prisma = new PrismaClient({ adapter });
-
+  const prisma = new PrismaClient({ adapter }).$extends({
+    query: {
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      $allOperations({ args, query }) {
+        /* your custom logic for modifying all Prisma Client operations here */
+        return query(args).catch((error) => {
+          (error as { isPrismaError: boolean }).isPrismaError = true; // mark the error as a Prisma error
+          throw error;
+        });
+      },
+    },
+  });
+  // @ts-expect-error to support prisma client extension
   return prisma;
 }
 

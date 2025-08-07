@@ -9,9 +9,10 @@ import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { InvalidUpdateError, errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
-import { JobNotFoundError, errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
+import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
+import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
+import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundError, StageNotFoundError } from '@src/common/generated/errors';
+import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { PrismaTransaction } from '@src/db/types';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
@@ -63,7 +64,7 @@ export class StageManager {
 
     // can't add stages to finite jobs (final states)
     if (checkJobStatus.getSnapshot().status === XSTATE_DONE_STATE) {
-      throw new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
+      throw new JobInFiniteStateError(jobsErrorMessages.jobAlreadyFinishedStagesError);
     }
 
     const { startAsWaiting, ...bodyInput } = stagePayload;
@@ -201,7 +202,7 @@ export class StageManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+      throw new IllegalStageStatusTransitionError(commonErrorMessages.invalidStatusTransition);
     }
 
     updateActor.send({ type: nextStatusChange });

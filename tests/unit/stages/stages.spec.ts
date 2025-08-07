@@ -6,13 +6,14 @@ import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { errorMessages as commonErrorMessages, InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
+import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { StageCreateModel, StageIncludingJob, UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
+import { JobInFiniteStateError } from '@src/common/generated/errors';
 import { jobEntityWithAbortStatus, jobEntityWithStages, jobId, pendingStageXstatePersistentSnapshot, stageEntity } from '../data';
 import { createStageEntity, createJobEntity, createTaskEntity, StageWithTasks } from '../generator';
 
@@ -471,7 +472,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus });
 
           await expect(stageManager.addStage('someId', {} as unknown as StageCreateModel)).rejects.toThrow(
-            new InvalidUpdateError(jobsErrorMessages.jobAlreadyFinishedStagesError)
+            new JobInFiniteStateError(jobsErrorMessages.jobAlreadyFinishedStagesError)
           );
         });
       });
@@ -534,7 +535,7 @@ describe('JobManager', () => {
             .mockResolvedValue({ ...stageEntity, job: { status: JobOperationStatus.IN_PROGRESS } } as unknown as StageWithTasks);
 
           await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
-            commonErrorMessages.invalidStatusChange
+            commonErrorMessages.invalidStatusTransition
           );
         });
       });

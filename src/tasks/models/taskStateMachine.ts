@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { createActor, setup, Snapshot } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
-import { InvalidUpdateError, errorMessages as commonErrorMessages } from '@src/common/errors';
+import { errorMessages as commonErrorMessages } from '@src/common/errors';
+import { IllegalTaskStatusTransitionError } from '@src/common/generated/errors';
 
 type changeStatusOperations = 'pend' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
 
@@ -58,7 +59,7 @@ const taskStateMachine = setup({
  * @param {TaskOperationStatus} status - The new status to set.
  * @param {PrismaJson.PersistenceSnapshot} xstate - The current xstate snapshot.
  * @returns {Snapshot<unknown>} - The updated xstate snapshot.
- * @throws {InvalidUpdateError} - If the status change is invalid.
+ * @throws {IllegalTaskStatusTransitionError} - If the status change is invalid.
  */
 function updateTaskMachineState(status: TaskOperationStatus, xstate: PrismaJson.PersistenceSnapshot): Snapshot<unknown> {
   const updateActor = createActor(taskStateMachine, { snapshot: xstate }).start();
@@ -67,7 +68,7 @@ function updateTaskMachineState(status: TaskOperationStatus, xstate: PrismaJson.
   const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
   if (!isValidStatus) {
-    throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+    throw new IllegalTaskStatusTransitionError(commonErrorMessages.invalidStatusTransition);
   }
 
   updateActor.send({ type: nextStatusChange });

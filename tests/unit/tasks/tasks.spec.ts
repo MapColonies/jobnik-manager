@@ -8,10 +8,11 @@ import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { TaskManager } from '@src/tasks/models/manager';
-import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
+import { prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { SERVICE_NAME } from '@src/common/constants';
+import { IllegalTaskStatusTransitionError, NotAllowedToAddTasksToInProgressStageError, StageInFiniteStateError } from '@src/common/generated/errors';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '../data';
 
@@ -241,7 +242,9 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
 
-          await expect(taskManager.addTasks('someId', [])).rejects.toThrow(new InvalidUpdateError(tasksErrorMessages.addTaskNotAllowed));
+          await expect(taskManager.addTasks('someId', [])).rejects.toThrow(
+            new NotAllowedToAddTasksToInProgressStageError(tasksErrorMessages.addTaskNotAllowed)
+          );
         });
 
         it('should reject adding tasks to a finite stage', async function () {
@@ -254,7 +257,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
 
           await expect(taskManager.addTasks('someId', [])).rejects.toThrow(
-            new InvalidUpdateError(stagesErrorMessages.stageAlreadyFinishedTasksError)
+            new StageInFiniteStateError(stagesErrorMessages.stageAlreadyFinishedTasksError)
           );
         });
       });
@@ -452,7 +455,7 @@ describe('JobManager', () => {
             const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
             return callback(mockTx);
           });
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(InvalidUpdateError);
+          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(IllegalTaskStatusTransitionError);
         });
       });
 

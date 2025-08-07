@@ -1,7 +1,13 @@
-export class JobNotFoundError extends Error {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, JobNotFoundError.prototype);
+export class SamePriorityChangeError extends Error {
+  public readonly code = 'SAME_PRIORITY_CHANGE';
+  /**
+   * Creates an instance of SamePriorityChangeError.
+   * @param message - The error message.
+   * @param cause - Optional original error or server response data.
+   */
+  public constructor(message: string, cause?: unknown) {
+    super(message, { cause });
+    Object.setPrototypeOf(this, new.target.prototype);
   }
 }
 

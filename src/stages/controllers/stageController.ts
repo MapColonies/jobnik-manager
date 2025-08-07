@@ -4,11 +4,9 @@ import { injectable, inject } from 'tsyringe';
 import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
-import { JobNotFoundError } from '@src/jobs/models/errors';
-import { InvalidUpdateError } from '@src/common/errors';
+import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundError, StageNotFoundError } from '@src/common/generated/errors';
 import { StageManager } from '../models/manager';
 import type { StageFindCriteriaArg } from '../models/models';
-import { StageNotFoundError } from '../models/errors';
 
 @injectable()
 export class StageController {
@@ -65,7 +63,7 @@ export class StageController {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       }
 
-      if (err instanceof InvalidUpdateError) {
+      if (err instanceof JobInFiniteStateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
@@ -107,7 +105,7 @@ export class StageController {
     } catch (err) {
       if (err instanceof StageNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidUpdateError) {
+      } else if (err instanceof IllegalStageStatusTransitionError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error({ msg: `Stage status update failed: invalid status transition`, status: req.body.status, err });
       }

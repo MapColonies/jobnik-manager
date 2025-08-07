@@ -121,18 +121,66 @@ describe('task', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext },
+          body: {
+            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext,
+            code: 'VALIDATION_ERROR',
+          },
+        });
+      });
+
+      it('should return 400 status code and a relevant validation error message when adding unknown query parameters', async function () {
+        const response = await requestSender.getTasksByCriteria({ queryParams: { someExtraParam: 'FOO' } as unknown as Record<string, unknown> });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/Unknown query parameter/) as MatcherContext, code: 'VALIDATION_ERROR' },
+        });
+      });
+
+      it('should return 400 status code and a relevant validation error message when the status param is incorrect', async function () {
+        const response = await requestSender.getTasksByCriteria({ queryParams: { status: 'BAD_STATUS' as TaskOperationStatus } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: {
+            message: expect.stringMatching(/request\/query\/status must be equal to one of the allowed values/) as MatcherContext,
+            code: 'VALIDATION_ERROR',
+          },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
+
         const response = await requestSender.getTasksByCriteria({});
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getTasksByCriteria({});
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -158,19 +206,50 @@ describe('task', function () {
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: tasksErrorMessages.taskNotFound },
+          body: { message: tasksErrorMessages.taskNotFound, code: 'TASK_NOT_FOUND' },
+        });
+      });
+
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: 'badUuid' } });
+
+        expect(getTaskResponse).toSatisfyApiSpec();
+        expect(getTaskResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/params\/taskId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -228,7 +307,7 @@ describe('task', function () {
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -238,19 +317,40 @@ describe('task', function () {
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -285,7 +385,7 @@ describe('task', function () {
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: tasksErrorMessages.taskNotFound },
+          body: { message: tasksErrorMessages.taskNotFound, code: 'TASK_NOT_FOUND' },
         });
       });
 
@@ -302,19 +402,40 @@ describe('task', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching('is not valid JSON') as MatcherContext },
+          body: { message: expect.stringMatching('is not valid JSON') as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
+
+        const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -502,7 +623,7 @@ describe('task', function () {
 
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -525,7 +646,7 @@ describe('task', function () {
 
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must be array/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/body must be array/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -541,7 +662,7 @@ describe('task', function () {
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: stagesErrorMessages.stageAlreadyFinishedTasksError },
+          body: { message: stagesErrorMessages.stageAlreadyFinishedTasksError, code: 'STAGE_IN_FINITE_STATE' },
         });
       });
 
@@ -567,7 +688,7 @@ describe('task', function () {
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: tasksErrorMessages.addTaskNotAllowed },
+          body: { message: tasksErrorMessages.addTaskNotAllowed, code: 'NOT_ALLOWED_TO_ADD_TASKS_TO_IN_PROGRESS_STAGE' },
         });
       });
 
@@ -595,7 +716,7 @@ describe('task', function () {
 
         expect(createTaskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/0\/traceparent must match pattern/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/body\/0\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -617,14 +738,17 @@ describe('task', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addTasks({
           requestBody: [],
@@ -632,7 +756,28 @@ describe('task', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.addTasks({
+          requestBody: [],
+          pathParams: { stageId: faker.string.uuid() },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -830,14 +975,29 @@ describe('task', function () {
           prisma
         );
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.CREATED }], prisma);
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: tasks[0]!.id },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(updateStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: commonErrorMessages.invalidStatusChange },
+          body: { message: commonErrorMessages.invalidStatusTransition, code: 'ILLEGAL_TASK_STATUS_TRANSITION' },
+        });
+      });
+
+      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: 'badUuid' },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
+        });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(updateStatusResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: expect.stringMatching(/request\/params\/taskId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -849,20 +1009,46 @@ describe('task', function () {
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(updateStatusResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: tasksErrorMessages.taskNotFound },
+          body: { message: tasksErrorMessages.taskNotFound, code: 'TASK_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.PENDING },
         });
+
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.updateTaskStatus({
+          pathParams: { taskId: faker.string.uuid() },
+          requestBody: { status: TaskOperationStatus.PENDING },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -1140,7 +1326,10 @@ describe('task', function () {
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageType must NOT have more than 50 characters/) as string },
+          body: {
+            message: expect.stringMatching(/request\/params\/stageType must NOT have more than 50 characters/) as string,
+            code: 'VALIDATION_ERROR',
+          },
         });
       });
 
@@ -1149,10 +1338,11 @@ describe('task', function () {
         const taskResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_NON_EXIST_STAGE_TYPE' },
         });
+
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: tasksErrorMessages.taskNotFound },
+          body: { message: tasksErrorMessages.taskNotFound, code: 'TASK_NOT_FOUND' },
         });
       });
 
@@ -1190,19 +1380,44 @@ describe('task', function () {
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: tasksErrorMessages.taskNotFound },
+          body: { message: tasksErrorMessages.taskNotFound, code: 'TASK_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(new Error('Database error'));
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = true;
+        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+
         const response = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_NAME' },
         });
+
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = new Error('Database error');
+        // @ts-expect-error using this flag to mark the error as a Prisma error
+        error.isPrismaError = false;
+        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+
+        const response = await requestSender.dequeueTask({
+          pathParams: { stageType: 'SOME_TEST_NAME' },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
 
       it('should return 500 status code when the transaction was failed', async function () {
@@ -1236,17 +1451,18 @@ describe('task', function () {
         const dequeueResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_FAILED_TRANSACTION' },
         });
+
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
-        expect(dequeueResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'INVALID_STATUS_CHANGE' } });
+        expect(dequeueResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'INVALID_STATUS_TRANSITION' } });
         expect(getTaskResponse.body).toHaveProperty('status', TaskOperationStatus.PENDING);
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.PENDING);
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);
       });
 
-      it('should prevent multiple dequeue of the same task', async function () {
+      it('should return 500 and prevent multiple dequeue of the same task', async function () {
         expect.assertions(4);
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
         const job = await addJobRecord(
@@ -1325,6 +1541,7 @@ describe('task', function () {
           status: StatusCodes.INTERNAL_SERVER_ERROR,
           body: {
             message: tasksErrorMessages.taskStatusUpdateFailed,
+            code: 'TASK_STATUS_UPDATE_FAILED',
           },
         });
       });

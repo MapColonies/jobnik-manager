@@ -220,7 +220,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
-            commonErrorMessages.invalidStatusChange
+            commonErrorMessages.invalidStatusTransition
           );
         });
       });
