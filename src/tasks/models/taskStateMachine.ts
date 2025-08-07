@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { createActor, setup, Snapshot } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { IllegalTaskStatusTransitionError } from '@src/common/generated/errors';
+import { errorMessages as tasksErrorMessages } from './errors';
 
 type changeStatusOperations = 'pend' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
 
@@ -68,7 +68,7 @@ function updateTaskMachineState(status: TaskOperationStatus, xstate: PrismaJson.
   const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
   if (!isValidStatus) {
-    throw new IllegalTaskStatusTransitionError(commonErrorMessages.invalidStatusTransition);
+    throw new IllegalTaskStatusTransitionError(tasksErrorMessages.illegalTaskStatusTransitionError);
   }
 
   updateActor.send({ type: nextStatusChange });

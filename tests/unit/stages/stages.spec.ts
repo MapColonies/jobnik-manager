@@ -6,7 +6,7 @@ import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
+import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { StageCreateModel, StageIncludingJob, UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
@@ -535,7 +535,7 @@ describe('JobManager', () => {
             .mockResolvedValue({ ...stageEntity, job: { status: JobOperationStatus.IN_PROGRESS } } as unknown as StageWithTasks);
 
           await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
-            commonErrorMessages.invalidStatusTransition
+            stagesErrorMessages.illegalStageStatusTransitionError
           );
         });
       });

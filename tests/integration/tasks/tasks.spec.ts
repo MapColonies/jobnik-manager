@@ -13,7 +13,6 @@ import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
@@ -984,7 +983,7 @@ describe('task', function () {
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(updateStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: commonErrorMessages.invalidStatusTransition, code: 'ILLEGAL_TASK_STATUS_TRANSITION' },
+          body: { message: tasksErrorMessages.illegalTaskStatusTransitionError, code: 'ILLEGAL_TASK_STATUS_TRANSITION' },
         });
       });
 
@@ -1456,7 +1455,10 @@ describe('task', function () {
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
         expect(dequeueResponse).toSatisfyApiSpec();
-        expect(dequeueResponse).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'INVALID_STATUS_TRANSITION' } });
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'ILLEGAL_JOB_STATUS_TRANSITION_ERROR' },
+        });
         expect(getTaskResponse.body).toHaveProperty('status', TaskOperationStatus.PENDING);
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.PENDING);
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);

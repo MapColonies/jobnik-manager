@@ -14,7 +14,6 @@ import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageCreateModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
@@ -1339,7 +1338,7 @@ describe('stage', function () {
         expect(updateStageResponse).toSatisfyApiSpec();
         expect(updateStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: commonErrorMessages.invalidStatusTransition, code: 'ILLEGAL_STAGE_STATUS_TRANSITION' },
+          body: { message: stagesErrorMessages.illegalStageStatusTransitionError, code: 'ILLEGAL_STAGE_STATUS_TRANSITION' },
         });
       });
 

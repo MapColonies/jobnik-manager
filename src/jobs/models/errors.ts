@@ -20,4 +20,6 @@ export const errorMessages = {
   jobNotFound: 'JOB_NOT_FOUND',
   /**Stages cannot be added to or modified for predefined jobs*/
   preDefinedJobStageModificationError: 'PREDEFINED_JOB_STAGE_MODIFICATION_ERROR',
+  /**Signifies that the job status transition is not allowed*/
+  illegalJobStatusTransitionError: 'ILLEGAL_JOB_STATUS_TRANSITION_ERROR',
 } as const;

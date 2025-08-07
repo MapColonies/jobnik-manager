@@ -5,4 +5,6 @@ export const errorMessages = {
   stageNotFound: 'STAGE_NOT_FOUND',
   /**Signifies that the specified related job could not be located*/
   missingJobProperty: 'MISSING_JOB_PROPERTY',
+  /**Signifies that the stage status transition is not allowed*/
+  illegalStageStatusTransitionError: 'ILLEGAL_STAGE_STATUS_TRANSITION_ERROR',
 } as const;

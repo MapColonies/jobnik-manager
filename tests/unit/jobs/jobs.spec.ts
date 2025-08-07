@@ -1,7 +1,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
-import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
+import { prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -220,7 +220,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
-            commonErrorMessages.invalidStatusTransition
+            jobsErrorMessages.illegalJobStatusTransitionError
           );
         });
       });

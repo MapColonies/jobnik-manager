@@ -9,7 +9,7 @@ import { JobManager } from '@src/jobs/models/manager';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
+import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundError, StageNotFoundError } from '@src/common/generated/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -202,7 +202,7 @@ export class StageManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new IllegalStageStatusTransitionError(commonErrorMessages.invalidStatusTransition);
+      throw new IllegalStageStatusTransitionError(stagesErrorMessages.illegalStageStatusTransitionError);
     }
 
     updateActor.send({ type: nextStatusChange });

@@ -11,7 +11,6 @@ import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient }
 import { getApp } from '@src/app';
 import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
@@ -657,7 +656,7 @@ describe('job', function () {
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: commonErrorMessages.invalidStatusTransition, code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
+          body: { message: jobsErrorMessages.illegalJobStatusTransitionError, code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
         });
       });
 
