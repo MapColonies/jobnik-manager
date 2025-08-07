@@ -48,8 +48,8 @@ export function createPrismaClient(poolConfig: PoolConfig, schema: string): Pris
       },
     },
   });
-  // @ts-expect-error to support prisma client extension
-  return prisma;
+  // Type assertion: cast extended Prisma client to PrismaClient to satisfy return type
+  return prisma as PrismaClient;
 }
 
 export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promise<void> {
