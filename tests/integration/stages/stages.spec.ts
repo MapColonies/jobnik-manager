@@ -19,6 +19,7 @@ import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSna
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
+import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { addJobRecord, addStageRecord, createStageBody } from './helpers';
 
 describe('stage', function () {
@@ -213,9 +214,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
@@ -228,9 +227,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
@@ -364,9 +361,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
@@ -379,9 +374,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
@@ -570,9 +563,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
@@ -585,9 +576,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
@@ -646,9 +635,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
@@ -661,9 +648,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
@@ -742,9 +727,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
@@ -757,9 +740,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
@@ -1213,9 +1194,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
@@ -1231,9 +1210,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
@@ -1358,9 +1335,7 @@ describe('stage', function () {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = true;
+        const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
@@ -1376,9 +1351,7 @@ describe('stage', function () {
       });
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
-        const error = new Error('Database error');
-        // @ts-expect-error using this flag to mark the error as a Prisma error
-        error.isPrismaError = false;
+        const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
