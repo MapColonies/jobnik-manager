@@ -2446,22 +2446,6 @@ components:
         - maxAttempts
         - traceparent
       additionalProperties: false
-    errorMessage:
-      type: object
-      description: |
-        Standard error response structure used when API operations encounter problems.
-        Contains a human-readable message and optional stack trace for debugging.
-      properties:
-        message:
-          type: string
-          description: Human-readable error description explaining what went wrong
-        stacktrace:
-          type: string
-          description: |
-            Technical stack trace for debugging purposes, included based on 
-            server configuration settings
-      required:
-        - message
     defaultOkMessage:
       type: object
       description: |
@@ -2472,14 +2456,3 @@ components:
           $ref: '#/components/schemas/successMessages'
       required:
         - code
-    error:
-      type: object
-      description: |
-        Simplified error response format used for common validation and client errors,
-        containing just the essential error message without additional debugging data.
-      required:
-        - message
-      properties:
-        message:
-          description: Human-readable error description explaining what went wrong
-          type: string

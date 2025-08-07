@@ -820,29 +820,11 @@ export type components = {
       traceparent: components['schemas']['traceparent'];
       tracestate?: components['schemas']['tracestate'];
     };
-    /** @description Standard error response structure used when API operations encounter problems.
-     *     Contains a human-readable message and optional stack trace for debugging.
-     *      */
-    errorMessage: {
-      /** @description Human-readable error description explaining what went wrong */
-      message: string;
-      /** @description Technical stack trace for debugging purposes, included based on
-       *     server configuration settings
-       *      */
-      stacktrace?: string;
-    };
     /** @description Standard success response structure used for operations that don't
      *     return entity data, providing a standardized confirmation message.
      *      */
     defaultOkMessage: {
       code: components['schemas']['successMessages'];
-    };
-    /** @description Simplified error response format used for common validation and client errors,
-     *     containing just the essential error message without additional debugging data.
-     *      */
-    error: {
-      /** @description Human-readable error description explaining what went wrong */
-      message: string;
     };
   };
   responses: never;
