@@ -2081,7 +2081,7 @@ components:
         When creating resources, this field is optional - if not provided, the system will automatically inject 
         both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
         In response objects, this field is always present and required.
-        [here the official W3C docs](https://www.w3.org/TR/trace-context/)
+        See the [official W3C Trace Context documentation](https://www.w3.org/TR/trace-context/).
       pattern: '^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$'
       example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
     tracestate:
