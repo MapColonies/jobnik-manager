@@ -18,6 +18,33 @@ import {
 import { TaskManager } from '../models/manager';
 import { type TasksFindCriteriaArg } from '../models/models';
 
+/*
+ * Checks if the error is a bad request error
+ */
+const isBadRequestError = (err: unknown): boolean => {
+  return (
+    err instanceof TaskStatusUpdateFailedError ||
+    err instanceof IllegalTaskStatusTransitionError ||
+    err instanceof IllegalStageStatusTransitionError ||
+    err instanceof IllegalJobStatusTransitionError ||
+    err instanceof JobNotFoundError ||
+    err instanceof StageNotFoundError
+  );
+};
+
+/*
+ * Checks if the error is a internal error
+ */
+const isInternalError = (err: unknown): boolean => {
+  return (
+    err instanceof TaskStatusUpdateFailedError ||
+    err instanceof IllegalTaskStatusTransitionError ||
+    err instanceof IllegalStageStatusTransitionError ||
+    err instanceof IllegalJobStatusTransitionError ||
+    err instanceof JobNotFoundError ||
+    err instanceof StageNotFoundError
+  );
+};
 @injectable()
 export class TaskController {
   public constructor(
@@ -100,14 +127,7 @@ export class TaskController {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (
-        err instanceof TaskStatusUpdateFailedError ||
-        err instanceof IllegalTaskStatusTransitionError ||
-        err instanceof IllegalStageStatusTransitionError ||
-        err instanceof IllegalJobStatusTransitionError ||
-        err instanceof JobNotFoundError ||
-        err instanceof StageNotFoundError
-      ) {
+      } else if (isBadRequestError(err)) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error({ msg: `Task status update failed: invalid status transition`, status: req.body.status, err });
       }
@@ -124,14 +144,7 @@ export class TaskController {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (
-        err instanceof TaskStatusUpdateFailedError ||
-        err instanceof IllegalTaskStatusTransitionError ||
-        err instanceof IllegalStageStatusTransitionError ||
-        err instanceof IllegalJobStatusTransitionError ||
-        err instanceof JobNotFoundError ||
-        err instanceof StageNotFoundError
-      ) {
+      } else if (isInternalError(err)) {
         (err as HttpError).status = httpStatus.INTERNAL_SERVER_ERROR;
       }
 
