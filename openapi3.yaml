@@ -39,29 +39,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
     post:
       operationId: createJob
       summary: Create a new job with configuration and metadata
@@ -184,15 +168,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
               examples:
                 validation_error:
                   summary: Validation error
@@ -215,15 +191,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}:
     parameters:
       - $ref: '#/components/parameters/jobId'
@@ -353,43 +321,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
     delete:
       operationId: deleteJob
       summary: Delete a job and all its associated resources (stages, tasks)
@@ -418,43 +362,29 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'JOB_NOT_IN_FINITE_STATE']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    required:
+                      - code
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'JOB_NOT_IN_FINITE_STATE']
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}/user-metadata:
     patch:
       operationId: updateUserMetadata
@@ -490,43 +420,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}/priority:
     parameters:
       - $ref: '#/components/parameters/jobId'
@@ -575,43 +481,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '400':
           description: Invalid priority value or other request error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'JOB_NOT_IN_FINITE_STATE']
+                $ref: '#/components/schemas/badRequestResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}/status:
     parameters:
       - $ref: '#/components/parameters/jobId'
@@ -656,40 +538,27 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION']
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}/stages:
     parameters:
       - $ref: '#/components/parameters/jobId'
@@ -724,40 +593,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /jobs/{jobId}/stage:
     post:
       operationId: addStage
@@ -896,40 +744,27 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'JOB_IN_FINITE_STATE']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'JOB_IN_FINITE_STATE']
         '404':
           description: Job not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['JOB_NOT_FOUND']
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages:
     get:
       operationId: getStages
@@ -961,26 +796,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages/{stageId}:
     parameters:
       - $ref: '#/components/parameters/stageId'
@@ -1009,40 +831,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages/{stageId}/summary:
     get:
       operationId: getStageSummary
@@ -1070,40 +871,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages/{stageId}/user-metadata:
     patch:
       operationId: updateStageUserMetadata
@@ -1139,40 +919,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages/{stageId}/status:
     put:
       operationId: updateStageStatus
@@ -1217,40 +976,35 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'ILLEGAL_STAGE_STATUS_TRANSITION']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'ILLEGAL_STAGE_STATUS_TRANSITION']
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION', 'JOB_NOT_FOUND']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for internal server errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION', 'JOB_NOT_FOUND']
   /stages/{stageId}/tasks:
     parameters:
       - $ref: '#/components/parameters/stageId'
@@ -1274,40 +1028,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
       tags:
         - stages
     post:
@@ -1512,40 +1245,27 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'STAGE_IN_FINITE_STATE', 'NOT_ALLOWED_TO_ADD_TASKS_TO_IN_PROGRESS_STAGE']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'STAGE_IN_FINITE_STATE', 'NOT_ALLOWED_TO_ADD_TASKS_TO_IN_PROGRESS_STAGE']
         '404':
           description: Stage not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['STAGE_NOT_FOUND']
+                $ref: '#/components/schemas/stageNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /stages/{stageType}/tasks/dequeue:
     parameters:
       - $ref: '#/components/parameters/stageType'
@@ -1575,50 +1295,37 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: No pending tasks of requested type are available
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['TASK_NOT_FOUND']
+                $ref: '#/components/schemas/taskNotFoundResponse'
         '500':
           description: Internal server error or invalid state transition
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum:
-                      [
-                        'DATABASE_RELATED_ERROR',
-                        'UNKNOWN_ERROR',
-                        'TASK_STATUS_UPDATE_FAILED',
-                        'ILLEGAL_TASK_STATUS_TRANSITION',
-                        'ILLEGAL_STAGE_STATUS_TRANSITION',
-                        'ILLEGAL_JOB_STATUS_TRANSITION',
-                        'STAGE_NOT_FOUND',
-                        'JOB_NOT_FOUND',
-                      ]
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for internal server errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum:
+                          [
+                            'DATABASE_RELATED_ERROR',
+                            'UNKNOWN_ERROR',
+                            'TASK_STATUS_UPDATE_FAILED',
+                            'ILLEGAL_TASK_STATUS_TRANSITION',
+                            'ILLEGAL_STAGE_STATUS_TRANSITION',
+                            'ILLEGAL_JOB_STATUS_TRANSITION',
+                            'STAGE_NOT_FOUND',
+                            'JOB_NOT_FOUND',
+                          ]
   /tasks:
     parameters:
       - $ref: '#/components/parameters/paramStageId'
@@ -1649,26 +1356,13 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
       tags:
         - tasks
   /tasks/{taskId}:
@@ -1692,40 +1386,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Task not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['TASK_NOT_FOUND']
+                $ref: '#/components/schemas/taskNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
       tags:
         - tasks
   /tasks/{taskId}/user-metadata:
@@ -1763,40 +1436,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR']
+                $ref: '#/components/schemas/badRequestResponse'
         '404':
           description: Task not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['TASK_NOT_FOUND']
+                $ref: '#/components/schemas/taskNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR']
+                $ref: '#/components/schemas/internalErrorsResponse'
   /tasks/{taskId}/status:
     parameters:
       - $ref: '#/components/parameters/taskId'
@@ -1854,50 +1506,45 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['VALIDATION_ERROR', 'ILLEGAL_TASK_STATUS_TRANSITION']
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for bad request errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum: ['VALIDATION_ERROR', 'ILLEGAL_TASK_STATUS_TRANSITION']
         '404':
           description: Task not found
           content:
             application/json:
               schema:
-                type: object
-                required:
-                  - message
-                  - code
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum: ['TASK_NOT_FOUND']
+                $ref: '#/components/schemas/taskNotFoundResponse'
         '500':
           description: Internal server error
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                  code:
-                    enum:
-                      [
-                        'DATABASE_RELATED_ERROR',
-                        'UNKNOWN_ERROR',
-                        'TASK_STATUS_UPDATE_FAILED',
-                        'ILLEGAL_TASK_STATUS_TRANSITION',
-                        'ILLEGAL_STAGE_STATUS_TRANSITION',
-                        'ILLEGAL_JOB_STATUS_TRANSITION',
-                        'STAGE_NOT_FOUND',
-                        'JOB_NOT_FOUND',
-                      ]
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    description: |
+                      Error response structure for internal server errors, providing a consistent
+                      format for common-readable error codes and human-readable messages.
+                    properties:
+                      code:
+                        enum:
+                          [
+                            'DATABASE_RELATED_ERROR',
+                            'UNKNOWN_ERROR',
+                            'TASK_STATUS_UPDATE_FAILED',
+                            'ILLEGAL_TASK_STATUS_TRANSITION',
+                            'ILLEGAL_STAGE_STATUS_TRANSITION',
+                            'ILLEGAL_JOB_STATUS_TRANSITION',
+                            'STAGE_NOT_FOUND',
+                            'JOB_NOT_FOUND',
+                          ]
 security: []
 
 components:
@@ -2456,3 +2103,84 @@ components:
           $ref: '#/components/schemas/successMessages'
       required:
         - code
+    baseErrorResponse:
+      type: object
+      description: |
+        Foundation schema for standardized error responses across all API endpoints.
+        Provides consistent structure with human-readable message and common-readable code fields
+        that are extended by individual endpoints to define their specific error scenarios.
+      properties:
+        message:
+          type: string
+          description: Human-readable error message describing the issue
+        code:
+          type: string
+          description: common-readable error code indicating the specific error type
+      required:
+        - message
+        - code
+    internalErrorsResponse:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorResponse'
+        - type: object
+          description: |
+            Provides a unified error response format for internal server errors, including a common-readable error code and a clear, human-readable message to help clients identify and handle issues consistently.
+          properties:
+            code:
+              enum:
+                - DATABASE_RELATED_ERROR
+                - UNKNOWN_ERROR
+          required:
+            - code
+    badRequestResponse:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorResponse'
+        - type: object
+          description: |
+            Standardized error response structure for bad request errors, providing a consistent
+            format for common-readable error codes and human-readable messages.
+          properties:
+            code:
+              enum:
+                - VALIDATION_ERROR
+          required:
+            - code
+    jobNotFoundResponse:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorResponse'
+        - type: object
+          description: |
+            Standardized error response for cases where a requested job is not found in the system.
+            Provides a consistent format for common-readable error codes and human-readable messages.
+          properties:
+            code:
+              enum:
+                - JOB_NOT_FOUND
+          required:
+            - code
+    stageNotFoundResponse:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorResponse'
+        - type: object
+          description: |
+            Standardized error response for cases where a requested stage is not found in the system.
+            Provides a consistent format for common-readable error codes and human-readable messages.
+          properties:
+            code:
+              enum:
+                - STAGE_NOT_FOUND
+          required:
+            - code
+    taskNotFoundResponse:
+      allOf:
+        - $ref: '#/components/schemas/baseErrorResponse'
+        - type: object
+          description: |
+            Standardized error response for cases where a requested task is not found in the system.
+            Provides a consistent format for common-readable error codes and human-readable messages.
+          properties:
+            code:
+              enum:
+                - TASK_NOT_FOUND
+          required:
+            - code

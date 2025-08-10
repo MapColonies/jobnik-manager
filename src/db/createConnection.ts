@@ -34,7 +34,8 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
   return poolConfig;
 };
 
-export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export function createPrismaClient(poolConfig: PoolConfig, schema: string) {
   const adapter = new PrismaPg(poolConfig, { schema });
   const prisma = new PrismaClient({ adapter }).$extends({
     query: {
@@ -48,7 +49,6 @@ export function createPrismaClient(poolConfig: PoolConfig, schema: string): Pris
       },
     },
   });
-  // Return the extended Prisma client directly, preserving its type
   return prisma;
 }
 
