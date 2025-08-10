@@ -16,6 +16,7 @@ import { defaultStatusCounts } from '@src/stages/models/helper';
 import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
@@ -643,7 +644,7 @@ describe('job', function () {
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: jobsErrorMessages.illegalJobStatusTransitionError, code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
+          body: { message: illegalStatusTransitionErrorMessage(job.status, JobOperationStatus.COMPLETED), code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
         });
       });
 

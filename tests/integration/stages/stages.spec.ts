@@ -17,6 +17,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
 import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
@@ -1315,7 +1316,10 @@ describe('stage', function () {
         expect(updateStageResponse).toSatisfyApiSpec();
         expect(updateStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: stagesErrorMessages.illegalStageStatusTransitionError, code: 'ILLEGAL_STAGE_STATUS_TRANSITION' },
+          body: {
+            message: illegalStatusTransitionErrorMessage(stage.status, StageOperationStatus.COMPLETED),
+            code: 'ILLEGAL_STAGE_STATUS_TRANSITION',
+          },
         });
       });
 

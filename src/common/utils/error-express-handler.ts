@@ -59,7 +59,7 @@ export function getErrorHandlerMiddleware(): ErrorRequestHandler {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     next: NextFunction
   ): void => {
-    if (req.passedValidation !== true) {
+    if (req.passedValidation !== true && err.status === StatusCodes.BAD_REQUEST) {
       err.code = 'VALIDATION_ERROR';
     }
 

@@ -7,7 +7,7 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
 import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
-import { prismaKnownErrors } from '@common/errors';
+import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/errors';
 import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
@@ -142,7 +142,7 @@ export class JobManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new IllegalJobStatusTransitionError(jobsErrorMessages.illegalJobStatusTransitionError);
+      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(job.status, status));
     }
 
     updateActor.send({ type: nextStatusChange });

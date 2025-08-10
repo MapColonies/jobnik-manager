@@ -21,6 +21,7 @@ import {
   pendingStageXstatePersistentSnapshot,
 } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
@@ -964,7 +965,10 @@ describe('task', function () {
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(updateStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: tasksErrorMessages.illegalTaskStatusTransitionError, code: 'ILLEGAL_TASK_STATUS_TRANSITION' },
+          body: {
+            message: illegalStatusTransitionErrorMessage(tasks[0]!.status, TaskOperationStatus.COMPLETED),
+            code: 'ILLEGAL_TASK_STATUS_TRANSITION',
+          },
         });
       });
 
@@ -1427,10 +1431,11 @@ describe('task', function () {
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.INTERNAL_SERVER_ERROR,
-          body: { message: 'ILLEGAL_JOB_STATUS_TRANSITION_ERROR' },
+          body: { message: illegalStatusTransitionErrorMessage(job.status, JobOperationStatus.IN_PROGRESS), code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
         });
         expect(getTaskResponse.body).toHaveProperty('status', TaskOperationStatus.PENDING);
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.PENDING);

@@ -2,7 +2,7 @@
 import { createActor, setup, Snapshot } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
 import { IllegalTaskStatusTransitionError } from '@src/common/generated/errors';
-import { errorMessages as tasksErrorMessages } from './errors';
+import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 
 type changeStatusOperations = 'pend' | 'complete' | 'retry' | 'process' | 'fail' | 'create';
 
@@ -68,7 +68,7 @@ function updateTaskMachineState(status: TaskOperationStatus, xstate: PrismaJson.
   const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
   if (!isValidStatus) {
-    throw new IllegalTaskStatusTransitionError(tasksErrorMessages.illegalTaskStatusTransitionError);
+    throw new IllegalTaskStatusTransitionError(illegalStatusTransitionErrorMessage(updateActor.getSnapshot().value, status));
   }
 
   updateActor.send({ type: nextStatusChange });
