@@ -19,7 +19,7 @@ export function createMockPrismaError(): Error {
  */
 export function createMockUnknownDbError(): Error {
   const error = new Error('Database error');
-  // @ts-expect-error using this flag to mark the error as a Prisma error
+  // @ts-expect-error using this flag to explicitly mark the error as NOT a Prisma error
   error.isPrismaError = false;
   return error;
 }
