@@ -1240,6 +1240,63 @@ paths:
                       updateTime: '2025-07-27T10:30:00Z'
                       traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-99203ff3c31902b7-01'
                       tracestate: 'api=orders,source=external'
+                tasks_with_lifecycle_states:
+                  summary: Tasks showing different lifecycle states with timing information
+                  description: Examples of tasks in various states showing startTime and endTime usage
+                  value:
+                    - id: 'f1a2b3c4-5678-90ab-cdef-123456789012'
+                      data:
+                        process_type: 'data_processing'
+                        input_file: '/data/raw/dataset_001.json'
+                      stageId: '1a2b3c4d-5e6f-7890-ab12-345678901234'
+                      status: 'PENDING'
+                      attempts: 0
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:30:00Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-aa111bb222c902b7-01'
+                      tracestate: 'state=pending'
+                    - id: 'f2a3b4c5-6789-01bc-def2-345678901234'
+                      data:
+                        process_type: 'data_validation'
+                        input_file: '/data/raw/dataset_002.json'
+                      stageId: '2b3c4d5e-6f78-9012-bc34-567890123456'
+                      status: 'IN_PROGRESS'
+                      attempts: 1
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:32:15Z'
+                      startTime: '2025-07-27T10:32:15Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-bb222cc333d902b7-01'
+                      tracestate: 'state=in_progress'
+                    - id: 'f3a4b5c6-789a-12cd-ef34-567890123456'
+                      data:
+                        process_type: 'data_export'
+                        output_file: '/data/processed/dataset_003.parquet'
+                      stageId: '3c4d5e6f-7890-1234-cd56-789012345678'
+                      status: 'COMPLETED'
+                      attempts: 1
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:35:45Z'
+                      startTime: '2025-07-27T10:33:20Z'
+                      endTime: '2025-07-27T10:35:45Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-cc333dd444e902b7-01'
+                      tracestate: 'state=completed'
+                    - id: 'f4a5b6c7-89ab-23de-f456-789012345678'
+                      data:
+                        process_type: 'data_cleanup'
+                        cleanup_rules: ['remove_duplicates', 'validate_schema']
+                      stageId: '4d5e6f78-9012-3456-de78-901234567890'
+                      status: 'FAILED'
+                      attempts: 3
+                      maxAttempts: 3
+                      creationTime: '2025-07-27T10:30:00Z'
+                      updateTime: '2025-07-27T10:38:12Z'
+                      startTime: '2025-07-27T10:36:05Z'
+                      endTime: '2025-07-27T10:38:12Z'
+                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-dd444ee555f902b7-01'
+                      tracestate: 'state=failed'
         '400':
           description: Invalid request format or validation error
           content:
@@ -1667,6 +1724,14 @@ components:
       type: string
       format: date-time
       description: Timestamp indicating when the resource was last updated
+    startTime:
+      type: string
+      format: date-time
+      description: Timestamp indicating when the resource began processing (in-progress state)
+    endTime:
+      type: string
+      format: date-time
+      description: Timestamp indicating when the resource reached a finite state (e.g., COMPLETED, FAILED, ABORTED)
     jobId:
       type: string
       format: uuid
@@ -2074,6 +2139,10 @@ components:
           $ref: '#/components/schemas/creationTime'
         updateTime:
           $ref: '#/components/schemas/updateTime'
+        startTime:
+          $ref: '#/components/schemas/startTime'
+        endTime:
+          $ref: '#/components/schemas/endTime'
         status:
           $ref: '#/components/schemas/taskOperationStatus'
         attempts:

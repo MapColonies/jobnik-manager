@@ -560,6 +560,16 @@ export type components = {
      */
     updateTime: string;
     /**
+     * Format: date-time
+     * @description Timestamp indicating when the resource began processing (in-progress state)
+     */
+    startTime: string;
+    /**
+     * Format: date-time
+     * @description Timestamp indicating when the resource reached a finite state (e.g., COMPLETED, FAILED, ABORTED)
+     */
+    endTime: string;
+    /**
      * Format: uuid
      * @description Unique identifier for a job
      */
@@ -814,6 +824,8 @@ export type components = {
       userMetadata?: components['schemas']['userMetadata'];
       creationTime?: components['schemas']['creationTime'];
       updateTime?: components['schemas']['updateTime'];
+      startTime?: components['schemas']['startTime'];
+      endTime?: components['schemas']['endTime'];
       status: components['schemas']['taskOperationStatus'];
       attempts: components['schemas']['attempts'];
       maxAttempts: components['schemas']['maxAttempts'];
@@ -1762,11 +1774,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'STAGE_NOT_FOUND';
-          };
+          'application/json': components['schemas']['stageNotFoundResponse'];
         };
       };
       /** @description Internal server error */
@@ -1775,11 +1783,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
-            /** @enum {unknown} */
-            code?: 'DATABASE_RELATED_ERROR' | 'UNKNOWN_ERROR';
-          };
+          'application/json': components['schemas']['internalErrorsResponse'];
         };
       };
     };
@@ -1811,11 +1815,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'VALIDATION_ERROR';
-          };
+          'application/json': components['schemas']['badRequestResponse'];
         };
       };
       /** @description No pending tasks of requested type are available */
@@ -1824,11 +1824,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'TASK_NOT_FOUND';
-          };
+          'application/json': components['schemas']['taskNotFoundResponse'];
         };
       };
       /** @description Internal server error or invalid state transition */
@@ -1837,8 +1833,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
+          'application/json': components['schemas']['baseErrorResponse'] & {
             /** @enum {unknown} */
             code?:
               | 'DATABASE_RELATED_ERROR'
@@ -1889,11 +1884,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'VALIDATION_ERROR';
-          };
+          'application/json': components['schemas']['badRequestResponse'];
         };
       };
       /** @description Internal server error */
@@ -1902,11 +1893,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
-            /** @enum {unknown} */
-            code?: 'DATABASE_RELATED_ERROR' | 'UNKNOWN_ERROR';
-          };
+          'application/json': components['schemas']['internalErrorsResponse'];
         };
       };
     };
@@ -1938,11 +1925,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'VALIDATION_ERROR';
-          };
+          'application/json': components['schemas']['badRequestResponse'];
         };
       };
       /** @description Task not found */
@@ -1951,11 +1934,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'TASK_NOT_FOUND';
-          };
+          'application/json': components['schemas']['taskNotFoundResponse'];
         };
       };
       /** @description Internal server error */
@@ -1964,11 +1943,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
-            /** @enum {unknown} */
-            code?: 'DATABASE_RELATED_ERROR' | 'UNKNOWN_ERROR';
-          };
+          'application/json': components['schemas']['internalErrorsResponse'];
         };
       };
     };
@@ -2007,11 +1982,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'VALIDATION_ERROR';
-          };
+          'application/json': components['schemas']['badRequestResponse'];
         };
       };
       /** @description Task not found */
@@ -2020,11 +1991,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'TASK_NOT_FOUND';
-          };
+          'application/json': components['schemas']['taskNotFoundResponse'];
         };
       };
       /** @description Internal server error */
@@ -2033,11 +2000,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
-            /** @enum {unknown} */
-            code?: 'DATABASE_RELATED_ERROR' | 'UNKNOWN_ERROR';
-          };
+          'application/json': components['schemas']['internalErrorsResponse'];
         };
       };
     };
@@ -2075,10 +2038,9 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
+          'application/json': components['schemas']['baseErrorResponse'] & {
             /** @enum {unknown} */
-            code: 'VALIDATION_ERROR' | 'ILLEGAL_TASK_STATUS_TRANSITION';
+            code?: 'VALIDATION_ERROR' | 'ILLEGAL_TASK_STATUS_TRANSITION';
           };
         };
       };
@@ -2088,11 +2050,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message: string;
-            /** @enum {unknown} */
-            code: 'TASK_NOT_FOUND';
-          };
+          'application/json': components['schemas']['taskNotFoundResponse'];
         };
       };
       /** @description Internal server error */
@@ -2101,8 +2059,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': {
-            message?: string;
+          'application/json': components['schemas']['baseErrorResponse'] & {
             /** @enum {unknown} */
             code?:
               | 'DATABASE_RELATED_ERROR'

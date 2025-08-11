@@ -19,6 +19,7 @@ import {
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
+  retryTaskXstatePersistentSnapshot,
 } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
@@ -772,15 +773,129 @@ describe('task', function () {
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord({ ...createStageBody, summary: initialSummary, jobId: job.id }, prisma);
         const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: tasks[0]!.id },
           requestBody: updateStatusInput,
         });
+
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
+      });
+
+      it("should return 200 status code and change tasks's status to IN_PROGRESS and add startTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('startTime');
+        expect(getTaskResponse.body).toHaveProperty('startTime');
+      });
+
+      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED startTime value was updated", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [
+            {
+              ...createTaskBody,
+              stageId: stage.id,
+              status: TaskOperationStatus.RETRIED,
+              xstate: retryTaskXstatePersistentSnapshot,
+              startTime: new Date(),
+            },
+          ],
+          prisma
+        );
+
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        if (getTaskResponseBeforeUpdate.status !== StatusCodes.OK) {
+          throw new Error('Failed to retrieve task before update');
+        }
+
+        const previousStartTime = getTaskResponseBeforeUpdate.body.startTime;
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        if (getTaskResponse.status !== StatusCodes.OK) {
+          throw new Error('Failed to retrieve task after update');
+        }
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(new Date(getTaskResponse.body.startTime!)).toBeAfter(new Date(previousStartTime!));
+      });
+
+      it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
+          prisma
+        );
+
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
+        expect(getTaskResponse.body).toHaveProperty('endTime');
       });
 
       it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
@@ -798,14 +913,17 @@ describe('task', function () {
           },
           prisma
         );
+
         const tasks = await createTaskRecords(
           [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
           prisma
         );
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: tasks[0]!.id },
           requestBody: updateStatusInput,
         });
+
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
         expect(updateStatusResponse).toSatisfyApiSpec();

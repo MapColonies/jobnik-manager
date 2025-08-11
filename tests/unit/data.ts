@@ -3,6 +3,7 @@ import { createActor } from 'xstate';
 import { JobOperationStatus } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { createJobEntity, createStageEntity } from './generator';
 
 const deleteActor = createActor(jobStateMachine).start();
@@ -23,6 +24,11 @@ completedStageActor.send({ type: 'pend' });
 completedStageActor.send({ type: 'process' });
 completedStageActor.send({ type: 'complete' });
 
+const retriedTaskActor = createActor(taskStateMachine).start();
+retriedTaskActor.send({ type: 'pend' });
+retriedTaskActor.send({ type: 'process' });
+retriedTaskActor.send({ type: 'retry' });
+
 export const jobId = faker.string.uuid();
 export const stageId = faker.string.uuid();
 export const anotherStageId = faker.string.uuid();
@@ -40,6 +46,7 @@ export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot(
 export const inProgressStageXstatePersistentSnapshot = runningStageActor.getPersistedSnapshot();
 export const abortedStageXstatePersistentSnapshot = abortedStageActor.getPersistedSnapshot();
 export const pendingStageXstatePersistentSnapshot = pendingStageActor.getPersistedSnapshot();
+export const retryTaskXstatePersistentSnapshot = retriedTaskActor.getPersistedSnapshot();
 export const completedStageXstatePersistentSnapshot = completedStageActor.getPersistedSnapshot();
 
 export const jobEntityWithAbortStatus = createJobEntity({
