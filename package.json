@@ -67,7 +67,7 @@
     "@map-colonies/commitlint-config": "^1.1.1",
     "@map-colonies/eslint-config": "^6.0.0",
     "@map-colonies/infra-copilot-instructions": "^1.2.0",
-    "@map-colonies/openapi-helpers": "^2.0.0",
+    "@map-colonies/openapi-helpers": "^3.1.0",
     "@map-colonies/prettier-config": "^0.0.1",
     "@map-colonies/tsconfig": "^1.0.1",
     "@opentelemetry/sdk-trace-node": "1.30.1",
