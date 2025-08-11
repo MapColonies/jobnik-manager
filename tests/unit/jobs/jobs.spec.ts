@@ -175,7 +175,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
 
           await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.HIGH)).rejects.toThrow(
-            'Priority cannot be updated to the same value.'
+            jobsErrorMessages.priorityCannotBeUpdatedToSameValue
           );
         });
       });

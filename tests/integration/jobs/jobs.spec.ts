@@ -546,7 +546,7 @@ describe('job', function () {
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(setPriorityResponse).toMatchObject({
           status: StatusCodes.NO_CONTENT,
-          headers: { reason: 'Priority cannot be updated to the same value.' },
+          headers: { reason: jobsErrorMessages.priorityCannotBeUpdatedToSameValue },
         });
       });
     });

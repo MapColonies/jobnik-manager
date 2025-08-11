@@ -22,4 +22,6 @@ export const errorMessages = {
   preDefinedJobStageModificationError: 'PREDEFINED_JOB_STAGE_MODIFICATION_ERROR',
   /**Signifies that the job status transition is not allowed*/
   illegalJobStatusTransitionError: 'ILLEGAL_JOB_STATUS_TRANSITION_ERROR',
+  /**Signifies that the job priority cannot be updated to the same value*/
+  priorityCannotBeUpdatedToSameValue: 'PRIORITY_CANNOT_BE_UPDATED_TO_SAME_VALUE',
 } as const;

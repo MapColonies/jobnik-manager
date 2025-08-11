@@ -112,7 +112,7 @@ export class JobManager {
     }
 
     if (job.priority === priority) {
-      throw new SamePriorityChangeError('Priority cannot be updated to the same value.');
+      throw new SamePriorityChangeError(jobsErrorMessages.priorityCannotBeUpdatedToSameValue);
     }
 
     const updateQueryBody = {
