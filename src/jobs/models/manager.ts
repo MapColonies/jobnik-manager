@@ -7,10 +7,11 @@ import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
 import { Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
-import { errorMessages as commonErrorMessages, InvalidDeletionError, InvalidUpdateError, prismaKnownErrors } from '@common/errors';
+import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/errors';
 import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
-import { JobNotFoundError, errorMessages as jobsErrorMessages } from './errors';
+import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
+import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
@@ -111,7 +112,7 @@ export class JobManager {
     }
 
     if (job.priority === priority) {
-      throw new InvalidUpdateError('Priority cannot be updated to the same value.');
+      throw new SamePriorityChangeError(jobsErrorMessages.priorityCannotBeUpdatedToSameValue);
     }
 
     const updateQueryBody = {
@@ -141,7 +142,7 @@ export class JobManager {
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new InvalidUpdateError(commonErrorMessages.invalidStatusChange);
+      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(job.status, status));
     }
 
     updateActor.send({ type: nextStatusChange });
@@ -171,7 +172,7 @@ export class JobManager {
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
 
     if (checkJobStatus.getSnapshot().status !== 'done') {
-      throw new InvalidDeletionError(jobsErrorMessages.jobNotInFiniteState);
+      throw new JobNotInFiniteStateError(jobsErrorMessages.jobNotInFiniteState);
     }
 
     const deleteQueryBody = {

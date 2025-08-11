@@ -2,7 +2,6 @@ import express, { Router } from 'express';
 import bodyParser from 'body-parser';
 import compression from 'compression';
 import { OpenapiViewerRouter } from '@map-colonies/openapi-express-viewer';
-import { getErrorHandlerMiddleware } from '@map-colonies/error-express-handler';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
 import { inject, injectable } from 'tsyringe';
 import type { Logger } from '@map-colonies/js-logger';
@@ -10,11 +9,18 @@ import httpLogger from '@map-colonies/express-access-log-middleware';
 import { getTraceContexHeaderMiddleware } from '@map-colonies/telemetry';
 import { collectMetricsExpressMiddleware } from '@map-colonies/telemetry/prom-metrics';
 import { Registry } from 'prom-client';
+import { getErrorHandlerMiddleware } from '@common/utils/error-express-handler';
 import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
 import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 import { TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
+
+declare module 'express-serve-static-core' {
+  interface Request {
+    passedValidation?: boolean;
+  }
+}
 
 @injectable()
 export class ServerBuilder {
@@ -69,6 +75,10 @@ export class ServerBuilder {
     const ignorePathRegex = new RegExp(`^${this.config.get('openapiConfig.basePath')}/.*`, 'i');
     const apiSpecPath = this.config.get('openapiConfig.filePath');
     this.serverInstance.use(OpenApiMiddleware({ apiSpec: apiSpecPath, validateRequests: true, ignorePaths: ignorePathRegex }));
+    this.serverInstance.use((req, res, next) => {
+      req.passedValidation = true;
+      next();
+    });
   }
 
   private registerPostRoutesMiddleware(): void {

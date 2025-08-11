@@ -4,10 +4,10 @@ import { injectable, inject } from 'tsyringe';
 import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
-import { InvalidDeletionError, InvalidUpdateError } from '@common/errors';
+import { SamePriorityChangeError } from '@src/jobs/models/errors';
+import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
 import { JobManager } from '../models/manager';
 import { type JobFindCriteriaArg } from '../models/models';
-import { JobNotFoundError } from '../models/errors';
 
 @injectable()
 export class JobController {
@@ -20,7 +20,6 @@ export class JobController {
     const params: JobFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getJobs(params);
-
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       this.logger.error(`Error occurred on getting job with error`, err);
@@ -80,7 +79,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidUpdateError) {
+      } else if (err instanceof SamePriorityChangeError) {
         this.logger.error({
           msg: `Job priority update failed: the priority entered is already assigned to the job`,
           priority: req.body.priority,
@@ -101,7 +100,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidUpdateError) {
+      } else if (err instanceof IllegalJobStatusTransitionError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error({ msg: `Job status update failed: invalid status transition`, status: req.body.status, err });
       }
@@ -118,7 +117,7 @@ export class JobController {
     } catch (err) {
       if (err instanceof JobNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidDeletionError) {
+      } else if (err instanceof JobNotInFiniteStateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 

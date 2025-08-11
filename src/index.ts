@@ -23,7 +23,9 @@ void getApp()
     });
   })
   .catch((error: Error) => {
+    /* eslint-disable no-console */
     console.error('😢 - failed initializing the server');
     console.error(error);
+    /* eslint-enable no-console */
     process.exit(1);
   });

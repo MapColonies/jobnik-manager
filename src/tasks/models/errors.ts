@@ -1,10 +1,3 @@
-export class TaskNotFoundError extends Error {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, TaskNotFoundError.prototype);
-  }
-}
-
 export const errorMessages = {
   /**Signifies that the specified task could not be located*/
   taskNotFound: 'TASK_NOT_FOUND',
@@ -12,4 +5,6 @@ export const errorMessages = {
   addTaskNotAllowed: 'ADD_TASK_NOT_ALLOWED',
   /**Signifies that the specified task could not be updated*/
   taskStatusUpdateFailed: 'TASK_STATUS_UPDATE_FAILED',
+  /**Signifies that the specified task status transition is not allowed*/
+  illegalTaskStatusTransitionError: 'ILLEGAL_TASK_STATUS_TRANSITION_ERROR',
 } as const;

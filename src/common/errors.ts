@@ -1,23 +1,13 @@
-export class InvalidUpdateError extends Error {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, InvalidUpdateError.prototype);
-  }
-}
-
-export class InvalidDeletionError extends Error {
-  public constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, InvalidDeletionError.prototype);
-  }
-}
+import { JobOperationStatus, StageOperationStatus, TaskOperationStatus } from '@src/db/prisma/generated/client';
 
 export const prismaKnownErrors = {
   /**An operation failed because it depends on one or more records that were required but not found. {cause} */
   recordNotFound: 'P2025',
 } as const;
 
-export const errorMessages = {
-  /**Status changes are limited by the state machine's allowed transitions*/
-  invalidStatusChange: 'INVALID_STATUS_CHANGE',
-} as const;
+export function illegalStatusTransitionErrorMessage(
+  currentStatus: JobOperationStatus | StageOperationStatus | TaskOperationStatus,
+  requiredStatus: JobOperationStatus | StageOperationStatus | TaskOperationStatus
+): string {
+  return `Illegal status transition from ${currentStatus} to ${requiredStatus}`;
+}

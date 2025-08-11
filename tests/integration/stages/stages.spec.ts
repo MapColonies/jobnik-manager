@@ -14,12 +14,13 @@ import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageCreateModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { errorMessages as commonErrorMessages } from '@src/common/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createTaskBody, createTaskRecords } from '../tasks/helpers';
+import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { addJobRecord, addStageRecord, createStageBody } from './helpers';
 
 describe('stage', function () {
@@ -204,18 +205,39 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext },
+          body: {
+            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext,
+            code: 'VALIDATION_ERROR',
+          },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+
         const response = await requestSender.getStages({});
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getStages({});
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -323,7 +345,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
 
@@ -333,19 +355,36 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -508,7 +547,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -518,19 +557,36 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobsErrorMessages.jobNotFound },
+          body: { message: jobsErrorMessages.jobNotFound, code: 'JOB_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -563,7 +619,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
 
@@ -573,19 +629,36 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -624,7 +697,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
 
@@ -648,19 +721,36 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/is not valid JSON/) as MatcherContext },
+          body: { message: expect.stringMatching(/is not valid JSON/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
+
+        const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -1022,7 +1112,7 @@ describe('stage', function () {
 
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -1036,7 +1126,7 @@ describe('stage', function () {
 
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must have required property 'data'/) as string },
+          body: { message: expect.stringMatching(/request\/body must have required property 'data'/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -1053,7 +1143,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError },
+          body: { message: jobsErrorMessages.jobAlreadyFinishedStagesError, code: 'JOB_IN_FINITE_STATE' },
         });
       });
 
@@ -1075,7 +1165,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -1098,14 +1188,15 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: jobsErrorMessages.jobNotFound },
+          body: { message: jobsErrorMessages.jobNotFound, code: 'JOB_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
           requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
@@ -1113,7 +1204,26 @@ describe('stage', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.addStage({
+          requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
+          pathParams: { jobId: testJobId },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });
@@ -1198,32 +1308,39 @@ describe('stage', function () {
 
         const createdStageId = stage.id;
 
-        const setStatusResponse = await requestSender.updateStageStatus({
+        const updateStageResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: createdStageId },
           requestBody: { status: StageOperationStatus.COMPLETED },
         });
 
-        expect(setStatusResponse).toSatisfyApiSpec();
-        expect(setStatusResponse).toMatchObject({ status: StatusCodes.BAD_REQUEST, body: { message: commonErrorMessages.invalidStatusChange } });
+        expect(updateStageResponse).toSatisfyApiSpec();
+        expect(updateStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: {
+            message: illegalStatusTransitionErrorMessage(stage.status, StageOperationStatus.COMPLETED),
+            code: 'ILLEGAL_STAGE_STATUS_TRANSITION',
+          },
+        });
       });
 
       it('should return 404 with specific error message for non-existent stage', async function () {
-        const getStageResponse = await requestSender.updateStageStatus({
+        const updateStageResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
           requestBody: { status: StageOperationStatus.COMPLETED },
         });
 
-        expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({
+        expect(updateStageResponse).toSatisfyApiSpec();
+        expect(updateStageResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
-          body: { message: stagesErrorMessages.stageNotFound },
+          body: { message: stagesErrorMessages.stageNotFound, code: 'STAGE_NOT_FOUND' },
         });
       });
     });
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('Database error'));
+        const error = createMockPrismaError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
@@ -1231,7 +1348,26 @@ describe('stage', function () {
         });
 
         expect(response).toSatisfyApiSpec();
-        expect(response).toMatchObject({ status: StatusCodes.INTERNAL_SERVER_ERROR, body: { message: 'Database error' } });
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'DATABASE_RELATED_ERROR' },
+        });
+      });
+
+      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+        const error = createMockUnknownDbError();
+        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        const response = await requestSender.updateStageStatus({
+          pathParams: { stageId: testStageId },
+          requestBody: { status: StageOperationStatus.PENDING },
+        });
+
+        expect(response).toSatisfyApiSpec();
+        expect(response).toMatchObject({
+          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          body: { message: 'Database error', code: 'UNKNOWN_ERROR' },
+        });
       });
     });
   });

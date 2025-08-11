@@ -17,6 +17,7 @@ const namingConvention = [...namingConventions, AllowedSqlOperators];
 const customConfig = {
   rules: {
     '@typescript-eslint/naming-convention': namingConvention,
+    'no-console': 'error',
   },
   languageOptions: {
     parserOptions: {

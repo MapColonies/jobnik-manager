@@ -7,15 +7,22 @@ import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, 
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
-import { InvalidUpdateError, prismaKnownErrors } from '@src/common/errors';
-import { StageNotFoundError, errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
+import { prismaKnownErrors } from '@src/common/errors';
+import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
+import {
+  NotAllowedToAddTasksToInProgressStageError,
+  StageInFiniteStateError,
+  StageNotFoundError,
+  TaskNotFoundError,
+  TaskStatusUpdateFailedError,
+} from '@src/common/generated/errors';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
-import { TaskNotFoundError, errorMessages as tasksErrorMessages } from './errors';
+import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
@@ -93,12 +100,12 @@ export class TaskManager {
     // can't add tasks to finite stages (final states)
     if (checkStageStatus.getSnapshot().status === XSTATE_DONE_STATE) {
       this.logger.error(`Failed adding tasks to stage, not allowed on finite state of stage`);
-      throw new InvalidUpdateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
+      throw new StageInFiniteStateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
     }
 
     if (checkStageStatus.getSnapshot().value === StageOperationStatus.IN_PROGRESS) {
       this.logger.error(`Failed adding tasks to stage, not allowed on running stage`);
-      throw new InvalidUpdateError(tasksErrorMessages.addTaskNotAllowed);
+      throw new NotAllowedToAddTasksToInProgressStageError(tasksErrorMessages.addTaskNotAllowed);
     }
 
     const taskInput = tasksPayload.map((taskData) => {
@@ -270,7 +277,6 @@ export class TaskManager {
    * @param task - The task to update
    * @param status - The target status to set
    * @returns The updated task object
-   * @throws InvalidUpdateError when the status transition is invalid or update fails
    */
   @withSpanAsyncV4
   private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
@@ -290,7 +296,7 @@ export class TaskManager {
       const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
 
       if (updatedTasks[0] === undefined) {
-        throw new InvalidUpdateError(tasksErrorMessages.taskStatusUpdateFailed);
+        throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
       }
 
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);

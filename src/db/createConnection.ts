@@ -34,10 +34,21 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
   return poolConfig;
 };
 
-export function createPrismaClient(poolConfig: PoolConfig, schema: string): PrismaClient {
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+export function createPrismaClient(poolConfig: PoolConfig, schema: string) {
   const adapter = new PrismaPg(poolConfig, { schema });
-  const prisma = new PrismaClient({ adapter });
-
+  const prisma = new PrismaClient({ adapter }).$extends({
+    query: {
+      // eslint-disable-next-line @typescript-eslint/promise-function-async
+      $allOperations({ args, query }) {
+        /* your custom logic for modifying all Prisma Client operations here */
+        return query(args).catch((error) => {
+          (error as { isPrismaError: boolean }).isPrismaError = true; // mark the error as a Prisma error
+          throw error;
+        });
+      },
+    },
+  });
   return prisma;
 }
 

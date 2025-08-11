@@ -4,11 +4,37 @@ import { injectable, inject } from 'tsyringe';
 import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
-import { StageNotFoundError } from '@src/stages/models/errors';
-import { InvalidUpdateError } from '@src/common/errors';
+import {
+  IllegalJobStatusTransitionError,
+  IllegalStageStatusTransitionError,
+  IllegalTaskStatusTransitionError,
+  JobNotFoundError,
+  NotAllowedToAddTasksToInProgressStageError,
+  StageInFiniteStateError,
+  StageNotFoundError,
+  TaskStatusUpdateFailedError,
+  TaskNotFoundError,
+} from '@src/common/generated/errors';
 import { TaskManager } from '../models/manager';
 import { type TasksFindCriteriaArg } from '../models/models';
-import { TaskNotFoundError } from '../models/errors';
+
+const badRequestErrors = [
+  TaskStatusUpdateFailedError,
+  IllegalTaskStatusTransitionError,
+  IllegalStageStatusTransitionError,
+  IllegalJobStatusTransitionError,
+  JobNotFoundError,
+  StageNotFoundError,
+];
+
+const internalErrors = [
+  TaskStatusUpdateFailedError,
+  IllegalTaskStatusTransitionError,
+  IllegalStageStatusTransitionError,
+  IllegalJobStatusTransitionError,
+  JobNotFoundError,
+  StageNotFoundError,
+];
 
 @injectable()
 export class TaskController {
@@ -27,7 +53,7 @@ export class TaskController {
         (err as HttpError).status = httpStatus.NOT_FOUND;
       }
 
-      if (err instanceof InvalidUpdateError) {
+      if (err instanceof NotAllowedToAddTasksToInProgressStageError || err instanceof StageInFiniteStateError) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
       }
 
@@ -92,7 +118,7 @@ export class TaskController {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidUpdateError) {
+      } else if (badRequestErrors.some((e) => err instanceof e)) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
         this.logger.error({ msg: `Task status update failed: invalid status transition`, status: req.body.status, err });
       }
@@ -109,7 +135,7 @@ export class TaskController {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
-      } else if (err instanceof InvalidUpdateError) {
+      } else if (internalErrors.some((e) => err instanceof e)) {
         (err as HttpError).status = httpStatus.INTERNAL_SERVER_ERROR;
       }
 

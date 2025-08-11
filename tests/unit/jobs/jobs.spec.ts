@@ -1,7 +1,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
-import { errorMessages as commonErrorMessages, prismaKnownErrors } from '@src/common/errors';
+import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
@@ -175,7 +175,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
 
           await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.HIGH)).rejects.toThrow(
-            'Priority cannot be updated to the same value.'
+            jobsErrorMessages.priorityCannotBeUpdatedToSameValue
           );
         });
       });
@@ -220,7 +220,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
-            commonErrorMessages.invalidStatusChange
+            illegalStatusTransitionErrorMessage(jobEntityWithoutStages.status, JobOperationStatus.COMPLETED)
           );
         });
       });
