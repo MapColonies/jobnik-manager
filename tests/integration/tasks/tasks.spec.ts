@@ -898,6 +898,46 @@ describe('task', function () {
         expect(getTaskResponse.body).toHaveProperty('endTime');
       });
 
+      it("should return 200 status code and change tasks's to finite state (FAILED) and add endTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.FAILED };
+        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
+        const stage = await addStageRecord(
+          {
+            ...createStageBody,
+            jobId: job.id,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          },
+          prisma
+        );
+
+        const tasks = await createTaskRecords(
+          [
+            {
+              ...createTaskBody,
+              stageId: stage.id,
+              status: TaskOperationStatus.IN_PROGRESS,
+              maxAttempts: 1,
+              xstate: inProgressStageXstatePersistentSnapshot,
+            },
+          ],
+          prisma
+        );
+
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId: tasks[0]!.id },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
+        expect(getTaskResponse.body).toHaveProperty('endTime');
+      });
+
       it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, total: 1000, completed: 998, inProgress: 1, pending: 1 };
         const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
@@ -974,7 +1014,7 @@ describe('task', function () {
             {
               ...createTaskBody,
               stageId: stage.id,
-              attempts: 2,
+              attempts: 1,
               maxAttempts: 2,
               status: TaskOperationStatus.IN_PROGRESS,
               xstate: inProgressStageXstatePersistentSnapshot,
@@ -1028,7 +1068,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED", async function () {
+      it("should return 200 status code and change tasks's status to COMPLETED and stage also to COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };

@@ -327,10 +327,10 @@ export class TaskManager {
       return { nextStatus: requestedStatus };
     }
 
-    // Handle retry logic for failed tasks
-    const shouldRetry = task.attempts < task.maxAttempts;
-    const nextStatus = shouldRetry ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
-    const taskDataToUpdate = shouldRetry ? { attempts: task.attempts + 1 } : {};
+    const taskDataToUpdate = { attempts: task.attempts + 1 };
+
+    const didTaskFail = taskDataToUpdate.attempts >= task.maxAttempts;
+    const nextStatus = didTaskFail ? TaskOperationStatus.FAILED : TaskOperationStatus.RETRIED;
 
     return { nextStatus, taskDataToUpdate };
   }
