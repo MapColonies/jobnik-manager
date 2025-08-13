@@ -5,7 +5,6 @@ import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import type { MatcherContext } from '@jest/expect';
-import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
@@ -13,12 +12,11 @@ import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { abortedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
-import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
-import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
 const memoryExporter = new InMemorySpanExporter();
@@ -55,26 +53,16 @@ describe('job', function () {
   describe('#FindJobs', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching job with stages when stages flag is true', async function () {
-        const job = await addJobRecord(
+        await createJobnikTree(
+          prisma,
+          { xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: pendingStageXstatePersistentSnapshot,
-            status: JobOperationStatus.PENDING,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-
-        await addStageRecord(
-          {
-            ...createStageBody,
             summary: { ...defaultStatusCounts, total: 1, pending: 1 },
-            jobId: job.id,
             status: StageOperationStatus.PENDING,
             xstate: pendingStageXstatePersistentSnapshot,
           },
-          prisma
+          [],
+          { createStage: true, createTasks: false }
         );
 
         const response = await requestSender.findJobs({ queryParams: { should_return_stages: true } });
@@ -358,35 +346,44 @@ describe('job', function () {
   describe('#getJobById', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the job', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody }, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { name: 'SOME_UNIQUE_NAME' }, {}, [], { createStage: true, createTasks: false });
+        const jobId = job.id;
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, name: 'SOME_UNIQUE_NAME' } });
         expect(getJobResponse.body).not.toHaveProperty('stages');
       });
 
       it('should return 200 status code and return the job with stages when stages flag is true', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { name: 'SOME_UNIQUE_NAME' }, { type: 'SOME_UNIQUE_TYPE' }, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId }, queryParams: { should_return_stages: true } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId }, queryParams: { should_return_stages: true } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });
+        expect(getJobResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: { status: JobOperationStatus.CREATED, name: 'SOME_UNIQUE_NAME', stages: [{ type: 'SOME_UNIQUE_TYPE' }] },
+        });
         expect(getJobResponse.body).toHaveProperty('stages');
       });
 
       it('should return 200 status code and return the job without stages when stages flag is false', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { name: 'SOME_UNIQUE_NAME' }, { type: 'SOME_UNIQUE_TYPE' }, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId }, queryParams: { should_return_stages: false } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId }, queryParams: { should_return_stages: false } });
 
         expect(getJobResponse).toSatisfyApiSpec();
-        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, ...createJobRequestBody } });
+        expect(getJobResponse).toMatchObject({ status: StatusCodes.OK, body: { status: JobOperationStatus.CREATED, name: 'SOME_UNIQUE_NAME' } });
         expect(getJobResponse.body).not.toHaveProperty('stages');
       });
     });
@@ -445,15 +442,18 @@ describe('job', function () {
     describe('Happy Path', function () {
       it("should return 201 status code and modify job's userMetadata object", async function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { name: 'SOME_UNIQUE_NAME' }, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
         const updateUserMetadataResponse = await requestSender.updateUserMetadata({
-          pathParams: { jobId: createdJobId },
+          pathParams: { jobId },
           requestBody: userMetadataInput,
         });
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(updateUserMetadataResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ userMetadata: userMetadataInput });
@@ -517,28 +517,32 @@ describe('job', function () {
   describe('#updateJobPriority', function () {
     describe('Happy Path', function () {
       it("should return 201 status code and modify job's priority", async function () {
-        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_LOW };
-        const job = await createJobRecord(createJobRequestBodyWithPriority, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { priority: Priority.VERY_LOW }, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
-          pathParams: { jobId: createdJobId },
+          pathParams: { jobId },
           requestBody: { priority: Priority.VERY_HIGH },
         });
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(setPriorityResponse).toSatisfyApiSpec();
         expect(getJobResponse.body).toMatchObject({ priority: Priority.VERY_HIGH });
       });
 
       it("should return 204 status code without modifying job's priority", async function () {
-        const createJobRequestBodyWithPriority = { ...createJobRequestBody, priority: Priority.VERY_HIGH };
-        const job = await createJobRecord(createJobRequestBodyWithPriority, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { priority: Priority.VERY_HIGH }, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
         const setPriorityResponse = await requestSender.updateJobPriority({
-          pathParams: { jobId: createdJobId },
+          pathParams: { jobId },
 
           requestBody: { priority: Priority.VERY_HIGH },
         });
@@ -614,18 +618,21 @@ describe('job', function () {
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
       it("should return 201 status code and modify job's status", async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, {}, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
         const setStatusResponse = await requestSender.updateStatus({
-          pathParams: { jobId: createdJobId },
+          pathParams: { jobId },
           requestBody: { status: JobOperationStatus.PENDING },
         });
 
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
 
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(getJobResponse).toHaveProperty('body.status', JobOperationStatus.PENDING);
       });
@@ -633,11 +640,14 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return 400 with detailed error for invalid status transition', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, {}, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
         const setStatusResponse = await requestSender.updateStatus({
-          pathParams: { jobId: createdJobId },
+          pathParams: { jobId },
           requestBody: { status: JobOperationStatus.COMPLETED },
         });
 
@@ -723,12 +733,14 @@ describe('job', function () {
       });
 
       it('should return 200 status code and delete the job only', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { status: JobOperationStatus.ABORTED, xstate: abortedStageXstatePersistentSnapshot }, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
-        await requestSender.updateStatus({ pathParams: { jobId: createdJobId }, requestBody: { status: JobOperationStatus.ABORTED } });
-        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
-        const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId } });
+        const validateDeletionResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(deleteJobResponse).toSatisfyApiSpec();
         expect(deleteJobResponse).toMatchObject({
@@ -755,10 +767,13 @@ describe('job', function () {
       });
 
       it('should return status code 400 when supplying job with not final state status', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { job } = await createJobnikTree(prisma, { status: JobOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }, {}, [], {
+          createStage: true,
+          createTasks: false,
+        });
+        const jobId = job.id;
 
-        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId: createdJobId } });
+        const deleteJobResponse = await requestSender.deleteJob({ pathParams: { jobId } });
 
         expect(deleteJobResponse).toSatisfyApiSpec();
         expect(deleteJobResponse).toMatchObject({
