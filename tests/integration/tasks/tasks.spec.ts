@@ -818,7 +818,7 @@ describe('task', function () {
         expect(getTaskResponse.body).toHaveProperty('startTime');
       });
 
-      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED startTime value was updated", async function () {
+      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED and startTime value was updated", async function () {
         const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
         const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
         const stage = await addStageRecord(
