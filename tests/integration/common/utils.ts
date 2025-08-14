@@ -1,3 +1,97 @@
+import { faker } from '@faker-js/faker';
+import { type Snapshot } from 'xstate';
+import { type Prisma, type PrismaClient, JobOperationStatus } from '@prismaClient';
+import { Job, Stage, Task } from '@src/db/prisma/generated/client';
+import { JobCreateModel } from '@src/jobs/models/models';
+import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
+import { createStageBody, addStageRecord } from '../stages/helpers';
+import { createTaskBody, createTaskRecords } from '../tasks/helpers';
+
+type JobTestCreateModel = JobCreateModel & {
+  id?: string;
+  xstate?: Snapshot<unknown>;
+  status?: JobOperationStatus;
+};
+
+/**
+ * Creates a test job tree with optional stage and tasks.
+ * Uses function overloads to provide better type safety based on configuration.
+ */
+
+// Overload 1: Job only (no stage, no tasks)
+export async function createJobnikTree(
+  prisma: PrismaClient,
+  jobOverrides: Partial<JobTestCreateModel>,
+  stageOverrides: Partial<Prisma.StageCreateManyInput>,
+  tasksOverrides: Partial<Prisma.TaskCreateManyInput>[],
+  options: { createStage: false; createTasks?: false }
+): Promise<JobOnlyTree>;
+
+// Overload 2: Job with stage only (no tasks)
+export async function createJobnikTree(
+  prisma: PrismaClient,
+  jobOverrides: Partial<JobTestCreateModel>,
+  stageOverrides: Partial<Prisma.StageCreateManyInput>,
+  tasksOverrides: Partial<Prisma.TaskCreateManyInput>[],
+  options: { createStage: true; createTasks: false }
+): Promise<JobWithStageTree>;
+
+// Overload 3: Full tree (job, stage, and tasks) - default behavior
+export async function createJobnikTree(
+  prisma: PrismaClient,
+  jobOverrides?: Partial<JobTestCreateModel>,
+  stageOverrides?: Partial<Prisma.StageCreateManyInput>,
+  tasksOverrides?: Partial<Prisma.TaskCreateManyInput>[],
+  options?: { createStage?: true; createTasks?: true }
+): Promise<FullJobnikTree>;
+
+// Implementation
+export async function createJobnikTree(
+  prisma: PrismaClient,
+  jobOverrides: Partial<JobTestCreateModel> = {},
+  stageOverrides: Partial<Prisma.StageCreateManyInput> = {},
+  tasksOverrides: Partial<Prisma.TaskCreateManyInput>[] = [{}],
+  options: {
+    createStage?: boolean;
+    createTasks?: boolean;
+  } = {}
+): Promise<JobOnlyTree | JobWithStageTree | FullJobnikTree> {
+  const { createStage = true, createTasks = true } = options;
+
+  // Create job with overrides
+  const jobData = { ...createJobRequestBody, id: faker.string.uuid(), ...jobOverrides };
+  const job = await createJobRecord(jobData, prisma);
+
+  // Job only scenario
+  if (!createStage) {
+    return { job };
+  }
+
+  // Create stage
+  const stageData = {
+    ...createStageBody,
+    jobId: job.id,
+    ...stageOverrides,
+  };
+  const stage = await addStageRecord(stageData, prisma);
+
+  // Job with stage only scenario
+  if (!createTasks) {
+    return { job, stage };
+  }
+
+  // Full tree scenario - ensure we have at least one task
+  const finalTasksOverrides = tasksOverrides.length > 0 ? tasksOverrides : [{}];
+  const tasksData = finalTasksOverrides.map((taskOverride) => ({
+    ...createTaskBody,
+    stageId: stage.id,
+    ...taskOverride,
+  }));
+  const tasks = await createTaskRecords(tasksData, prisma);
+
+  return { job, stage, tasks };
+}
+
 /**
  * Creates a mock Prisma error for testing purposes.
  * Default message is 'Database error'.
@@ -22,4 +116,17 @@ export function createMockUnknownDbError(): Error {
   // @ts-expect-error using this flag to explicitly mark the error as NOT a Prisma error
   error.isPrismaError = false;
   return error;
+}
+
+// Type definitions using inheritance - cleaner hierarchy
+export interface JobOnlyTree {
+  readonly job: Job;
+}
+
+export interface JobWithStageTree extends JobOnlyTree {
+  readonly stage: Stage;
+}
+
+export interface FullJobnikTree extends JobWithStageTree {
+  readonly tasks: Task[];
 }

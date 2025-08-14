@@ -77,6 +77,8 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
     xstate: taskInitializedPersistedSnapshot,
     traceparent: DEFAULT_TRACEPARENT,
     tracestate: null,
+    startTime: null,
+    endTime: null,
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };

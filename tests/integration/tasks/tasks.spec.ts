@@ -19,12 +19,13 @@ import {
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
+  retryTaskXstatePersistentSnapshot,
 } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
-import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
+import { createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
-import { createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { createTaskBody, createTaskRecords } from './helpers';
 
 describe('task', function () {
@@ -61,16 +62,16 @@ describe('task', function () {
   describe('#getTasks', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and the matching task', async function () {
-        // create full tree
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+        const { stage, tasks } = await createJobnikTree(prisma);
 
-        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stage.id } });
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
+        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stageId } });
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ id: tasks[0]!.id, stageId: stage.id }],
+          body: [{ id: taskId, stageId }],
         });
       });
 
@@ -86,16 +87,7 @@ describe('task', function () {
       });
 
       it('should return 200 status code and all the tasks if no query params were defined', async function () {
-        // create full tree
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        await createTaskRecords(
-          [
-            { ...createTaskBody, stageId: stage.id },
-            { ...createTaskBody, stageId: stage.id },
-          ],
-          prisma
-        );
+        await createJobnikTree(prisma, {}, {}, [{}, {}]);
 
         const response = await requestSender.getTasksByCriteria();
 
@@ -185,11 +177,10 @@ describe('task', function () {
   describe('#getTaskById', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the stage', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+        const { tasks } = await createJobnikTree(prisma);
+        const taskId = tasks[0]!.id;
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED } });
@@ -250,17 +241,10 @@ describe('task', function () {
   describe('#getTaskByStageId', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and return the tasks', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        await createTaskRecords(
-          [
-            { ...createTaskBody, stageId: stage.id },
-            { ...createTaskBody, stageId: stage.id },
-          ],
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [{}, {}]);
+        const stageId = stage.id;
 
-        const getTasksResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: stage.id } });
+        const getTasksResponse = await requestSender.getTasksByStageId({ pathParams: { stageId } });
 
         if (getTasksResponse.status !== StatusCodes.OK) {
           throw new Error();
@@ -271,19 +255,17 @@ describe('task', function () {
         expect(getTasksResponse).toMatchObject({
           status: StatusCodes.OK,
           body: [
-            { status: TaskOperationStatus.CREATED, stageId: stage.id },
-            { status: TaskOperationStatus.CREATED, stageId: stage.id },
+            { status: TaskOperationStatus.CREATED, stageId },
+            { status: TaskOperationStatus.CREATED, stageId },
           ],
         });
       });
 
       it('should return a 200 status code with empty array object if no tasks exists for the requested stage', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
-        const createdStageId = stage.id;
-
-        const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: createdStageId } });
+        const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -348,12 +330,11 @@ describe('task', function () {
     describe('Happy Path', function () {
       it("should return 201 status code and modify tasks's userMetadata object", async function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+        const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
+        const taskId = tasks[0]!.id;
 
         const updateUserMetadataResponse = await requestSender.updateTaskUserMetadata({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: userMetadataInput,
         });
 
@@ -379,12 +360,11 @@ describe('task', function () {
       });
 
       it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+        const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
+        const taskId = tasks[0]!.id;
 
         const response = await requestSender.updateTaskUserMetadata({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: 'badInputString' as unknown as { [key: string]: string },
         });
 
@@ -428,16 +408,8 @@ describe('task', function () {
   describe('#addTasks', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and create the related tasks for current stage', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         const createTasksPayload = {
           data: {},
@@ -446,7 +418,7 @@ describe('task', function () {
 
         const response = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -457,21 +429,11 @@ describe('task', function () {
       });
 
       it('should return 200 and create new tasks for a stage with existing tasks', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { stage } = await createJobnikTree(prisma, {}, {}, [
+          { status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot },
+        ]);
 
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
-
-        await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot }],
-          prisma
-        );
+        const stageId = stage.id;
 
         const createTasksPayload = {
           data: {},
@@ -480,7 +442,7 @@ describe('task', function () {
 
         const response = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -491,16 +453,8 @@ describe('task', function () {
       });
 
       it('should return 201 status code and create the tasks with generated traceparent from active span', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         const createTasksPayload = {
           data: {},
@@ -509,7 +463,7 @@ describe('task', function () {
 
         const createTaskResponse = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         await memoryExporter.forceFlush();
@@ -527,16 +481,8 @@ describe('task', function () {
       });
 
       it('should return 201 status code and create the tasks with provided traceparent and tracestate', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         const createTasksPayload = {
           data: {},
@@ -547,7 +493,7 @@ describe('task', function () {
 
         const createTaskResponse = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         expect(createTaskResponse).toSatisfyApiSpec();
@@ -562,16 +508,8 @@ describe('task', function () {
       });
 
       it('should return 201 status code and create the tasks with provided traceparent without tracestate', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         const createTasksPayload = {
           data: {},
@@ -581,7 +519,7 @@ describe('task', function () {
 
         const createTaskResponse = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         if (!Array.isArray(createTaskResponse.body)) {
@@ -613,19 +551,11 @@ describe('task', function () {
       });
 
       it('should return 400 when the request contains an incorrect body', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         const addTasksResponse = await requestSender.addTasks({
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
           requestBody: {} as unknown as [],
         });
 
@@ -636,13 +566,13 @@ describe('task', function () {
       });
 
       it('should return 400 when attempting to add tasks to a finalized stage', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const stage = await addStageRecord({ ...createStageBody, jobId: job.id }, prisma);
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
         // generate some stage in finite state (aborted)
-        await requestSender.updateStageStatus({ pathParams: { stageId: stage.id }, requestBody: { status: StageOperationStatus.ABORTED } });
+        await requestSender.updateStageStatus({ pathParams: { stageId }, requestBody: { status: StageOperationStatus.ABORTED } });
 
-        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
 
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
@@ -652,23 +582,16 @@ describe('task', function () {
       });
 
       it('should return 400 when attempting to add tasks to a running stage', async function () {
-        const job = await addJobRecord(
-          {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.IN_PROGRESS,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
+        const { stage } = await createJobnikTree(
+          prisma,
+          { xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.IN_PROGRESS, traceparent: DEFAULT_TRACEPARENT },
+          { xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.IN_PROGRESS },
+          [],
+          { createStage: true, createTasks: false }
         );
-        const stage = await addStageRecord(
-          { ...createStageBody, xstate: inProgressStageXstatePersistentSnapshot, status: JobOperationStatus.IN_PROGRESS, jobId: job.id },
+        const stageId = stage.id;
 
-          prisma
-        );
-
-        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: stage.id } });
+        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
 
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
@@ -678,16 +601,9 @@ describe('task', function () {
       });
 
       it('should return 400 when the request contains an invalid traceparent format', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
+        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const stageId = stage.id;
 
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            jobId: createdJobId,
-          },
-          prisma
-        );
         const createTasksPayload = {
           data: {},
           userMetadata: {},
@@ -696,7 +612,7 @@ describe('task', function () {
 
         const createTaskResponse = await requestSender.addTasks({
           requestBody: [createTasksPayload],
-          pathParams: { stageId: stage.id },
+          pathParams: { stageId },
         });
 
         expect(createTaskResponse).toMatchObject({
@@ -769,45 +685,153 @@ describe('task', function () {
         const initialSummary = { ...defaultStatusCounts, created: 1, total: 1 };
         const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.PENDING };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, summary: initialSummary, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id }], prisma);
+
+        const { stage, tasks } = await createJobnikTree(prisma, {}, { summary: initialSummary }, [{}]);
+
+        const taskId = tasks[0]!.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
+      });
+
+      it("should return 200 status code and change tasks's status to IN_PROGRESS and add startTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
+
+        const { tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
+        );
+
+        const taskId = tasks[0]!.id;
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('startTime');
+        expect(getTaskResponse.body).toHaveProperty('startTime');
+      });
+
+      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED and startTime value was updated", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
+
+        const { tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
+        );
+
+        const taskId = tasks[0]!.id;
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        if (getTaskResponseBeforeUpdate.status !== StatusCodes.OK) {
+          throw new Error('Failed to retrieve task before update');
+        }
+
+        const previousStartTime = getTaskResponseBeforeUpdate.body.startTime;
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        if (getTaskResponse.status !== StatusCodes.OK) {
+          throw new Error('Failed to retrieve task after update');
+        }
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(new Date(getTaskResponse.body.startTime!)).toBeAfter(new Date(previousStartTime!));
+      });
+
+      it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+
+        const { tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
+        );
+
+        const taskId = tasks[0]!.id;
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
+        expect(getTaskResponse.body).toHaveProperty('endTime');
+      });
+
+      it("should return 200 status code and change tasks's to finite state (FAILED) and add endTime", async function () {
+        const updateStatusInput = { status: TaskOperationStatus.FAILED };
+
+        const { tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 1 }]
+        );
+
+        const taskId = tasks[0]!.id;
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
+        expect(getTaskResponse.body).toHaveProperty('endTime');
       });
 
       it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, total: 1000, completed: 998, inProgress: 1, pending: 1 };
         const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-          },
-          prisma
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 1 }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
@@ -818,27 +842,25 @@ describe('task', function () {
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
         const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0, total: 1 };
         const expectedStatus = { status: TaskOperationStatus.RETRIED, attempts: 1 };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, summary: initialSummary, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords(
-          [
-            {
-              ...createTaskBody,
-              stageId: stage.id,
-              attempts: 0,
-              maxAttempts: 2,
-              status: TaskOperationStatus.IN_PROGRESS,
-              xstate: inProgressStageXstatePersistentSnapshot,
-            },
-          ],
-          prisma
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 2, attempts: 0 }]
         );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedStatus);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
@@ -849,27 +871,24 @@ describe('task', function () {
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
         const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1, total: 1 };
         const expectedStatus = { status: TaskOperationStatus.FAILED, attempts: 2 };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord({ ...createStageBody, summary: initialSummary, jobId: job.id }, prisma);
-        const tasks = await createTaskRecords(
-          [
-            {
-              ...createTaskBody,
-              stageId: stage.id,
-              attempts: 2,
-              maxAttempts: 2,
-              status: TaskOperationStatus.IN_PROGRESS,
-              xstate: inProgressStageXstatePersistentSnapshot,
-            },
-          ],
-          prisma
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 2, attempts: 1 }]
         );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedStatus);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
@@ -881,62 +900,58 @@ describe('task', function () {
         const expectedSummary = { ...defaultStatusCounts, inProgress: 1, completed: 1, total: 2 };
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.IN_PROGRESS, percentage: 50, summary: expectedSummary };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: initialSummary,
-            jobId: job.id,
-          },
-          prisma
-        );
-        const tasks = await createTaskRecords(
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
           [
-            { ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
-            { ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
-          ],
-          prisma
+            { status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+            { status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          ]
         );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED + COMPLETED", async function () {
+      it("should return 200 status code and change tasks's status to COMPLETED and stage also to COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
         const expectedStageStatus = { status: TaskOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: initialSummary,
-            jobId: job.id,
-          },
-          prisma
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
@@ -945,20 +960,17 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 400 with detailed error for invalid status transition', async function () {
-        const job = await createJobRecord({ ...createJobRequestBody, id: faker.string.uuid() }, prisma);
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            jobId: job.id,
-          },
-          prisma
+        const { tasks } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [{ status: TaskOperationStatus.CREATED }]
         );
-        const tasks = await createTaskRecords([{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.CREATED }], prisma);
+
+        const taskId = tasks[0]!.id;
 
         const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId: tasks[0]!.id },
+          pathParams: { taskId },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
@@ -990,6 +1002,7 @@ describe('task', function () {
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.PENDING },
         });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(updateStatusResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
@@ -1037,42 +1050,35 @@ describe('task', function () {
     describe('Happy Path', function () {
       it('should return 200 status code and available task', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-        const job = await addJobRecord(
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.IN_PROGRESS,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
-            type: 'SOME_TEST_TYPE_1',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_1',
           },
-          prisma
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const dequeueResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_1' },
         });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
           body: {
-            id: tasks[0]!.id,
+            id: taskId,
             status: TaskOperationStatus.IN_PROGRESS,
-            stageId: stage.id,
+            stageId,
           },
         });
         //validate summary was updated
@@ -1081,42 +1087,35 @@ describe('task', function () {
 
       it('should return 200 status code and available task and move stage only and job to in progress', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-        const job = await addJobRecord(
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.IN_PROGRESS,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
-            type: 'SOME_TEST_TYPE_2',
             status: StageOperationStatus.PENDING,
             xstate: pendingStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_2',
           },
-          prisma
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
         const dequeueResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_2' },
         });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
           body: {
-            id: tasks[0]!.id,
+            id: taskId,
             status: TaskOperationStatus.IN_PROGRESS,
-            stageId: stage.id,
+            stageId,
           },
         });
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
@@ -1124,43 +1123,37 @@ describe('task', function () {
 
       it('should return 200 status code and available task and move stage and job to in progress', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-        const job = await addJobRecord(
+
+        const { job, stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: pendingStageXstatePersistentSnapshot,
-            status: JobOperationStatus.PENDING,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
             status: StageOperationStatus.PENDING,
-            type: 'SOME_TEST_TYPE_3',
             xstate: pendingStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_3',
           },
-          prisma
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const jobId = job.id;
+        const stageId = stage.id;
+        const taskId = tasks[0]!.id;
+
         const dequeueResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_3' },
         });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
           body: {
-            id: tasks[0]!.id,
+            id: taskId,
             status: TaskOperationStatus.IN_PROGRESS,
-            stageId: stage.id,
+            stageId,
           },
         });
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
@@ -1329,34 +1322,23 @@ describe('task', function () {
       it('should return 404 without available PENDING task', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
-        const job = await addJobRecord(
+
+        await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.IN_PROGRESS,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
             status: StageOperationStatus.IN_PROGRESS,
-            type: 'SOME_TEST_TYPE_NO_PENDING_TASK',
             xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_NO_PENDING_TASK',
           },
-          prisma
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
-        await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }],
-          prisma
-        );
+
         const taskResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_NO_PENDING_TASK' },
         });
+
         expect(taskResponse).toSatisfyApiSpec();
         expect(taskResponse).toMatchObject({
           status: StatusCodes.NOT_FOUND,
@@ -1398,39 +1380,30 @@ describe('task', function () {
 
       it('should return 500 status code when the transaction was failed', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-        const job = await addJobRecord(
-          // synthetic create a job with in-progress state for future failure on update
+
+        const { job, stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.PENDING, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.PENDING,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
             status: StageOperationStatus.PENDING,
-            type: 'SOME_TEST_TYPE_FAILED_TRANSACTION',
             xstate: pendingStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_FAILED_TRANSACTION',
           },
-          prisma
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
-        const task = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const jobId = job.id;
+        const stageId = stage.id;
+        const taskId = tasks[0]!.id;
+
         const dequeueResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_TYPE_FAILED_TRANSACTION' },
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: task[0]!.id } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: job.id } });
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
 
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
@@ -1445,31 +1418,22 @@ describe('task', function () {
       it('should return 500 and prevent multiple dequeue of the same task', async function () {
         expect.assertions(4);
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-        const job = await addJobRecord(
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
           {
-            ...createJobRequestBody,
-            id: faker.string.uuid(),
-            xstate: inProgressStageXstatePersistentSnapshot,
-            status: JobOperationStatus.IN_PROGRESS,
-            traceparent: DEFAULT_TRACEPARENT,
-          },
-          prisma
-        );
-        const stage = await addStageRecord(
-          {
-            ...createStageBody,
-            summary: initialSummary,
-            jobId: job.id,
-            type: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE',
             status: StageOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE',
           },
-          prisma
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
-        const tasks = await createTaskRecords(
-          [{ ...createTaskBody, stageId: stage.id, status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }],
-          prisma
-        );
+
+        const stageId = stage.id;
+        const taskId = tasks[0]!.id;
+
         let continueUpdateFirstTask: (value?: unknown) => void;
         let continueUpdateSecondTask: (value?: unknown) => void;
         const updateTaskHolderFirst = new Promise((resolve) => {
@@ -1510,9 +1474,9 @@ describe('task', function () {
         expect(firstResponse).toMatchObject({
           status: StatusCodes.OK,
           body: {
-            id: tasks[0]!.id,
+            id: taskId,
             status: TaskOperationStatus.IN_PROGRESS,
-            stageId: stage.id,
+            stageId: stageId,
           },
         });
         //second call will fail with 500 status code

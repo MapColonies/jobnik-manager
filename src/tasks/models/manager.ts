@@ -287,10 +287,14 @@ export class TaskManager {
 
       const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
 
+      const startTime: Date | undefined = nextStatus === TaskOperationStatus.IN_PROGRESS ? new Date() : undefined;
+
+      const endTime: Date | undefined = newPersistedSnapshot.status === 'done' ? new Date() : undefined;
+
       // Create update query with race condition protection for IN_PROGRESS
       const updateQueryBody = {
         where: this.createUpdateWhereClause(task.id, nextStatus, previousStatus),
-        data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot },
+        data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot, startTime, endTime },
       };
 
       const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
@@ -323,10 +327,10 @@ export class TaskManager {
       return { nextStatus: requestedStatus };
     }
 
-    // Handle retry logic for failed tasks
-    const shouldRetry = task.attempts < task.maxAttempts;
-    const nextStatus = shouldRetry ? TaskOperationStatus.RETRIED : TaskOperationStatus.FAILED;
-    const taskDataToUpdate = shouldRetry ? { attempts: task.attempts + 1 } : {};
+    const taskDataToUpdate = { attempts: task.attempts + 1 };
+
+    const didTaskFail = taskDataToUpdate.attempts >= task.maxAttempts;
+    const nextStatus = didTaskFail ? TaskOperationStatus.FAILED : TaskOperationStatus.RETRIED;
 
     return { nextStatus, taskDataToUpdate };
   }

@@ -28,8 +28,8 @@ model Job {
   priority     Priority           @default(VERY_LOW)
   name         String
   stage        Stage[]
-  traceparent  String             
-  tracestate   String?             
+  traceparent  String
+  tracestate   String?
 
   @@map("job")
 }
@@ -85,8 +85,8 @@ model Stage {
   xstate       Json
   type         String               @default("unknown") @db.VarChar(50)
   task         Task[]
-  traceparent  String               
-  tracestate   String?               
+  traceparent  String
+  tracestate   String?
 
   @@map("stage")
 }
@@ -100,13 +100,15 @@ model Task {
   xstate       Json
   creationTime DateTime            @default(now()) @map("creation_time")
   updateTime   DateTime            @updatedAt @map("update_time")
+  startTime    DateTime?           @map("start_time")
+  endTime      DateTime?           @map("end_time")
   userMetadata Json                @default("{}") @map("user_metadata")
   stage        Stage               @relation(fields: [stageId], references: [id], onDelete: Cascade)
   stageId      String              @map("stage_id") @db.Uuid
   attempts     Int                 @default(0)
   maxAttempts  Int                 @default(1) @map("max_attempts")
-  traceparent  String              
-  tracestate   String?              
+  traceparent  String
+  tracestate   String?
 
   @@map("task")
 }

@@ -48,7 +48,7 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
-          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(tasks).toMatchObject(expectedTask);
@@ -60,7 +60,7 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasks({});
 
-          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
           expect(tasks).toMatchObject(expectedTask);
@@ -93,7 +93,7 @@ describe('JobManager', () => {
 
           const task = await taskManager.getTaskById(taskId);
 
-          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
 
           expect(task).toMatchObject(expectedTask);
@@ -126,12 +126,12 @@ describe('JobManager', () => {
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([taskEntity]);
 
-          const stage = await taskManager.getTasksByStageId(stageEntity.id);
+          const tasks = await taskManager.getTasksByStageId(stageEntity.id);
 
-          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
-          expect(stage).toMatchObject(expectedTask);
+          expect(tasks).toMatchObject(expectedTask);
         });
       });
 
@@ -212,7 +212,7 @@ describe('JobManager', () => {
           const tasksResponse = await taskManager.addTasks(stageId, [taskPayload]);
 
           // Extract unnecessary fields from the job object and assemble the expected result
-          const { creationTime, updateTime, xstate, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
 
           expect(tasksResponse).toMatchObject([
             { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
@@ -358,7 +358,42 @@ describe('JobManager', () => {
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
         });
 
-        it('should update task status to FAILED', async function () {
+        it('should update task status to IN_PROGRESS and add startTime', async function () {
+          const jobId = faker.string.uuid();
+          const stageId = faker.string.uuid();
+          const taskId = faker.string.uuid();
+
+          const jobEntity = createJobEntity({ id: jobId });
+          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
+          const taskEntity = createTaskEntity({
+            stageId: stageEntity.id,
+            id: taskId,
+            status: TaskOperationStatus.PENDING,
+            xstate: pendingStageXstatePersistentSnapshot,
+            attempts: 0,
+            maxAttempts: 3,
+          });
+
+          jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              task: {
+                updateManyAndReturn: jest.fn().mockResolvedValue([{ ...taskEntity, startTime: new Date() }]),
+              },
+              stage: {
+                findUnique: jest.fn().mockResolvedValue(stageEntity),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
+
+          jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
+
+          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.IN_PROGRESS)).toResolve();
+        });
+
+        it('should update task status to FAILED and add endTime', async function () {
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
@@ -378,7 +413,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
-                updateManyAndReturn: jest.fn().mockResolvedValue([taskEntity]),
+                updateManyAndReturn: jest.fn().mockResolvedValue([{ ...taskEntity, endTime: new Date() }]),
               },
               stage: {
                 findUnique: jest.fn().mockResolvedValue(stageEntity),
