@@ -7,6 +7,8 @@ import { registerExternalValues, RegisterOptions } from './containerConfig';
 import { ServerBuilder } from './serverBuilder';
 import { SERVICES } from './common/constants';
 import { verifyDbSetup } from './db/createConnection';
+import { CronConfig, getTaskReleaserCron } from './common/utils/cron';
+import { TaskReleaser } from './tasks/models/taskReleaser';
 
 async function getApp(registerOptions?: RegisterOptions): Promise<[Application, DependencyContainer]> {
   const container = await registerExternalValues(registerOptions);
@@ -17,6 +19,15 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
   await verifyDbSetup(prisma, dbConfig.schema);
 
   const app = container.resolve(ServerBuilder).build();
+
+  const taskReleaser = container.resolve<TaskReleaser>(TaskReleaser);
+  const cronConfig = config.get('cron') as CronConfig;
+  const taskCron = getTaskReleaserCron(cronConfig, taskReleaser);
+
+  if (cronConfig.enabled) {
+    await taskCron.start();
+  }
+
   return [app, container];
 }
 

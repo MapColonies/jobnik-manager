@@ -55,5 +55,16 @@
       "key": "DB_KEY_PATH",
       "cert": "DB_CERT_PATH"
     }
+  },
+  "cron": {
+    "enabled": {
+      "__name": "CRON_ENABLED",
+      "__format": "boolean"
+    },
+    "schedule": "CRON_SCHEDULE",
+    "timeDeltaPeriodInMinutes": {
+      "__name": "CRON_TIME_DELTA_PERIOD_IN_MINUTES",
+      "__format": "integer"
+    }
   }
 }
