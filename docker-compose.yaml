@@ -1,0 +1,17 @@
+# This is a Docker Compose configuration file for setting up a PostgreSQL database for testing purposes.
+# Do not use this configuration in production environments as it is optimized for testing and may disable important features like fsync.
+services:
+  postgresql:
+    image: docker.io/bitnami/postgresql:14
+    ports:
+      - '5432:5432'
+    container_name: 'postgres-for-testing'
+    environment:
+      - POSTGRESQL_USERNAME=postgres
+      - POSTGRESQL_PASSWORD=postgres
+      - POSTGRESQL_DATABASE=jobnik
+      - POSTGRESQL_FSYNC=off # Disable fsync for performance
+    # Disable features for improve performance in tests
+    command: >
+      bash -c "echo -e 'full_page_writes = off\\nrandom_page_cost = 1.0\\nsynchronous_commit = off' > /opt/bitnami/postgresql/conf/conf.d/custom-performance.conf && exec /opt/bitnami/scripts/postgresql/run.sh"
+    tmpfs: /var/lib/postgresql/data
