@@ -1,9 +1,6 @@
 name: pull_request
 
 on: [pull_request, workflow_dispatch]
-env:
-  DB_HOST: localhost
-  DB_NAME: postgres
 
 jobs:
   eslint:

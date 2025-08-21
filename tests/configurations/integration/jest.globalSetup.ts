@@ -37,7 +37,7 @@ export default async function globalSetup(): Promise<void> {
   const config = fs.existsSync(configPath) ? (JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Config) : {};
   const port = await getSelectedPort(config);
 
-  if ((await checkPort(port)) === false) {
+  if ((await checkPort(port)) !== false) {
     // eslint-disable-next-line @typescript-eslint/naming-convention
     await compose.upAll({ cwd: path.join(__dirname), log: true, env: { POSTGRES_PORT: port.toString() } });
   }
