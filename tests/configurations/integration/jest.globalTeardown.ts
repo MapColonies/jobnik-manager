@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import path from 'node:path';
 import * as fs from 'fs';
 import isCI from 'is-ci';
@@ -14,12 +15,14 @@ interface Config {
 
 export default async function globalSetup(): Promise<void> {
   const dbConfig = config.get<commonDbFullV1Type>('db');
+  console.log('Database configuration:\n', dbConfig);
   const pgPoolConfig = createConnectionOptions(dbConfig);
   const prisma = createPrismaClient(pgPoolConfig, dbConfig.schema);
   await prisma.$queryRaw`DROP SCHEMA IF EXISTS job_manager CASCADE`;
   await prisma.$disconnect();
 
   if (isCI) {
+    console.log('Running in CI environment, downing postgres');
     const configPath = path.join(process.cwd(), 'config', 'local-test.json');
     const port = (JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Config).db.port;
 
