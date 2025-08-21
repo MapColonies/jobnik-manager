@@ -3,8 +3,8 @@ import path from 'node:path';
 import * as fs from 'fs';
 import isCI from 'is-ci';
 import * as compose from 'docker-compose';
-import config from 'config';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
+import { getConfig } from '../../../src/common/config';
 import { createConnectionOptions, createPrismaClient } from '../../../src/db/createConnection';
 
 interface Config {
@@ -14,8 +14,8 @@ interface Config {
 }
 
 export default async function globalSetup(): Promise<void> {
-  const dbConfig = config.get<commonDbFullV1Type>('db');
-  console.log('Database configuration:\n', dbConfig);
+  const configInstance = getConfig();
+  const dbConfig = configInstance.get('db') as commonDbFullV1Type; // todo - temporary - will removed after dedicated schema with db will be published
   const pgPoolConfig = createConnectionOptions(dbConfig);
   const prisma = createPrismaClient(pgPoolConfig, dbConfig.schema);
   await prisma.$queryRaw`DROP SCHEMA IF EXISTS job_manager CASCADE`;
