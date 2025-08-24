@@ -9,18 +9,15 @@ import { createDbConnectUrl } from '../../../src/db/helpers';
 import { Config, getLocalTestConfig, updateLocalTestConfig } from './utils';
 
 async function getSelectedPort(config: Config): Promise<number> {
-  let port: number;
-
   if (config.db?.port !== undefined) {
-    port = config.db.port;
-    console.log(`Found custom port in local-test.json. Using port: ${port}`);
-  } else {
-    // If a port was not defined in the config file, find an available one and write it to local-test.json
-    port = await getPort({ port: 5433 });
-    console.log(`No custom port defined. Using available port: ${port}`);
-
-    updateLocalTestConfig(config, port);
+    console.log(`Found custom port in local-test.json. Using port: ${config.db.port}`);
+    return config.db.port;
   }
+  // If a port was not defined in the config file, find an available one and write it to local-test.json
+  const port = await getPort({ port: 5433 });
+  console.log(`No custom port defined. Using available port: ${port}`);
+
+  updateLocalTestConfig(config, port);
 
   return port;
 }
