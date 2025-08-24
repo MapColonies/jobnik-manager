@@ -1,17 +1,11 @@
 /* eslint-disable no-console */
 import path from 'node:path';
-import * as fs from 'fs';
 import isCI from 'is-ci';
-import * as compose from 'docker-compose';
+import { downAll } from 'docker-compose';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { getConfig } from '../../../src/common/config';
 import { createConnectionOptions, createPrismaClient } from '../../../src/db/createConnection';
-
-interface Config {
-  db: {
-    port: number;
-  };
-}
+import { getLocalTestConfig } from './utils';
 
 export default async function globalSetup(): Promise<void> {
   const configInstance = getConfig();
@@ -23,10 +17,9 @@ export default async function globalSetup(): Promise<void> {
 
   if (isCI) {
     console.log('Running in CI environment, downing postgres');
-    const configPath = path.join(process.cwd(), 'config', 'local-test.json');
-    const port = (JSON.parse(fs.readFileSync(configPath, 'utf-8')) as Config).db.port;
+    const port = getLocalTestConfig().db!.port!;
 
     // eslint-disable-next-line @typescript-eslint/naming-convention
-    await compose.downAll({ cwd: path.join(__dirname), log: true, env: { POSTGRES_PORT: port.toString() } });
+    await downAll({ cwd: path.join(__dirname), log: true, env: { POSTGRES_PORT: port.toString() } });
   }
 }
