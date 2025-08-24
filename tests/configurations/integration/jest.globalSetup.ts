@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import path from 'node:path';
 import * as fs from 'fs';
+import { set } from 'lodash';
 import * as compose from 'docker-compose';
 import { $ } from 'zx';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
@@ -26,7 +27,7 @@ async function getSelectedPort(config: Config): Promise<number> {
     port = await getPort({ port: 5433 });
     console.log(`No custom port defined. Using available port: ${port}`);
     // eslint-disable-next-line @typescript-eslint/no-magic-numbers
-    fs.writeFileSync(configPath, JSON.stringify({ ...config, db: { ...config.db, port } }, null, 2), 'utf-8');
+    fs.writeFileSync(configPath, JSON.stringify(set(config, 'db.port', port), null, 2), 'utf-8');
   }
 
   return port;
