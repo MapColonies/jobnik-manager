@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import path from 'node:path';
-import * as fs from 'fs';
+import * as fs from 'node:fs';
 import { set } from 'lodash';
 import * as compose from 'docker-compose';
 import { $ } from 'zx';
