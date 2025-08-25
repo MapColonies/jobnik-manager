@@ -3,7 +3,6 @@ import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger from '@map-colonies/js-logger';
-import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
 import { HealthCheck } from '@godaddy/terminus';
 import { PrismaClient } from '@prismaClient';
@@ -25,7 +24,7 @@ export interface RegisterOptions {
 
 export const registerExternalValues = async (options?: RegisterOptions): Promise<DependencyContainer> => {
   const configInstance = getConfig();
-  const dbConfig = configInstance.get('db') as commonDbFullV1Type;
+  const dbConfig = configInstance.get('db');
 
   const loggerConfig = configInstance.get('telemetry.logger');
   const loggerRedactionSettings = { paths: ['data', 'response.data'], remove: true };

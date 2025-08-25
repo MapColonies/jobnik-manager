@@ -1,6 +1,7 @@
 import { validate, createTask, type ScheduledTask } from 'node-cron';
-import { getTaskReleaserCron, type CronConfig } from '@src/common/utils/cron';
-import type { TaskReleaser } from '@src/tasks/models/taskReleaser';
+import { getTaskReleaserCron } from '@src/common/utils/cron';
+import { type TaskReleaser } from '@src/tasks/models/taskReleaser';
+import { type CronConfig } from '@src/common/config';
 
 // Mock node-cron module
 jest.mock('node-cron');

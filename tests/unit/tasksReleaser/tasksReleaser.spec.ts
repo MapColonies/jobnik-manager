@@ -5,8 +5,8 @@ import { PrismaClient, TaskOperationStatus } from '@prismaClient';
 import { TaskReleaser } from '@src/tasks/models/taskReleaser';
 import { TaskManager } from '@src/tasks/models/manager';
 import { SERVICE_NAME } from '@src/common/constants';
-import type { CronConfig } from '@src/common/utils/cron';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { type CronConfig } from '@src/common/config';
 import { createTaskEntity } from '../generator';
 
 const logger = jsLogger({ enabled: false });

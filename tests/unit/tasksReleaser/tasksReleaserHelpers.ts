@@ -1,4 +1,4 @@
-import type { CronConfig } from '@src/common/utils/cron';
+import { type CronConfig } from '@src/common/config';
 
 const MILLISECONDS_IN_A_SECOND = 1000;
 const MINUTES_IN_SECONDS = 60;

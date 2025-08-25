@@ -6,7 +6,7 @@ import { subMinutes } from 'date-fns/subMinutes';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 import { TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES } from '@common/constants';
-import type { CronConfig } from '@src/common/utils/cron';
+import { type CronConfig } from '@src/common/config';
 import { TaskManager } from './manager';
 
 @injectable()

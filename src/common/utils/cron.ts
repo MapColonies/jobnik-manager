@@ -1,7 +1,7 @@
 import { createTask, validate } from 'node-cron';
-
 import type { ScheduledTask } from 'node-cron';
 import type { TaskReleaser } from '@src/tasks/models/taskReleaser';
+import { CronConfig } from '../config';
 
 export function getTaskReleaserCron(cronConfig: CronConfig, taskReleaser: TaskReleaser): ScheduledTask {
   if (!validate(cronConfig.schedule)) {
@@ -20,11 +20,4 @@ export function getTaskReleaserCron(cronConfig: CronConfig, taskReleaser: TaskRe
   );
 
   return task;
-}
-
-// todo - temporary until will be integrated with config server
-export interface CronConfig {
-  readonly enabled: boolean;
-  readonly schedule: string;
-  readonly timeDeltaPeriodInMinutes: number;
 }
