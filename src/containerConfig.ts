@@ -3,7 +3,6 @@ import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
 import { DependencyContainer } from 'tsyringe/dist/typings/types';
 import jsLogger from '@map-colonies/js-logger';
-import { commonDbFullV1Type } from '@map-colonies/schemas';
 import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
 import { HealthCheck } from '@godaddy/terminus';
 import { PrismaClient } from '@prismaClient';
@@ -16,6 +15,7 @@ import { createConnectionOptions, createPrismaClient } from './db/createConnecti
 import { promiseTimeout } from './common/utils/promiseTimeout';
 import { stageRouterFactory, STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 import { taskRouterFactory, TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
+import { TaskReleaser } from './tasks/models/taskReleaser';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -24,7 +24,7 @@ export interface RegisterOptions {
 
 export const registerExternalValues = async (options?: RegisterOptions): Promise<DependencyContainer> => {
   const configInstance = getConfig();
-  const dbConfig = configInstance.get('db') as commonDbFullV1Type;
+  const dbConfig = configInstance.get('db');
 
   const loggerConfig = configInstance.get('telemetry.logger');
   const loggerRedactionSettings = { paths: ['data', 'response.data'], remove: true };
@@ -71,6 +71,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     { token: STAGE_ROUTER_SYMBOL, provider: { useFactory: stageRouterFactory } },
     { token: TASK_ROUTER_SYMBOL, provider: { useFactory: taskRouterFactory } },
+    { token: TaskReleaser, provider: { useClass: TaskReleaser } },
 
     {
       token: 'onSignal',
