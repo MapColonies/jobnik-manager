@@ -82,7 +82,7 @@ export class TaskReleaser {
    * @param staleTasks - Array of stale task objects
    * @returns Object containing success and failure counts
    */
-  private async updateStaleTasksStatus(staleTasks: { id: string; stageId: string; startTime: Date | null }[]): Promise<{
+  private async updateStaleTasksStatus(staleTasks: Pick<Task, "id" | "stageId" | "startTime">[]): Promise<{
     successCount: number;
     failureCount: number;
   }> {
