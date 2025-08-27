@@ -4,7 +4,7 @@ import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { subMinutes } from 'date-fns/subMinutes';
 import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
-import { TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import type { CronConfig } from '@src/common/utils/cron';
 import { TaskManager } from './manager';
@@ -82,7 +82,7 @@ export class TaskReleaser {
    * @param staleTasks - Array of stale task objects
    * @returns Object containing success and failure counts
    */
-  private async updateStaleTasksStatus(staleTasks: Pick<Task, "id" | "stageId" | "startTime">[]): Promise<{
+  private async updateStaleTasksStatus(staleTasks: Pick<Task, 'id' | 'stageId' | 'startTime'>[]): Promise<{
     successCount: number;
     failureCount: number;
   }> {
