@@ -8,6 +8,7 @@ import { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import type { CronConfig } from '@src/common/interfaces';
 
 const stageInitializedPersistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();
 const taskInitializedPersistedSnapshot = createActor(taskStateMachine).start().getPersistedSnapshot();
@@ -82,3 +83,9 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };
+
+export const createCronConfig = (overrides: Partial<CronConfig> = {}): CronConfig => ({
+  enabled: true,
+  schedule: '*/5 * * * *',
+  ...overrides,
+});

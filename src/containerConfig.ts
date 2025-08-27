@@ -16,7 +16,6 @@ import { createConnectionOptions, createPrismaClient } from './db/createConnecti
 import { promiseTimeout } from './common/utils/promiseTimeout';
 import { stageRouterFactory, STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 import { taskRouterFactory, TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
-import { TaskReleaser } from './tasks/models/taskReleaser';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -72,7 +71,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
     { token: STAGE_ROUTER_SYMBOL, provider: { useFactory: stageRouterFactory } },
     { token: TASK_ROUTER_SYMBOL, provider: { useFactory: taskRouterFactory } },
-    { token: TaskReleaser, provider: { useClass: TaskReleaser } },
 
     {
       token: 'onSignal',

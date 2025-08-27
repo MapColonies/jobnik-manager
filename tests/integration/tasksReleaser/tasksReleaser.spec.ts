@@ -1,24 +1,18 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
+import { addMinutes } from 'date-fns';
 import { TaskOperationStatus, StageOperationStatus, JobOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
-import { TaskReleaser } from '@src/tasks/models/taskReleaser';
-import type { CronConfig } from '@src/common/utils/cron';
 import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { defaultStatusCounts } from '@src/stages/models/helper';
+import { TaskManager } from '@src/tasks/models/manager';
 import { createJobnikTree } from '../common/utils';
 
 describe('TaskReleaser', () => {
-  let taskReleaser: TaskReleaser;
   let prisma: PrismaClient;
-
-  const mockCronConfig: CronConfig = {
-    enabled: true,
-    schedule: '*/5 * * * *',
-    timeDeltaPeriodInMinutes: 30,
-  };
+  let taskManager: TaskManager;
 
   beforeAll(async () => {
     await initConfig(true);
@@ -33,12 +27,13 @@ describe('TaskReleaser', () => {
       useChild: true,
     });
 
-    taskReleaser = container.resolve(TaskReleaser);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    taskManager = container.resolve(TaskManager);
   });
 
   afterEach(async () => {
     await prisma.$disconnect();
+    jest.resetModules();
   });
 
   describe('#cleanStaleTasks', function () {
@@ -81,7 +76,7 @@ describe('TaskReleaser', () => {
         expect(initialTasks).toSatisfyAll((t: (typeof initialTasks)[0]) => t.status === TaskOperationStatus.IN_PROGRESS);
 
         // Run cleanup
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskManager.cleanStaleTasks()).toResolve();
 
         // // Verify tasks were updated to FAILED
         const updatedTasks = await prisma.task.findMany({
@@ -121,7 +116,7 @@ describe('TaskReleaser', () => {
               xstate: inProgressStageXstatePersistentSnapshot,
               maxAttempts: 1, // Ensure tasks fail immediately instead of going to RETRIED
               attempts: 0,
-              startTime: new Date(Date.now()),
+              startTime: addMinutes(new Date(), 50),
             },
           ]
         );
@@ -135,7 +130,7 @@ describe('TaskReleaser', () => {
         expect(initialTasks).toSatisfyAll((t: (typeof initialTasks)[0]) => t.status === TaskOperationStatus.IN_PROGRESS);
 
         // Run cleanup
-        await expect(taskReleaser.cleanStaleTasks({ ...mockCronConfig, timeDeltaPeriodInMinutes: 600 })).toResolve();
+        await expect(taskManager.cleanStaleTasks()).toResolve();
 
         // // Verify tasks were updated to FAILED
         const updatedTasks = await prisma.task.findMany({
@@ -159,7 +154,7 @@ describe('TaskReleaser', () => {
       });
 
       it('should handle empty database gracefully', async () => {
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskManager.cleanStaleTasks()).toResolve();
       });
 
       it('should move tasks to RETRIED status when they have remaining attempts', async () => {
@@ -185,7 +180,7 @@ describe('TaskReleaser', () => {
         );
 
         // Run cleanup
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskManager.cleanStaleTasks()).toResolve();
 
         // Verify task was moved to RETRIED
         const updatedTasks = await prisma.task.findMany({
@@ -222,7 +217,7 @@ describe('TaskReleaser', () => {
         );
 
         // Run cleanup
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskManager.cleanStaleTasks()).toResolve();
       });
     });
 
@@ -230,7 +225,7 @@ describe('TaskReleaser', () => {
       it('should return 500 status code when the database driver throws an error', async function () {
         jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('Database error'));
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toReject();
+        await expect(taskManager.cleanStaleTasks()).toReject();
       });
     });
   });

@@ -47,5 +47,8 @@
     "enabled": false,
     "schedule": "0 * * * *",
     "timeDeltaPeriodInMinutes": 3600
+  },
+  "task": {
+    "defaultStaleTimeoutInMinutes": 30
   }
 }

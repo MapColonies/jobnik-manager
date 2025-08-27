@@ -3,7 +3,8 @@ import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
-import { JobOperationStatus, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { subMinutes } from 'date-fns';
+import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
@@ -21,6 +22,7 @@ import {
   TaskNotFoundError,
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
+import { type ConfigType } from '@src/common/config';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -80,7 +82,8 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(JobManager) private readonly jobManager: JobManager
+    @inject(JobManager) private readonly jobManager: JobManager,
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType
   ) {}
 
   @withSpanAsyncV4
@@ -273,6 +276,63 @@ export class TaskManager {
   }
 
   /**
+   * Cleans up stale tasks based on the configured time delta
+   * @param config - Cron configuration containing time delta settings
+   */
+  @withSpanAsyncV4
+  public async cleanStaleTasks(): Promise<void> {
+    try {
+      // todo - no need after config management integration
+      const defaultStaleTimeoutInMinutes = this.config.get('task.defaultStaleTimeoutInMinutes') as unknown as number;
+
+      this.logger.debug({
+        msg: 'Starting task cleanup process',
+        defaultStaleTimeoutInMinutes,
+      });
+
+      const cutoffTime = subMinutes(new Date(), defaultStaleTimeoutInMinutes);
+
+      // Find tasks that are stuck in IN_PROGRESS state beyond the time threshold
+      const staleTasks = await this.prisma.task.findMany({
+        where: {
+          status: TaskOperationStatus.IN_PROGRESS,
+          startTime: {
+            lt: cutoffTime,
+          },
+        },
+        select: {
+          id: true,
+          stageId: true,
+          startTime: true,
+        },
+      });
+
+      if (staleTasks.length === 0) {
+        this.logger.debug({ msg: 'No stale tasks found for cleanup', cutoffTime: cutoffTime.toISOString() });
+        return;
+      }
+
+      this.logger.info({
+        msg: 'Found stale tasks for cleanup',
+        count: staleTasks.length,
+        cutoffTime: cutoffTime.toISOString(),
+      });
+
+      // Update each stale task to FAILED status using the existing TaskManager API
+      const updateResults = await this.updateStaleTasksStatus(staleTasks);
+
+      this.logger.info({
+        msg: 'Task cleanup completed successfully',
+        updatedTasksCount: updateResults.successCount,
+        failedTasksCount: updateResults.failureCount,
+      });
+    } catch (error) {
+      this.logger.error({ msg: 'Failed to clean stale tasks', error });
+      throw error;
+    }
+  }
+
+  /**
    * Updates a task's status with validation, handling edge cases like failures and retries.
    * @param task - The task to update
    * @param status - The target status to set
@@ -379,5 +439,44 @@ export class TaskManager {
     };
 
     await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
+  }
+
+  /**
+   * Updates stale tasks to FAILED status using the TaskManager API
+   * @param staleTasks - Array of stale task objects
+   * @returns Object containing success and failure counts
+   */
+  private async updateStaleTasksStatus(staleTasks: Pick<Task, 'id' | 'stageId' | 'startTime'>[]): Promise<{
+    successCount: number;
+    failureCount: number;
+  }> {
+    let successCount = 0;
+    let failureCount = 0;
+
+    // Process tasks sequentially to avoid overwhelming the database
+    for (const task of staleTasks) {
+      try {
+        await this.updateStatus(task.id, TaskOperationStatus.FAILED);
+        successCount++;
+
+        this.logger.debug({
+          msg: 'Successfully updated stale task status',
+          taskId: task.id,
+          stageId: task.stageId,
+          originalStartTime: task.startTime?.toISOString(),
+        });
+      } catch (error) {
+        failureCount++;
+
+        this.logger.warn({
+          msg: 'Failed to update stale task status',
+          taskId: task.id,
+          stageId: task.stageId,
+          error: error,
+        });
+      }
+    }
+
+    return { successCount, failureCount };
   }
 }
