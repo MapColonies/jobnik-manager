@@ -8,9 +8,11 @@ import { SERVICE_NAME } from '@src/common/constants';
 import type { CronConfig } from '@src/common/utils/cron';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createTaskEntity } from '../generator';
+import { createCronConfig } from './tasksReleaserHelpers';
 
 const logger = jsLogger({ enabled: false });
 const tracer = trace.getTracer(SERVICE_NAME);
+const testCronConfig = createCronConfig({});
 
 const prisma = {
   task: {
@@ -23,12 +25,6 @@ const taskManager = {
 } as unknown as TaskManager;
 
 let taskReleaser: TaskReleaser;
-
-const mockCronConfig: CronConfig = {
-  enabled: true,
-  schedule: '*/5 * * * *',
-  timeDeltaPeriodInMinutes: 30,
-};
 
 describe('TaskReleaser', () => {
   beforeEach(() => {
@@ -64,7 +60,7 @@ describe('TaskReleaser', () => {
           traceparent: DEFAULT_TRACEPARENT,
         });
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
 
         expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
         expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTask1.id, TaskOperationStatus.FAILED);
@@ -74,7 +70,7 @@ describe('TaskReleaser', () => {
       it('should handle empty result when no stale tasks are found', async () => {
         const prismaFindManyMock = jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
         const taskManagerUpdatesStatusMock = jest.spyOn(taskManager, 'updateStatus');
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
 
         expect(prismaFindManyMock).toHaveBeenCalledOnce();
         expect(taskManagerUpdatesStatusMock).not.toHaveBeenCalled();
@@ -106,7 +102,7 @@ describe('TaskReleaser', () => {
           })
           .mockRejectedValueOnce(new Error('Task update failed'));
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
 
         expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
       });
@@ -122,7 +118,7 @@ describe('TaskReleaser', () => {
 
         for (const config of configs) {
           const cronConfig: CronConfig = {
-            ...mockCronConfig,
+            ...testCronConfig,
             timeDeltaPeriodInMinutes: config.timeDeltaPeriodInMinutes,
           };
 
@@ -148,7 +144,7 @@ describe('TaskReleaser', () => {
         const dbError = new Error('Database connection error');
         const prismaFindManyMock = jest.spyOn(prisma.task, 'findMany').mockRejectedValue(dbError);
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).rejects.toThrow('Database connection error');
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).rejects.toThrow('Database connection error');
 
         expect(prismaFindManyMock).toHaveBeenCalledOnce();
       });
@@ -164,7 +160,7 @@ describe('TaskReleaser', () => {
         const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue(new Error('Update failed'));
 
         // This should not throw since individual task failures are handled
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
 
         expect(taskManagerUpdateStatusMock).toHaveBeenCalledOnce();
       });
@@ -187,7 +183,7 @@ describe('TaskReleaser', () => {
           .mockRejectedValueOnce(new Error('Task update failed'))
           .mockRejectedValueOnce(new Error('Another task update failed'));
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
       });
 
       it('should handle non-Error objects when task updates fail', async () => {
@@ -200,7 +196,7 @@ describe('TaskReleaser', () => {
         jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask]);
         const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue('String error');
 
-        await expect(taskReleaser.cleanStaleTasks(mockCronConfig)).toResolve();
+        await expect(taskReleaser.cleanStaleTasks(testCronConfig)).toResolve();
 
         expect(taskManagerUpdateStatusMock).toHaveBeenCalledOnce();
       });
@@ -224,7 +220,7 @@ describe('TaskReleaser', () => {
 
       for (const testCase of testCases) {
         const cronConfig: CronConfig = {
-          ...mockCronConfig,
+          ...testCronConfig,
           timeDeltaPeriodInMinutes: testCase.minutes,
         };
 
