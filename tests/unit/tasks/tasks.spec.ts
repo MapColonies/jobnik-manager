@@ -2,6 +2,7 @@
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
+import { subHours, subMinutes } from 'date-fns';
 import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
@@ -17,6 +18,23 @@ import { getConfig, initConfig } from '@src/common/config';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '../data';
+
+// Test date constants
+const ONE_HOUR_AGO = subHours(new Date(), 1);
+const FORTY_FIVE_MINUTES_AGO = subMinutes(new Date(), 45);
+
+// Test task entities
+const staleTaskOneHour = createTaskEntity({
+  id: faker.string.uuid(),
+  status: TaskOperationStatus.IN_PROGRESS,
+  startTime: ONE_HOUR_AGO, // 1 hour ago
+});
+
+const staleTaskFortyFiveMinutes = createTaskEntity({
+  id: faker.string.uuid(),
+  status: TaskOperationStatus.IN_PROGRESS,
+  startTime: FORTY_FIVE_MINUTES_AGO, // 45 minutes ago
+});
 
 let jobManager: JobManager;
 let stageManager: StageManager;
@@ -596,33 +614,22 @@ describe('JobManager', () => {
     describe('#cleanStaleTasks', () => {
       describe('HappyPath', () => {
         it('should successfully clean stale tasks and update them to FAILED status', async () => {
-          const staleTask1 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 60 * 60 * 1000), // 1 hour ago
-          });
-          const staleTask2 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 45 * 60 * 1000), // 45 minutes ago
-          });
-
-          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask1, staleTask2]);
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
           const taskManagerUpdatesStatusMock = jest.spyOn(taskManager, 'updateStatus').mockResolvedValue({
-            id: staleTask1.id,
+            id: staleTaskOneHour.id,
             status: TaskOperationStatus.FAILED,
             attempts: 0,
             data: {},
             maxAttempts: 2,
-            stageId: staleTask1.stageId,
+            stageId: staleTaskOneHour.stageId,
             traceparent: DEFAULT_TRACEPARENT,
           });
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
 
           expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTask1.id, TaskOperationStatus.FAILED);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(2, staleTask2.id, TaskOperationStatus.FAILED);
+          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTaskOneHour.id, TaskOperationStatus.FAILED);
+          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(2, staleTaskFortyFiveMinutes.id, TaskOperationStatus.FAILED);
         });
 
         it('should handle empty result when no stale tasks are found', async () => {
@@ -635,27 +642,16 @@ describe('JobManager', () => {
         });
 
         it('should handle mixed success and failure when updating task statuses', async () => {
-          const staleTask1 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 60 * 60 * 1000),
-          });
-          const staleTask2 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 45 * 60 * 1000),
-          });
-
-          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask1, staleTask2]);
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
           const taskManagerUpdatesStatusMock = jest
             .spyOn(taskManager, 'updateStatus')
             .mockResolvedValueOnce({
-              id: staleTask1.id,
+              id: staleTaskOneHour.id,
               status: TaskOperationStatus.FAILED,
               attempts: 0,
               data: {},
               maxAttempts: 2,
-              stageId: staleTask1.stageId,
+              stageId: staleTaskOneHour.stageId,
               traceparent: DEFAULT_TRACEPARENT,
             })
             .mockRejectedValueOnce(new Error('Task update failed'));
@@ -667,9 +663,9 @@ describe('JobManager', () => {
 
         it('should calculate cutoff time correctly for different time periods', async () => {
           const timeoutConfigs = [
-            { defaultStaleTimeoutInMinutes: 15 }, // 15 minutes
-            { defaultStaleTimeoutInMinutes: 120 }, // 2 hours
-            { defaultStaleTimeoutInMinutes: 1440 }, // 1 day
+            { maxInProgressPeriodInMinutes: 15 }, // 15 minutes
+            { maxInProgressPeriodInMinutes: 120 }, // 2 hours
+            { maxInProgressPeriodInMinutes: 1440 }, // 1 day
           ];
 
           const prismaFindManyMock = jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
@@ -677,7 +673,7 @@ describe('JobManager', () => {
 
           for (const timeoutConfig of timeoutConfigs) {
             // Mock the config.get method to return the test timeout value
-            configGetSpy.mockReturnValueOnce(timeoutConfig.defaultStaleTimeoutInMinutes);
+            configGetSpy.mockReturnValueOnce(timeoutConfig.maxInProgressPeriodInMinutes);
 
             const beforeTime = Date.now();
             await taskManager.cleanStaleTasks();
@@ -687,8 +683,8 @@ describe('JobManager', () => {
             const whereClause = lastCall?.[0]?.where?.startTime;
             const actualCutoffTime =
               typeof whereClause === 'object' && whereClause !== null && 'lt' in whereClause ? (whereClause.lt as Date) : undefined;
-            const expectedCutoffMin = beforeTime - timeoutConfig.defaultStaleTimeoutInMinutes * 60 * 1000;
-            const expectedCutoffMax = afterTime - timeoutConfig.defaultStaleTimeoutInMinutes * 60 * 1000;
+            const expectedCutoffMin = beforeTime - timeoutConfig.maxInProgressPeriodInMinutes * 60 * 1000;
+            const expectedCutoffMax = afterTime - timeoutConfig.maxInProgressPeriodInMinutes * 60 * 1000;
 
             expect(actualCutoffTime!.getTime()).toBeGreaterThanOrEqual(expectedCutoffMin);
             expect(actualCutoffTime!.getTime()).toBeLessThanOrEqual(expectedCutoffMax);
@@ -710,13 +706,7 @@ describe('JobManager', () => {
         });
 
         it('should throw error when all task updates fail', async () => {
-          const staleTask = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 60 * 60 * 1000),
-          });
-
-          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask]);
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour]);
           const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue(new Error('Update failed'));
 
           // This should not throw since individual task failures are handled
@@ -726,18 +716,7 @@ describe('JobManager', () => {
         });
 
         it('should properly handle and log failures when updating task statuses fails', async () => {
-          const staleTask1 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 60 * 60 * 1000),
-          });
-          const staleTask2 = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 45 * 60 * 1000),
-          });
-
-          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask1, staleTask2]);
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
           jest
             .spyOn(taskManager, 'updateStatus')
             .mockRejectedValueOnce(new Error('Task update failed'))
@@ -747,13 +726,7 @@ describe('JobManager', () => {
         });
 
         it('should handle non-Error objects when task updates fail', async () => {
-          const staleTask = createTaskEntity({
-            id: faker.string.uuid(),
-            status: TaskOperationStatus.IN_PROGRESS,
-            startTime: new Date(Date.now() - 60 * 60 * 1000),
-          });
-
-          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTask]);
+          jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour]);
           const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue('String error');
 
           await expect(taskManager.cleanStaleTasks()).toResolve();

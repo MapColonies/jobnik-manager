@@ -43,12 +43,11 @@
     "database": "postgres",
     "schema": "job_manager"
   },
-  "cron": {
+  "staleTasksReleaserCron": {
     "enabled": false,
-    "schedule": "0 * * * *",
-    "timeDeltaPeriodInMinutes": 3600
+    "schedule": "0 * * * *"
   },
   "task": {
-    "defaultStaleTimeoutInMinutes": 30
+    "maxInProgressPeriodInMinutes": 30
   }
 }

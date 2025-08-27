@@ -83,9 +83,3 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };
-
-export const createCronConfig = (overrides: Partial<CronConfig> = {}): CronConfig => ({
-  enabled: true,
-  schedule: '*/5 * * * *',
-  ...overrides,
-});

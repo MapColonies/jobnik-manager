@@ -4,6 +4,6 @@
     "schedule": "0 * * * *"
   },
   "task": {
-    "defaultStaleTimeoutInMinutes": 1
+    "maxInProgressPeriodInMinutes": 1
   }
 }

@@ -283,14 +283,14 @@ export class TaskManager {
   public async cleanStaleTasks(): Promise<void> {
     try {
       // todo - no need after config management integration
-      const defaultStaleTimeoutInMinutes = this.config.get('task.defaultStaleTimeoutInMinutes') as unknown as number;
+      const maxInProgressPeriodInMinutes = this.config.get('task.maxInProgressPeriodInMinutes') as unknown as number;
 
       this.logger.debug({
         msg: 'Starting task cleanup process',
-        defaultStaleTimeoutInMinutes,
+        maxInProgressPeriodInMinutes,
       });
 
-      const cutoffTime = subMinutes(new Date(), defaultStaleTimeoutInMinutes);
+      const cutoffTime = subMinutes(new Date(), maxInProgressPeriodInMinutes);
 
       // Find tasks that are stuck in IN_PROGRESS state beyond the time threshold
       const staleTasks = await this.prisma.task.findMany({
