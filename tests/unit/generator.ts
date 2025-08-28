@@ -43,6 +43,7 @@ export function createJobEntity(override: Partial<JobWithStages>): JobWithStages
   } satisfies JobWithStages;
   return { ...jobEntity, ...override };
 }
+
 export const createStageEntity = (override: Partial<StageWithTasks>): StageWithTasks => {
   const stageEntity = {
     data: {},
