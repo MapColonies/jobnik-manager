@@ -56,14 +56,16 @@
       "cert": "DB_CERT_PATH"
     }
   },
-  "cron": {
+  "staleTasksReleaserCron": {
     "enabled": {
-      "__name": "CRON_ENABLED",
+      "__name": "STALE_TASKS_RELEASER_CRON_ENABLED",
       "__format": "boolean"
     },
-    "schedule": "CRON_SCHEDULE",
-    "timeDeltaPeriodInMinutes": {
-      "__name": "CRON_TIME_DELTA_PERIOD_IN_MINUTES",
+    "schedule": "STALE_TASKS_RELEASER_CRON_SCHEDULE"
+  },
+  "task": {
+    "maxInProgressPeriodInMinutes": {
+      "__name": "TASK_MAX_IN_PROGRESS_PERIOD_IN_MINUTES",
       "__format": "integer"
     }
   }
