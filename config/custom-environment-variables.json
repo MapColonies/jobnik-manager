@@ -56,12 +56,12 @@
       "cert": "DB_CERT_PATH"
     }
   },
-  "staleTasksReleaserCron": {
+  "staleTasksSweeper": {
     "enabled": {
-      "__name": "STALE_TASKS_RELEASER_CRON_ENABLED",
+      "__name": "STALE_TASKS_SWEEPER_CRON_ENABLED",
       "__format": "boolean"
     },
-    "schedule": "STALE_TASKS_RELEASER_CRON_SCHEDULE"
+    "schedule": "STALE_TASKS_SWEEPER_CRON_SCHEDULE"
   },
   "task": {
     "staleTaskThresholdInMinutes": {

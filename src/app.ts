@@ -18,7 +18,7 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
   // todo - remove after integrating with config managements
   const dbConfig = config.get('db') as commonDbFullV1Type;
   // todo - remove after integrating with config managements
-  const cronConfig = config.get('staleTasksReleaserCron') as CronConfig;
+  const cronConfig = config.get('staleTasksSweeper') as CronConfig;
 
   await verifyDbSetup(prisma, dbConfig.schema);
 

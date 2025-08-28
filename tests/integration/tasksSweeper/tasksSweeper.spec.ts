@@ -10,7 +10,7 @@ import { defaultStatusCounts } from '@src/stages/models/helper';
 import { TaskManager } from '@src/tasks/models/manager';
 import { createJobnikTree } from '../common/utils';
 
-describe('TaskReleaser', () => {
+describe('TaskSweeper', () => {
   let prisma: PrismaClient;
   let taskManager: TaskManager;
 
