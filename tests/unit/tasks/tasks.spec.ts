@@ -663,9 +663,9 @@ describe('JobManager', () => {
 
         it('should calculate cutoff time correctly for different time periods', async () => {
           const timeoutConfigs = [
-            { maxInProgressPeriodInMinutes: 15 }, // 15 minutes
-            { maxInProgressPeriodInMinutes: 120 }, // 2 hours
-            { maxInProgressPeriodInMinutes: 1440 }, // 1 day
+            { staleTaskThresholdInMinutes: 15 }, // 15 minutes
+            { staleTaskThresholdInMinutes: 120 }, // 2 hours
+            { staleTaskThresholdInMinutes: 1440 }, // 1 day
           ];
 
           const prismaFindManyMock = jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
@@ -673,7 +673,7 @@ describe('JobManager', () => {
 
           for (const timeoutConfig of timeoutConfigs) {
             // Mock the config.get method to return the test timeout value
-            configGetSpy.mockReturnValueOnce(timeoutConfig.maxInProgressPeriodInMinutes);
+            configGetSpy.mockReturnValueOnce(timeoutConfig.staleTaskThresholdInMinutes);
 
             const beforeTime = Date.now();
             await taskManager.cleanStaleTasks();
@@ -683,8 +683,8 @@ describe('JobManager', () => {
             const whereClause = lastCall?.[0]?.where?.startTime;
             const actualCutoffTime =
               typeof whereClause === 'object' && whereClause !== null && 'lt' in whereClause ? (whereClause.lt as Date) : undefined;
-            const expectedCutoffMin = beforeTime - timeoutConfig.maxInProgressPeriodInMinutes * 60 * 1000;
-            const expectedCutoffMax = afterTime - timeoutConfig.maxInProgressPeriodInMinutes * 60 * 1000;
+            const expectedCutoffMin = beforeTime - timeoutConfig.staleTaskThresholdInMinutes * 60 * 1000;
+            const expectedCutoffMax = afterTime - timeoutConfig.staleTaskThresholdInMinutes * 60 * 1000;
 
             expect(actualCutoffTime!.getTime()).toBeGreaterThanOrEqual(expectedCutoffMin);
             expect(actualCutoffTime!.getTime()).toBeLessThanOrEqual(expectedCutoffMax);

@@ -48,6 +48,6 @@
     "schedule": "0 * * * *"
   },
   "task": {
-    "maxInProgressPeriodInMinutes": 30
+    "staleTaskThresholdInMinutes": 30
   }
 }

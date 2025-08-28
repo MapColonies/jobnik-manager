@@ -4,6 +4,6 @@
     "schedule": "0 * * * *"
   },
   "task": {
-    "maxInProgressPeriodInMinutes": 1
+    "staleTaskThresholdInMinutes": 1
   }
 }

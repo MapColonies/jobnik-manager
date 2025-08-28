@@ -64,8 +64,8 @@
     "schedule": "STALE_TASKS_RELEASER_CRON_SCHEDULE"
   },
   "task": {
-    "maxInProgressPeriodInMinutes": {
-      "__name": "TASK_MAX_IN_PROGRESS_PERIOD_IN_MINUTES",
+    "staleTaskThresholdInMinutes": {
+      "__name": "TASK_STALE_THRESHOLD_IN_MINUTES",
       "__format": "integer"
     }
   }
