@@ -43,7 +43,7 @@
     "database": "postgres",
     "schema": "job_manager"
   },
-  "staleTasksSweeper": {
+  "staleTasksSweeperCron": {
     "enabled": false,
     "schedule": "0 * * * *"
   },

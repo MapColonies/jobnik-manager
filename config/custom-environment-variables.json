@@ -56,7 +56,7 @@
       "cert": "DB_CERT_PATH"
     }
   },
-  "staleTasksSweeper": {
+  "staleTasksSweeperCron": {
     "enabled": {
       "__name": "STALE_TASKS_SWEEPER_CRON_ENABLED",
       "__format": "boolean"

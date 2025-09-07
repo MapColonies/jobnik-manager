@@ -1,5 +1,5 @@
 {
-  "cron": {
+  "staleTasksSweeper": {
     "enabled": false,
     "schedule": "0 * * * *"
   },

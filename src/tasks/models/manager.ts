@@ -11,7 +11,6 @@ import { StageManager } from '@src/stages/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
-import { JobManager } from '@src/jobs/models/manager';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
@@ -82,7 +81,6 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(JobManager) private readonly jobManager: JobManager,
     @inject(SERVICES.CONFIG) private readonly config: ConfigType
   ) {}
 
@@ -308,14 +306,13 @@ export class TaskManager {
       });
 
       if (staleTasks.length === 0) {
-        this.logger.debug({ msg: 'No stale tasks found for cleanup', cutoffTime: cutoffTime.toISOString() });
+        this.logger.debug({ msg: 'No stale tasks found for cleanup' });
         return;
       }
 
       this.logger.info({
         msg: 'Found stale tasks for cleanup',
         count: staleTasks.length,
-        cutoffTime: cutoffTime.toISOString(),
       });
 
       // Update each stale task to FAILED status using the existing TaskManager API

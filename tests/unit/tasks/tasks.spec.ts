@@ -25,13 +25,11 @@ const FORTY_FIVE_MINUTES_AGO = subMinutes(new Date(), 45);
 
 // Test task entities
 const staleTaskOneHour = createTaskEntity({
-  id: faker.string.uuid(),
   status: TaskOperationStatus.IN_PROGRESS,
   startTime: ONE_HOUR_AGO, // 1 hour ago
 });
 
 const staleTaskFortyFiveMinutes = createTaskEntity({
-  id: faker.string.uuid(),
   status: TaskOperationStatus.IN_PROGRESS,
   startTime: FORTY_FIVE_MINUTES_AGO, // 45 minutes ago
 });
@@ -58,7 +56,7 @@ describe('JobManager', () => {
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
-    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, jobManager, config);
+    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config);
   });
 
   afterEach(() => {
