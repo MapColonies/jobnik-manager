@@ -44,7 +44,7 @@
     "@map-colonies/express-access-log-middleware": "^3.0.1",
     "@map-colonies/js-logger": "^3.0.2",
     "@map-colonies/openapi-express-viewer": "^4.1.0",
-    "@map-colonies/openapi-helpers": "^3.1.0",
+    "@map-colonies/openapi-helpers": "^4.0.0",
     "@map-colonies/read-pkg": "^1.0.0",
     "@map-colonies/schemas": "^1.12.2",
     "@map-colonies/telemetry": "^10.0.1",
