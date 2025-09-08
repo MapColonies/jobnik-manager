@@ -1,3 +1,7 @@
+/* eslint-disable */
+// This file was auto-generated. Do not edit manually.
+// To update, run the error generation script again.
+
 export class ValidationError extends Error {
   public readonly code = 'VALIDATION_ERROR';
   /**
