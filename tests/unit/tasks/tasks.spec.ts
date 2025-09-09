@@ -3,6 +3,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { subHours, subMinutes } from 'date-fns';
+import { Registry } from 'prom-client';
 import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
@@ -41,6 +42,7 @@ let stageRepository: StageRepository;
 
 const tracer = trace.getTracer(SERVICE_NAME);
 const prisma = new PrismaClient();
+const mockRegistry = new Registry();
 
 let config: ReturnType<typeof getConfig>;
 
@@ -53,10 +55,11 @@ describe('JobManager', () => {
 
   beforeEach(function () {
     config = getConfig();
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockRegistry);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
-    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager, mockRegistry);
+    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config, mockRegistry);
+
   });
 
   afterEach(() => {

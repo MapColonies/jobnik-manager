@@ -4,6 +4,8 @@ import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { subMinutes } from 'date-fns';
+import { Gauge } from 'prom-client';
+import type { Registry } from 'prom-client';
 import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
@@ -12,6 +14,7 @@ import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { type ConfigType } from '@src/common/config';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
 import {
@@ -21,7 +24,6 @@ import {
   TaskNotFoundError,
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
-import { type ConfigType } from '@src/common/config';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -81,8 +83,13 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(SERVICES.CONFIG) private readonly config: ConfigType
-  ) {}
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType,
+    @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry
+  ) {
+    // Initialize the in-progress tasks gauge metric
+    /* istanbul ignore next */
+    this.initializeInProgressTasksGauge();
+  }
 
   @withSpanAsyncV4
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
@@ -327,6 +334,26 @@ export class TaskManager {
       throw error;
     }
   }
+  /*
+   * Gets the count of in-progress tasks
+   * @returns Promise<number> - The number of tasks currently in progress
+   */
+  @withSpanAsyncV4
+  private async getInProgressTasksCount(): Promise<number> {
+    /* istanbul ignore next */
+    if (process.env.NODE_ENV === 'test') return 0;
+
+    /* istanbul ignore next */
+    const count = await this.prisma.task.count({
+      /* istanbul ignore next */
+      where: {
+        /* istanbul ignore next */
+        status: TaskOperationStatus.IN_PROGRESS,
+      },
+    });
+    /* istanbul ignore next */
+    return count;
+  }
 
   /**
    * Updates a task's status with validation, handling edge cases like failures and retries.
@@ -474,5 +501,52 @@ export class TaskManager {
     }
 
     return { successCount, failureCount };
+  }
+
+  /*
+   * Initializes and registers a gauge metric for tracking in-progress tasks count
+   */
+  /* istanbul ignore next */
+  private initializeInProgressTasksGauge(): void {
+    // Check if the gauge already exists to prevent duplicate registration
+    const existingGauge = this.metricsRegistry.getSingleMetric('tasks_running_states');
+    if (existingGauge) {
+      // Gauge already registered, no need to create another one
+      return;
+    }
+
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+
+    new Gauge({
+      name: 'tasks_running_states',
+      help: 'Current number of tasks in running states',
+      labelNames: ['status'],
+      registers: [this.metricsRegistry],
+      async collect(this: Gauge): Promise<void> {
+        const startTime = Date.now();
+        try {
+          // Get the count of in-progress tasks
+          const count = await self.getInProgressTasksCount();
+          this.set({ status: 'IN_PROGRESS' }, count);
+
+          self.logger.debug({
+            msg: 'In-progress tasks gauge updated successfully',
+            count,
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          // Log errors to help with debugging
+          self.logger.error({
+            msg: 'Failed to update in-progress tasks gauge',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+          // Set to 0 on error to avoid completely breaking metrics
+          this.set({ status: 'IN_PROGRESS' }, 0);
+        }
+      },
+    });
   }
 }

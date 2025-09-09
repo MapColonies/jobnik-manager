@@ -3,6 +3,8 @@ import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
+import { Gauge } from 'prom-client';
+import type { Registry } from 'prom-client';
 import type { PrismaClient } from '@prismaClient';
 import { JobOperationStatus, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
@@ -47,8 +49,13 @@ export class StageManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageRepository) private readonly stageRepository: StageRepository,
-    @inject(JobManager) private readonly jobManager: JobManager
-  ) {}
+    @inject(JobManager) private readonly jobManager: JobManager,
+    @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry
+  ) {
+    // Initialize the in-progress stages gauge metric
+    /* istanbul ignore next */
+    this.initializeInProgressStagesGauge();
+  }
 
   @withSpanAsyncV4
   public async addStage(jobId: string, stagePayload: StageCreateModel): Promise<StageModel> {
@@ -277,6 +284,24 @@ export class StageManager {
   }
 
   /**
+   * Gets the count of in-progress stages
+   * @returns Promise<number> - The number of stages currently in progress
+   */
+  @withSpanAsyncV4
+  private async getInProgressStagesCount(): Promise<number> {
+    /* istanbul ignore next */
+    const count = await this.prisma.stage.count({
+      /* istanbul ignore next */
+      where: {
+        /* istanbul ignore next */
+        status: StageOperationStatus.IN_PROGRESS,
+      },
+    });
+    /* istanbul ignore next */
+    return count;
+  }
+
+  /**
    * This method is used to update the progress of a stage according tasks metrics.
    * @param stageId unique identifier of the stage.
    * @param summary summary object containing the current progress aggregated task data of the stage.
@@ -311,5 +336,52 @@ export class StageManager {
       return 1;
     }
     return lastStageResult._max.order + 1;
+  }
+
+  /**
+   * Initializes and registers a gauge metric for tracking in-progress stages count
+   */
+  /* istanbul ignore next */
+  private initializeInProgressStagesGauge(): void {
+    // Check if the gauge already exists to prevent duplicate registration
+    const existingGauge = this.metricsRegistry.getSingleMetric('stages_running_states');
+    if (existingGauge) {
+      // Gauge already registered, no need to create another one
+      return;
+    }
+
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+
+    new Gauge({
+      name: 'stages_running_states',
+      help: 'Current number of stages in running states',
+      labelNames: ['status'],
+      registers: [this.metricsRegistry],
+      async collect(this: Gauge): Promise<void> {
+        const startTime = Date.now();
+        try {
+          // Get the count of in-progress stages
+          const count = await self.getInProgressStagesCount();
+          this.set({ status: 'IN_PROGRESS' }, count);
+
+          self.logger.debug({
+            msg: 'In-progress stages gauge updated successfully',
+            count,
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          // Log errors to help with debugging
+          self.logger.error({
+            msg: 'Failed to update in-progress stages gauge',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+          // Set to 0 on error to avoid completely breaking metrics
+          this.set({ status: 'IN_PROGRESS' }, 0);
+        }
+      },
+    });
   }
 }

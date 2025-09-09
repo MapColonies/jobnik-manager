@@ -1,5 +1,6 @@
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
+import { Registry } from 'prom-client';
 import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
@@ -12,12 +13,13 @@ import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages }
 let jobManager: JobManager;
 const prisma = new PrismaClient();
 const tracer = trace.getTracer(SERVICE_NAME);
+const mockRegistry = new Registry();
 
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockRegistry);
   });
 
   afterEach(() => {
