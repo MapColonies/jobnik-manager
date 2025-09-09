@@ -27,5 +27,5 @@ const customConfig = {
 };
 
 export default config(jestConfig, tsBaseConfig, customConfig, {
-  ignores: ['src/db/prisma/generated'],
+  ignores: ['src/db/prisma/generated', 'src/common/generated'],
 });
