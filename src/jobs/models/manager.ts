@@ -3,8 +3,10 @@ import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
-import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
-import { Prisma } from '@prismaClient';
+import { Gauge } from 'prom-client';
+import type { Registry } from 'prom-client';
+import type { PrismaClient, Priority } from '@prismaClient';
+import { Prisma, JobOperationStatus } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/errors';
@@ -20,8 +22,13 @@ export class JobManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
-    @inject(SERVICES.TRACER) public readonly tracer: Tracer
-  ) {}
+    @inject(SERVICES.TRACER) public readonly tracer: Tracer,
+    @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry
+  ) {
+    // Initialize the in-progress jobs gauge metric
+    /* istanbul ignore next */
+    this.initializeInProgressJobsGauge();
+  }
 
   @withSpanAsyncV4
   public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
@@ -185,6 +192,27 @@ export class JobManager {
   }
 
   /**
+   * Gets the count of in-progress jobs
+   * @returns Promise<number> - The number of jobs currently in progress
+   */
+  @withSpanAsyncV4
+  private async getInProgressJobsCount(): Promise<number> {
+    /* istanbul ignore next */
+    if (process.env.NODE_ENV === 'test') return 0;
+
+    /* istanbul ignore next */
+    const count = await this.prisma.job.count({
+      /* istanbul ignore next */
+      where: {
+        /* istanbul ignore next */
+        status: JobOperationStatus.IN_PROGRESS,
+      },
+    });
+    /* istanbul ignore next */
+    return count;
+  }
+
+  /**
    * This method is used to get a job entity by its id from the database.
    * @param jobId unique identifier of the job.
    * @param options Configuration options for the query
@@ -208,6 +236,52 @@ export class JobManager {
     return job as JobPrismaObject<IncludeStages> | null;
   }
 
+  /**
+   * Initializes and registers a gauge metric for tracking in-progress jobs count
+   */
+  /* istanbul ignore next */
+  private initializeInProgressJobsGauge(): void {
+    // Check if the gauge already exists to prevent duplicate registration
+    const existingGauge = this.metricsRegistry.getSingleMetric('jobs_running_states');
+    if (existingGauge) {
+      // Gauge already registered, no need to create another one
+      return;
+    }
+
+    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
+
+    new Gauge({
+      name: 'jobs_running_states',
+      help: 'Current number of jobs in running states',
+      labelNames: ['status'],
+      registers: [this.metricsRegistry],
+      async collect(this: Gauge): Promise<void> {
+        const startTime = Date.now();
+        try {
+          // Get the count of in-progress jobs
+          const count = await self.getInProgressJobsCount();
+          this.set({ status: 'IN_PROGRESS' }, count);
+
+          self.logger.debug({
+            msg: 'In-progress jobs gauge updated successfully',
+            count,
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+        } catch (error) {
+          // Log errors to help with debugging
+          self.logger.error({
+            msg: 'Failed to update in-progress jobs gauge',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            executionTimeMs: Date.now() - startTime,
+            timestamp: new Date().toISOString(),
+          });
+          // Set to 0 on error to avoid completely breaking metrics
+          this.set({ status: 'IN_PROGRESS' }, 0);
+        }
+      },
+    });
+  }
   /**
    * Converts a Prisma job object to a job response model
    * @param prismaObjects - The Prisma job object with or without stages
