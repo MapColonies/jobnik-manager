@@ -42,5 +42,12 @@
     },
     "database": "postgres",
     "schema": "job_manager"
+  },
+  "staleTasksSweeperCron": {
+    "enabled": false,
+    "schedule": "0 * * * *"
+  },
+  "task": {
+    "staleTaskThresholdInMinutes": 30
   }
 }

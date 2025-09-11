@@ -44,4 +44,5 @@ module.exports = {
       statements: -10,
     },
   },
+  testTimeout: 10000, // Increase timeout to 10 seconds to handle slow database setup
 };

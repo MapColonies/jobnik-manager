@@ -55,5 +55,18 @@
       "key": "DB_KEY_PATH",
       "cert": "DB_CERT_PATH"
     }
+  },
+  "staleTasksSweeperCron": {
+    "enabled": {
+      "__name": "STALE_TASKS_SWEEPER_CRON_ENABLED",
+      "__format": "boolean"
+    },
+    "schedule": "STALE_TASKS_SWEEPER_CRON_SCHEDULE"
+  },
+  "task": {
+    "staleTaskThresholdInMinutes": {
+      "__name": "TASK_STALE_THRESHOLD_IN_MINUTES",
+      "__format": "integer"
+    }
   }
 }

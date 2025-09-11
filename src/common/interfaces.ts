@@ -9,3 +9,9 @@ export interface OpenApiConfig {
   jsonPath: string;
   uiPath: string;
 }
+
+// todo - temporary until will be integrated with config server
+export interface CronConfig {
+  readonly enabled: boolean;
+  readonly schedule: string;
+}
