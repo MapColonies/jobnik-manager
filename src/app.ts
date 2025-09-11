@@ -1,6 +1,6 @@
 import { Application } from 'express';
 import { DependencyContainer } from 'tsyringe';
-import { schedule } from 'node-cron';
+import { schedule, validate } from 'node-cron';
 import { PrismaClient } from '@prismaClient';
 import type { ConfigType } from '@common/config';
 import { registerExternalValues, RegisterOptions } from './containerConfig';
@@ -22,6 +22,10 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
 
   if (cronConfig.enabled) {
     const taskManager = container.resolve(TaskManager);
+    if (!validate(cronConfig.schedule)) {
+      throw new Error(`Invalid cron schedule: ${cronConfig.schedule}`);
+    }
+
     schedule(cronConfig.schedule, async () => {
       await taskManager.cleanStaleTasks();
     });
