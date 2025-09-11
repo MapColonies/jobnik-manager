@@ -280,8 +280,7 @@ export class TaskManager {
   @withSpanAsyncV4
   public async cleanStaleTasks(): Promise<void> {
     try {
-      // todo - no need after config management integration
-      const staleTaskThresholdInMinutes = this.config.get('task.staleTaskThresholdInMinutes') as unknown as number;
+      const staleTaskThresholdInMinutes = this.config.get('task.staleTaskThresholdInMinutes');
 
       this.logger.debug({
         msg: 'Starting task cleanup process',
