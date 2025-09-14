@@ -59,7 +59,6 @@ describe('JobManager', () => {
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager, mockRegistry);
     taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config, mockRegistry);
-
   });
 
   afterEach(() => {

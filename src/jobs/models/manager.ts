@@ -192,27 +192,6 @@ export class JobManager {
   }
 
   /**
-   * Gets the count of in-progress jobs
-   * @returns Promise<number> - The number of jobs currently in progress
-   */
-  @withSpanAsyncV4
-  private async getInProgressJobsCount(): Promise<number> {
-    /* istanbul ignore next */
-    if (process.env.NODE_ENV === 'test') return 0;
-
-    /* istanbul ignore next */
-    const count = await this.prisma.job.count({
-      /* istanbul ignore next */
-      where: {
-        /* istanbul ignore next */
-        status: JobOperationStatus.IN_PROGRESS,
-      },
-    });
-    /* istanbul ignore next */
-    return count;
-  }
-
-  /**
    * This method is used to get a job entity by its id from the database.
    * @param jobId unique identifier of the job.
    * @param options Configuration options for the query
@@ -234,6 +213,27 @@ export class JobManager {
     const job = await prisma.job.findUnique(queryBody);
 
     return job as JobPrismaObject<IncludeStages> | null;
+  }
+
+  /**
+   * Gets the count of in-progress jobs
+   * @returns Promise<number> - The number of jobs currently in progress
+   */
+  @withSpanAsyncV4
+  private async getInProgressJobsCount(): Promise<number> {
+    /* istanbul ignore next */
+    if (process.env.NODE_ENV === 'test') return 0;
+
+    /* istanbul ignore next */
+    const count = await this.prisma.job.count({
+      /* istanbul ignore next */
+      where: {
+        /* istanbul ignore next */
+        status: JobOperationStatus.IN_PROGRESS,
+      },
+    });
+    /* istanbul ignore next */
+    return count;
   }
 
   /**
