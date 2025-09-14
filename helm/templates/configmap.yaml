@@ -19,6 +19,7 @@ data:
   TELEMETRY_METRICS_URL: {{ $metricsUrl }}
   {{- end }}
   npm_config_cache: /tmp/
+  {{- if .Values.env.configManager.offlineMode }}
   {{- with .Values.dbConfig }}
   DB_HOST: {{ .host }}
   DB_NAME: {{ .database }}
@@ -31,6 +32,10 @@ data:
   {{- else }}
   DB_ENABLE_SSL_AUTH: "false"
   {{- end }}
+  {{- end }}
+  STALE_TASKS_SWEEPER_CRON_ENABLED: {{ $.Values.staleTasksSweeperCron.enabled | quote }}
+  STALE_TASKS_SWEEPER_CRON_SCHEDULE: {{ $.Values.staleTasksSweeperCron.schedule | quote }}
+  TASK_STALE_THRESHOLD_IN_MINUTES: {{ $.Values.task.staleTaskThresholdInMinutes | quote }}
   {{- end }}
   {{- with .Values.env.configManager }}
   CONFIG_NAME: {{ .name | quote }}
