@@ -4,7 +4,7 @@ global:
   metrics: {}
   environment: ''
 
-mcLabelsAndAnnotations:
+mclabels:
   component: backend
   owner: infra
   partOf: jobnik
@@ -23,14 +23,14 @@ fullnameOverride: ""
 
 livenessProbe:
   enabled: true
-  initialDelaySeconds: 10
+  initialDelaySeconds: 30
   timeoutSeconds: 5
   failureThreshold: 6
   path: /liveness
 
 readinessProbe:
   enabled: true
-  initialDelaySeconds: 10
+  initialDelaySeconds: 30
   timeoutSeconds: 5
   failureThreshold: 6
   path: /liveness
@@ -82,7 +82,7 @@ env:
 
   configManager:
     offlineMode: false
-    name: 'jobnik-manager'
+    name: 'infra-jobnik-manager'
     version: 'latest'
     serverUrl: 'http://localhost:8080/api'
   
@@ -97,16 +97,21 @@ dbConfig:
     certFileName: cert.pem
     keyFileName: key.pem
     caFileName: ca.crt
+staleTasksSweeperCron:
+  enabled: true
+  schedule: '0 0 * * *' # every day at midnight
+task:
+  staleTaskThresholdInMinutes: 1440 # 24 hours
 
 resources:
   enabled: true
   value:
     limits:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 200m
+      memory: 250Mi
     requests:
-      cpu: 100m
-      memory: 128Mi
+      cpu: 200m
+      memory: 250Mi
 
 route:
   enabled: true
