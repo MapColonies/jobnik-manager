@@ -25,6 +25,7 @@ import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { addStageRecord } from './helpers';
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;

@@ -254,6 +254,7 @@ export class StageManager {
 
     if (stage.job.status === JobOperationStatus.PENDING && status === StageOperationStatus.IN_PROGRESS) {
       // Update job status to IN_PROGRESS
+
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
     }
   }
