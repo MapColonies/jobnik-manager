@@ -197,6 +197,22 @@ export class StageManager {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
+    const previousStageOrder = stage.order - 1;
+
+    // can't move to PENDING if previous stage is not COMPLETED
+    if (status === StageOperationStatus.PENDING && previousStageOrder > 0) {
+      const previousStage = await prisma.stage.findFirst({
+        where: {
+          jobId: stage.jobId,
+          order: previousStageOrder,
+        },
+      });
+
+      if (previousStage?.status !== StageOperationStatus.COMPLETED) {
+        throw new IllegalStageStatusTransitionError(`Previous stage is not ${StageOperationStatus.COMPLETED}`);
+      }
+    }
+
     const nextStatusChange = OperationStatusMapper[status];
     const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
@@ -220,8 +236,26 @@ export class StageManager {
 
     await prisma.stage.update(updateQueryBody);
 
+    const nextStageOrder = stage.order + 1;
+
+    // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
+    if (status === StageOperationStatus.COMPLETED) {
+      const nextStage = await prisma.stage.findFirst({
+        where: {
+          jobId: stage.jobId,
+          order: nextStageOrder,
+        },
+      });
+
+      /* istanbul ignore if */
+      if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
+        await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
+      }
+    }
+
     if (stage.job.status === JobOperationStatus.PENDING && status === StageOperationStatus.IN_PROGRESS) {
       // Update job status to IN_PROGRESS
+
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
     }
   }
