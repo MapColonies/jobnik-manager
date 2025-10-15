@@ -15,6 +15,7 @@ import { createConnectionOptions, createPrismaClient } from './db/createConnecti
 import { promiseTimeout } from './common/utils/promiseTimeout';
 import { stageRouterFactory, STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
 import { taskRouterFactory, TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
+import { SERVICE_METRICS_SYMBOL, serviceMetricsFactory } from './common/serviceMetrics';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -31,6 +32,8 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
   const tracer = trace.getTracer(SERVICE_NAME);
   const metricsRegistry = new Registry();
+  const serviceMetricsRegistry = new Registry();
+
   configInstance.initializeMetrics(metricsRegistry);
 
   const prismaClientConfig = createConnectionOptions(dbConfig);
@@ -49,6 +52,8 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     { token: SERVICES.LOGGER, provider: { useValue: logger } },
     { token: SERVICES.TRACER, provider: { useValue: tracer } },
     { token: SERVICES.METRICS, provider: { useValue: metricsRegistry } },
+    { token: SERVICES.SERVICE_METRICS, provider: { useValue: serviceMetricsRegistry } },
+    { token: SERVICE_METRICS_SYMBOL, provider: { useFactory: serviceMetricsFactory } },
     {
       token: SERVICES.PRISMA,
       provider: {

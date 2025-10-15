@@ -1,0 +1,749 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": 164,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "panels": [],
+      "title": "🚀 Pod Activity - Jobs & Tasks Processing Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Jobs per Second",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 3,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (hostname) (rate(jobnik_job_processing_duration_seconds_count{hostname=~\"$pod\",job_name=~\"$job_type\",from_status=\"IN_PROGRESS\",to_status=\"COMPLETED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - Jobs Completed/sec",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (hostname) (rate(jobnik_job_processing_duration_seconds_count{hostname=~\"$pod\",job_name=~\"$job_type\",from_status=\"IN_PROGRESS\",to_status=\"FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - Jobs Failed/sec",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "sum by (hostname) (rate(jobnik_job_processing_duration_seconds_count{hostname=~\"$pod\",job_name=~\"$job_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - Jobs Started/sec",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "🔍 Pod Activity - Job Processing Rate by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Duration",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 3,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.50, rate(jobnik_job_processing_duration_seconds_bucket{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P50 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, rate(jobnik_job_processing_duration_seconds_bucket{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P75 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, rate(jobnik_job_processing_duration_seconds_bucket{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P95 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, rate(jobnik_job_processing_duration_seconds_bucket{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P99 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(jobnik_job_processing_duration_seconds_sum{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]) / rate(jobnik_job_processing_duration_seconds_count{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{hostname}} - AVG IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "📊 Job Processing Duration Percentiles - IN_PROGRESS → COMPLETED/FAILED Only",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "id": 200,
+      "panels": [],
+      "title": "🔧 Task Activity & Processing Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Tasks per Second",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "id": 11,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(jobnik_task_processing_duration_seconds_count{hostname=~\"$pod\",from_status=\"IN_PROGRESS\",to_status=\"COMPLETED\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{hostname}} - Tasks Completed/sec",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(jobnik_task_processing_duration_seconds_count{hostname=~\"$pod\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{hostname}} - Tasks Started/sec",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "🔍 Task Processing Rate by Status",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "Duration",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "vis": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": ["jobnik-test-jobnik-manager-deployment-559cddc576-65qgx - P75 IN_PROGRESS → COMPLETED"],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 13,
+      "options": {
+        "legend": {
+          "calcs": ["lastNotNull"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "11.4.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.50, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P50 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P75 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P95 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P99 IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(jobnik_task_processing_duration_seconds_sum{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval]) / rate(jobnik_task_processing_duration_seconds_count{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"IN_PROGRESS\",to_status=~\"COMPLETED|FAILED\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{hostname}} - AVG IN_PROGRESS → {{to_status}}",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "rate(jobnik_task_processing_duration_seconds_sum{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]) / rate(jobnik_task_processing_duration_seconds_count{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval])",
+          "instant": false,
+          "legendFormat": "{{hostname}} - AVG Queue Wait (PENDING → IN_PROGRESS)",
+          "range": true,
+          "refId": "F"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.50, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P50 Queue Wait (PENDING → IN_PROGRESS)",
+          "range": true,
+          "refId": "G"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.75, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P75 Queue Wait (PENDING → IN_PROGRESS)",
+          "range": true,
+          "refId": "H"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.95, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P95 Queue Wait (PENDING → IN_PROGRESS)",
+          "range": true,
+          "refId": "I"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "editorMode": "code",
+          "expr": "histogram_quantile(0.99, rate(jobnik_task_processing_duration_seconds_bucket{hostname=~\"$pod\",stageType=~\"$stage_type\",from_status=\"PENDING\",to_status=\"IN_PROGRESS\"}[$__rate_interval]))",
+          "instant": false,
+          "legendFormat": "{{hostname}} - P99 Queue Wait (PENDING → IN_PROGRESS)",
+          "range": true,
+          "refId": "J"
+        }
+      ],
+      "title": "📊 Task Processing Duration Percentiles & Averages - All Transitions (Processing + Queue Wait)",
+      "type": "timeseries"
+    }
+  ],
+  "preload": false,
+  "refresh": "5s",
+  "schemaVersion": 40,
+  "tags": ["jobnik", "pod-activity", "metrics", "processing", "jobs", "tasks", "stages"],
+  "templating": {
+    "list": [
+      {
+        "current": {
+          "text": "Prometheus",
+          "value": "prometheus"
+        },
+        "includeAll": false,
+        "label": "Datasource",
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values({__name__=~\"jobnik_job_processing_duration_seconds_count|jobnik_task_.*\"}, hostname)",
+        "includeAll": true,
+        "label": "Pod",
+        "multi": true,
+        "name": "pod",
+        "options": [],
+        "query": {
+          "query": "label_values({__name__=~\"jobnik_job_processing_duration_seconds_count|jobnik_task_.*\"}, hostname)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values({__name__=~\"jobnik_job_processing_duration_seconds_count\"}, job_name)",
+        "includeAll": true,
+        "label": "Job Type",
+        "multi": true,
+        "name": "job_type",
+        "options": [],
+        "query": {
+          "query": "label_values({__name__=~\"jobnik_job_processing_duration_seconds_count\"}, job_name)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values({__name__=~\"jobnik_task_.*\"}, stageType)",
+        "includeAll": true,
+        "label": "Stage Type",
+        "multi": true,
+        "name": "stage_type",
+        "options": [],
+        "query": {
+          "query": "label_values({__name__=~\"jobnik_task_.*\"}, stageType)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Jobnik - Pod Activity - Jobs & Tasks Processing Metrics",
+  "uid": "jobnik-pod-activity",
+  "version": 51,
+  "weekStart": ""
+}

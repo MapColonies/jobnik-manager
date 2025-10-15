@@ -2,10 +2,10 @@
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
-import { Registry } from 'prom-client';
 import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
+import { JobMetrics } from '@src/jobs/models/metrics';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -23,16 +23,21 @@ let stageManager: StageManager;
 let stageRepository: StageRepository;
 const tracer = trace.getTracer(SERVICE_NAME);
 const prisma = new PrismaClient();
-const mockRegistry = new Registry();
 type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
+
+// Create mock metrics
+const mockJobMetrics = {
+  recordJobCompletionMetrics: jest.fn(),
+  recordJobStatusTransition: jest.fn(),
+} as unknown as JobMetrics;
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockRegistry);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockJobMetrics);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager, mockRegistry);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
   });
 
   afterEach(() => {

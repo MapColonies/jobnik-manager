@@ -3,10 +3,11 @@ import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { subHours, subMinutes } from 'date-fns';
-import { Registry } from 'prom-client';
 import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
+import { JobMetrics } from '@src/jobs/models/metrics';
+import { TaskMetrics } from '@src/tasks/models/metrics';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { TaskManager } from '@src/tasks/models/manager';
@@ -42,7 +43,16 @@ let stageRepository: StageRepository;
 
 const tracer = trace.getTracer(SERVICE_NAME);
 const prisma = new PrismaClient();
-const mockRegistry = new Registry();
+
+// Create mock metrics
+const mockJobMetrics = {
+  recordJobCompletionMetrics: jest.fn(),
+} as unknown as JobMetrics;
+
+const mockTaskMetrics = {
+  recordStaleTasksReleased: jest.fn(),
+  recordTaskMetrics: jest.fn(),
+} as unknown as TaskMetrics;
 
 let config: ReturnType<typeof getConfig>;
 
@@ -55,10 +65,10 @@ describe('JobManager', () => {
 
   beforeEach(function () {
     config = getConfig();
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockRegistry);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockJobMetrics);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager, mockRegistry);
-    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config, mockRegistry);
+    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
+    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config, mockTaskMetrics);
   });
 
   afterEach(() => {

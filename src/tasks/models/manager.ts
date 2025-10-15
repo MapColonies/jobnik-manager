@@ -4,8 +4,6 @@ import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { subMinutes } from 'date-fns';
-import { Gauge } from 'prom-client';
-import type { Registry } from 'prom-client';
 import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
@@ -27,6 +25,7 @@ import {
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
+import { TaskMetrics } from './metrics';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function generatePrioritizedTaskQuery(stageType: string) {
@@ -84,12 +83,8 @@ export class TaskManager {
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
     @inject(SERVICES.CONFIG) private readonly config: ConfigType,
-    @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry
-  ) {
-    // Initialize the in-progress tasks gauge metric
-    /* istanbul ignore next */
-    this.initializeInProgressTasksGauge();
-  }
+    @inject(TaskMetrics) private readonly taskMetrics: TaskMetrics
+  ) {}
 
   @withSpanAsyncV4
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
@@ -282,7 +277,6 @@ export class TaskManager {
 
   /**
    * Cleans up stale tasks based on the configured time delta
-   * @param config - Cron configuration containing time delta settings
    */
   @withSpanAsyncV4
   public async cleanStaleTasks(): Promise<void> {
@@ -324,6 +318,9 @@ export class TaskManager {
       // Update each stale task to FAILED status using the existing TaskManager API
       const updateResults = await this.updateStaleTasksStatus(staleTasks);
 
+      // Update metrics for stale task releases
+      this.taskMetrics.recordStaleTasksReleased(updateResults.successCount, updateResults.failureCount);
+
       this.logger.info({
         msg: 'Task cleanup completed successfully',
         updatedTasksCount: updateResults.successCount,
@@ -333,26 +330,6 @@ export class TaskManager {
       this.logger.error({ msg: 'Failed to clean stale tasks', error });
       throw error;
     }
-  }
-  /*
-   * Gets the count of in-progress tasks
-   * @returns Promise<number> - The number of tasks currently in progress
-   */
-  @withSpanAsyncV4
-  private async getInProgressTasksCount(): Promise<number> {
-    /* istanbul ignore next */
-    if (process.env.NODE_ENV === 'test') return 0;
-
-    /* istanbul ignore next */
-    const count = await this.prisma.task.count({
-      /* istanbul ignore next */
-      where: {
-        /* istanbul ignore next */
-        status: TaskOperationStatus.IN_PROGRESS,
-      },
-    });
-    /* istanbul ignore next */
-    return count;
   }
 
   /**
@@ -386,9 +363,16 @@ export class TaskManager {
         throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
       }
 
+      const updatedTask = updatedTasks[0];
+
+      // Record metrics for the task status transition
+      // Use current time as reference for metrics recording
+      const metricsTimestamp = new Date();
+      await this.taskMetrics.recordTaskMetrics(task, nextStatus, metricsTimestamp, tx);
+
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
-      return updatedTasks[0];
+      return updatedTask;
     });
   }
 
@@ -501,52 +485,5 @@ export class TaskManager {
     }
 
     return { successCount, failureCount };
-  }
-
-  /*
-   * Initializes and registers a gauge metric for tracking in-progress tasks count
-   */
-  /* istanbul ignore next */
-  private initializeInProgressTasksGauge(): void {
-    // Check if the gauge already exists to prevent duplicate registration
-    const existingGauge = this.metricsRegistry.getSingleMetric('tasks_running_states');
-    if (existingGauge) {
-      // Gauge already registered, no need to create another one
-      return;
-    }
-
-    const self = this; // eslint-disable-line @typescript-eslint/no-this-alias
-
-    new Gauge({
-      name: 'tasks_running_states',
-      help: 'Current number of tasks in running states',
-      labelNames: ['status'],
-      registers: [this.metricsRegistry],
-      async collect(this: Gauge): Promise<void> {
-        const startTime = Date.now();
-        try {
-          // Get the count of in-progress tasks
-          const count = await self.getInProgressTasksCount();
-          this.set({ status: 'IN_PROGRESS' }, count);
-
-          self.logger.debug({
-            msg: 'In-progress tasks gauge updated successfully',
-            count,
-            executionTimeMs: Date.now() - startTime,
-            timestamp: new Date().toISOString(),
-          });
-        } catch (error) {
-          // Log errors to help with debugging
-          self.logger.error({
-            msg: 'Failed to update in-progress tasks gauge',
-            error: error instanceof Error ? error.message : 'Unknown error',
-            executionTimeMs: Date.now() - startTime,
-            timestamp: new Date().toISOString(),
-          });
-          // Set to 0 on error to avoid completely breaking metrics
-          this.set({ status: 'IN_PROGRESS' }, 0);
-        }
-      },
-    });
   }
 }
