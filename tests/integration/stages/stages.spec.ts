@@ -1158,7 +1158,7 @@ describe('stage', function () {
         expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
 
-      it("should return 201 status code and modify move stage's status to pending (first stage is completed)", async function () {
+      it("should return 201 status code and move stage's status to pending (first stage is completed)", async function () {
         const { stage: stage1 } = await createJobnikTree(
           prisma,
           {},
