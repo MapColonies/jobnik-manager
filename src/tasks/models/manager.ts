@@ -12,6 +12,7 @@ import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { type ConfigType } from '@src/common/config';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
 import {
@@ -21,10 +22,10 @@ import {
   TaskNotFoundError,
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
-import { type ConfigType } from '@src/common/config';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
+import { TaskMetrics } from './metrics';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function generatePrioritizedTaskQuery(stageType: string) {
@@ -81,7 +82,8 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(SERVICES.CONFIG) private readonly config: ConfigType
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType,
+    @inject(TaskMetrics) private readonly taskMetrics: TaskMetrics
   ) {}
 
   @withSpanAsyncV4
@@ -275,7 +277,6 @@ export class TaskManager {
 
   /**
    * Cleans up stale tasks based on the configured time delta
-   * @param config - Cron configuration containing time delta settings
    */
   @withSpanAsyncV4
   public async cleanStaleTasks(): Promise<void> {
@@ -316,6 +317,9 @@ export class TaskManager {
 
       // Update each stale task to FAILED status using the existing TaskManager API
       const updateResults = await this.updateStaleTasksStatus(staleTasks);
+
+      // Update metrics for stale task releases
+      this.taskMetrics.recordStaleTasksReleased(updateResults.successCount, updateResults.failureCount);
 
       this.logger.info({
         msg: 'Task cleanup completed successfully',
@@ -359,9 +363,16 @@ export class TaskManager {
         throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
       }
 
+      const updatedTask = updatedTasks[0];
+
+      // Record metrics for the task status transition
+      // Use current time as reference for metrics recording
+      const metricsTimestamp = new Date();
+      await this.taskMetrics.recordTaskMetrics(task, nextStatus, metricsTimestamp, tx);
+
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
-      return updatedTasks[0];
+      return updatedTask;
     });
   }
 
