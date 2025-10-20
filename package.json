@@ -88,7 +88,7 @@
     "@types/supertest": "^6.0.2",
     "@types/swagger-ui-express": "^4.1.8",
     "copyfiles": "^2.4.1",
-    "cross-env": "^10.0.0",
+    "cross-env": "^10.1.0",
     "docker-compose": "^1.2.0",
     "eslint": "^9.35.0",
     "eslint-plugin-jest": "^28.11.0",
