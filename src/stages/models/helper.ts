@@ -74,11 +74,13 @@ function getCurrentPercentage(stageSummary: StageSummary): number {
  * @param stage The stage object containing the initial state flag.
  * @returns The initial xstate snapshot for the stage, Created as default or Wait if flag is true.
  */
-function getInitialXstate(stage: StageCreateModel): StagePersistedSnapshot {
+function getInitialXstate(stage: StageCreateModel, firstStage = false): StagePersistedSnapshot {
   const createStageActor = createActor(stageStateMachine).start();
 
   if (stage.startAsWaiting === true) {
     createStageActor.send({ type: 'wait' });
+  } else if (firstStage) {
+    createStageActor.send({ type: 'pend' });
   }
 
   return createStageActor.getPersistedSnapshot();

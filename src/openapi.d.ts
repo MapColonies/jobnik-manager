@@ -27,7 +27,7 @@ export type paths = {
      * @description Creates a new job in the system with user-defined configuration and metadata.
      *     Supports customizable priorities and job-specific data payloads.
      *
-     *     The job will be created with an initial status of CREATED and can be tracked
+     *     The job will be created with an initial status of PENDING and can be tracked
      *     throughout its lifecycle using the returned job ID.
      *
      */
@@ -645,7 +645,7 @@ export type components = {
      * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
      *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
      *
-     * @example CREATED
+     * @example PENDING
      * @enum {string}
      */
     jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED';
@@ -661,7 +661,7 @@ export type components = {
      * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
      *     Finite states from which no further transitions are possible include: COMPLETED and FAILED.
      *
-     * @example CREATED
+     * @example PENDING
      * @enum {string}
      */
     taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CREATED' | 'RETRIED';

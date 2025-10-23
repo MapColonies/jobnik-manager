@@ -53,7 +53,7 @@ paths:
         Creates a new job in the system with user-defined configuration and metadata.
         Supports customizable priorities and job-specific data payloads.
 
-        The job will be created with an initial status of CREATED and can be tracked
+        The job will be created with an initial status of PENDING and can be tracked
         throughout its lifecycle using the returned job ID.
       tags:
         - jobs
@@ -121,7 +121,7 @@ paths:
                   value:
                     id: '550e8400-e29b-41d4-a716-446655440000'
                     name: 'data_processing'
-                    status: 'CREATED'
+                    status: 'PENDING'
                     percentage: 0
                     priority: 'MEDIUM'
                     creationTime: '2025-07-27T10:30:00Z'
@@ -137,7 +137,7 @@ paths:
                   value:
                     id: '660f9511-f3ac-52e5-b827-557766551111'
                     name: 'critical_analysis'
-                    status: 'CREATED'
+                    status: 'PENDING'
                     percentage: 0
                     priority: 'VERY_HIGH'
                     creationTime: '2025-07-27T10:30:00Z'
@@ -1823,7 +1823,7 @@ components:
         - ABORTED
         - PAUSED
         - CREATED
-      example: CREATED
+      example: PENDING
       description: |
         Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
         Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
@@ -1850,7 +1850,7 @@ components:
         - FAILED
         - CREATED
         - RETRIED
-      example: CREATED
+      example: PENDING
       description: |
         Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
         Finite states from which no further transitions are possible include: COMPLETED and FAILED.

@@ -3,8 +3,7 @@ import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
-import type { PrismaClient, Priority, JobOperationStatus } from '@prismaClient';
-import { Prisma } from '@prismaClient';
+import { PrismaClient, Priority, JobOperationStatus, Prisma } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/errors';
@@ -50,12 +49,14 @@ export class JobManager {
   public async createJob(body: JobCreateModel): Promise<JobModel> {
     try {
       const createJobActor = createActor(jobStateMachine).start();
+      createJobActor.send({ type: OperationStatusMapper[JobOperationStatus.PENDING] });
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
       const { traceparent, tracestate } = resolveTraceContext(body);
 
       const input = {
         ...body,
+        status: JobOperationStatus.PENDING,
         xstate: persistenceSnapshot,
         traceparent,
         tracestate,
