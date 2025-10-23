@@ -87,6 +87,7 @@ export class TaskManager {
   @withSpanAsyncV4
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
     const createTaskActor = createActor(taskStateMachine).start();
+    createTaskActor.send({ type: 'pend' });
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
 
     const stage = await this.stageManager.getStageEntityById(stageId);
@@ -118,7 +119,7 @@ export class TaskManager {
         data: taskData.data,
         xstate: persistenceSnapshot,
         userMetadata: taskData.userMetadata,
-        status: TaskOperationStatus.CREATED,
+        status: TaskOperationStatus.PENDING,
         stageId,
         traceparent,
         tracestate,
@@ -134,7 +135,7 @@ export class TaskManager {
         const tasks = await tx.task.createManyAndReturn(queryBody);
 
         const updateSummaryPayload: UpdateSummaryCount = {
-          add: { status: TaskOperationStatus.CREATED, count: tasks.length },
+          add: { status: TaskOperationStatus.PENDING, count: tasks.length },
         };
 
         await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
@@ -337,7 +338,6 @@ export class TaskManager {
   private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
     return this.prisma.$transaction(async (tx) => {
       const previousStatus = task.status;
-
       const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
 
       const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
@@ -353,16 +353,37 @@ export class TaskManager {
       };
 
       const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
-
       if (updatedTasks[0] === undefined) {
         throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
       }
 
-      const updatedTask = updatedTasks[0];
-
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
-      return updatedTask;
+      // todo - on current versions will cause also to stage to be failed - need to change after stage manager update
+      if (nextStatus === TaskOperationStatus.FAILED) {
+        const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
+
+        // istanbul ignore if
+        if (!stage) {
+          this.logger.error(`Failed updating task status, stage not exists`);
+          throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
+        }
+
+        // istanbul ignore if
+        if (stage.status === StageOperationStatus.FAILED) {
+          return updatedTasks[0];
+        }
+
+        this.logger.info({
+          msg: 'Updating parent stage status to FAILED due to task failure',
+          taskId: task.id,
+          stageId: task.stageId,
+        });
+
+        await this.stageManager.updateStatus(task.stageId, StageOperationStatus.FAILED, tx);
+      }
+
+      return updatedTasks[0];
     });
   }
 

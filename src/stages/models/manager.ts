@@ -52,8 +52,6 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async addStage(jobId: string, stagePayload: StageCreateModel): Promise<StageModel> {
-    const stagePersistenceSnapshot = getInitialXstate(stagePayload);
-
     const job = await this.jobManager.getJobEntityById(jobId);
 
     if (!job) {
@@ -72,11 +70,22 @@ export class StageManager {
 
     const nextOrder = await this.getNextStageOrder(jobId);
 
+    const stagePersistenceSnapshot = getInitialXstate(stagePayload, nextOrder === 1);
+
+    let actualStatus;
+    if (startAsWaiting === true) {
+      actualStatus = StageOperationStatus.WAITING;
+    } else if (nextOrder === 1) {
+      actualStatus = StageOperationStatus.PENDING;
+    } else {
+      actualStatus = StageOperationStatus.CREATED;
+    }
+
     const input: Prisma.StageCreateInput = {
       ...bodyInput,
       order: nextOrder,
       summary: defaultStatusCounts,
-      status: startAsWaiting === true ? StageOperationStatus.WAITING : StageOperationStatus.CREATED,
+      status: actualStatus,
       job: {
         connect: {
           id: jobId,
@@ -196,7 +205,7 @@ export class StageManager {
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
-
+    //#region validate status transition rules
     const previousStageOrder = stage.order - 1;
 
     // can't move to PENDING if previous stage is not COMPLETED
@@ -220,7 +229,7 @@ export class StageManager {
     if (!isValidStatus) {
       throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, status));
     }
-
+    //#endregion
     updateActor.send({ type: nextStatusChange });
     const newPersistedSnapshot = updateActor.getPersistedSnapshot();
 
@@ -236,9 +245,11 @@ export class StageManager {
 
     await prisma.stage.update(updateQueryBody);
 
-    const nextStageOrder = stage.order + 1;
+    //#region update related entities
+    // Update job completion when a stage is completed
     // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
     if (status === StageOperationStatus.COMPLETED) {
+      const nextStageOrder = stage.order + 1;
       const nextStage = await prisma.stage.findFirst({
         where: {
           jobId: stage.jobId,
@@ -246,16 +257,29 @@ export class StageManager {
         },
       });
 
-      /* istanbul ignore if */
       if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
         await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
       }
+
+      const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
+      if (completedStages === totalStages) {
+        await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.COMPLETED, tx);
+        this.logger.info({
+          msg: 'Job completed as all stages are done',
+          jobId: stage.jobId,
+        });
+      }
     }
 
-    if (stage.job.status === JobOperationStatus.PENDING && status === StageOperationStatus.IN_PROGRESS) {
+    if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+    } else if (status === StageOperationStatus.FAILED) {
+      // Update job status to FAILED
+      await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
     }
+
+    //#endregion
   }
 
   /**
@@ -319,9 +343,15 @@ export class StageManager {
     const stageUpdatedData: Prisma.StageUpdateInput = { percentage: completionPercentage };
 
     await tx.stage.update({ where: { id: stage.id }, data: stageUpdatedData });
-
     if (summary.total === summary.completed) {
       await this.updateStatus(stage.id, StageOperationStatus.COMPLETED, tx);
+
+      this.logger.info({
+        msg: 'Stage completed, updating job progress',
+        stageId: stage.id,
+        jobId: stage.jobId,
+      });
+      await this.updateJobCompletionProgress(stage.jobId, tx);
     }
   }
 
@@ -343,5 +373,36 @@ export class StageManager {
       return 1;
     }
     return lastStageResult._max.order + 1;
+  }
+
+  /**
+   * Updates the job completion progress based on completed stages.
+   * Calculates percentage and marks job as completed when all stages are done.
+   * @param jobId unique identifier of the job.
+   * @param tx transaction context.
+   */
+  @withSpanAsyncV4
+  private async updateJobCompletionProgress(jobId: string, tx?: PrismaTransaction): Promise<{ completedStages: number; totalStages: number }> {
+    const prisma = tx ?? this.prisma;
+
+    const [totalStages, completedStages] = await Promise.all([
+      prisma.stage.count({ where: { jobId } }),
+      prisma.stage.count({ where: { jobId, status: StageOperationStatus.COMPLETED } }),
+    ]);
+
+    /* istanbul ignore if */
+    if (totalStages === 0) {
+      return { completedStages: 0, totalStages: 0 };
+    }
+
+    const JOB_PERCENTAGE_MULTIPLIER = 100;
+    const completionPercentage = Math.floor((completedStages / totalStages) * JOB_PERCENTAGE_MULTIPLIER);
+
+    await prisma.job.update({
+      where: { id: jobId },
+      data: { percentage: completionPercentage },
+    });
+
+    return { completedStages, totalStages };
   }
 }

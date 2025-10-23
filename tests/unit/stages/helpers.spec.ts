@@ -1,5 +1,5 @@
-import { getCurrentPercentage, summaryCountsMapper } from '@src/stages/models/helper';
-import { StageSummary } from '@src/stages/models/models';
+import { getCurrentPercentage, summaryCountsMapper, getInitialXstate } from '@src/stages/models/helper';
+import { StageSummary, StageCreateModel } from '@src/stages/models/models';
 
 describe('helpers', function () {
   const createSummary = (completed: number, total: number): StageSummary => {
@@ -96,6 +96,72 @@ describe('helpers', function () {
         const percentage = getCurrentPercentage(summary);
 
         expect(percentage).toBe(0);
+      });
+    });
+  });
+
+  describe('#getInitialXstate', function () {
+    describe('Happy Path', function () {
+      it('should return snapshot when called without firstStage parameter (default false)', function () {
+        const stagePayload: StageCreateModel = {
+          data: {},
+          type: 'TEST_STAGE',
+        };
+
+        const snapshot = getInitialXstate(stagePayload);
+
+        expect(snapshot).toBeDefined();
+        expect(snapshot).toHaveProperty('status');
+      });
+
+      it('should return snapshot when firstStage is explicitly false', function () {
+        const stagePayload: StageCreateModel = {
+          data: {},
+          type: 'TEST_STAGE',
+        };
+
+        const snapshot = getInitialXstate(stagePayload, false);
+
+        expect(snapshot).toBeDefined();
+        expect(snapshot).toHaveProperty('status');
+      });
+
+      it('should return snapshot when firstStage is true', function () {
+        const stagePayload: StageCreateModel = {
+          data: {},
+          type: 'TEST_STAGE',
+        };
+
+        const snapshot = getInitialXstate(stagePayload, true);
+
+        expect(snapshot).toBeDefined();
+        expect(snapshot).toHaveProperty('status');
+      });
+
+      it('should return snapshot when startAsWaiting is true', function () {
+        const stagePayload: StageCreateModel = {
+          data: {},
+          type: 'TEST_STAGE',
+          startAsWaiting: true,
+        };
+
+        const snapshot = getInitialXstate(stagePayload);
+
+        expect(snapshot).toBeDefined();
+        expect(snapshot).toHaveProperty('status');
+      });
+
+      it('should handle both startAsWaiting and firstStage parameters', function () {
+        const stagePayload: StageCreateModel = {
+          data: {},
+          type: 'TEST_STAGE',
+          startAsWaiting: true,
+        };
+
+        const snapshot = getInitialXstate(stagePayload, true);
+
+        expect(snapshot).toBeDefined();
+        expect(snapshot).toHaveProperty('status');
       });
     });
   });

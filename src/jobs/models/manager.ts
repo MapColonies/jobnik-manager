@@ -50,12 +50,14 @@ export class JobManager {
   public async createJob(body: JobCreateModel): Promise<JobModel> {
     try {
       const createJobActor = createActor(jobStateMachine).start();
+      createJobActor.send({ type: OperationStatusMapper[JobOperationStatus.PENDING] });
       const persistenceSnapshot = createJobActor.getPersistedSnapshot();
 
       const { traceparent, tracestate } = resolveTraceContext(body);
 
       const input = {
         ...body,
+        status: JobOperationStatus.PENDING,
         xstate: persistenceSnapshot,
         traceparent,
         tracestate,

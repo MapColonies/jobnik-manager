@@ -177,7 +177,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
-          body: { status: JobOperationStatus.CREATED, ...createJobRequestBody },
+          body: { status: JobOperationStatus.PENDING, ...createJobRequestBody },
         });
       });
 
@@ -193,7 +193,7 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
           body: {
-            status: JobOperationStatus.CREATED,
+            status: JobOperationStatus.PENDING,
             traceparent: `00-${finishedSpanContext?.traceId}-${finishedSpanContext?.spanId}-0${finishedSpanContext?.traceFlags}`,
           },
         });
@@ -208,7 +208,7 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
           body: {
-            status: JobOperationStatus.CREATED,
+            status: JobOperationStatus.PENDING,
             traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
             tracestate: 'foo=bar',
           },
@@ -224,7 +224,7 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
           body: {
-            status: JobOperationStatus.CREATED,
+            status: JobOperationStatus.PENDING,
             traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
           },
         });

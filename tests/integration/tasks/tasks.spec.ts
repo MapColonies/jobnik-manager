@@ -518,7 +518,7 @@ describe('task', function () {
         expect(createTaskResponse).toMatchObject({
           body: [
             {
-              status: JobOperationStatus.CREATED,
+              status: TaskOperationStatus.PENDING,
               traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
             },
           ],
@@ -693,7 +693,11 @@ describe('task', function () {
         const { tasks } = await createJobnikTree(
           prisma,
           {},
-          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: { ...defaultStatusCounts, total: 1, pending: 1 },
+          },
           [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
         );
 
@@ -717,7 +721,11 @@ describe('task', function () {
         const { tasks } = await createJobnikTree(
           prisma,
           {},
-          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: { ...defaultStatusCounts, total: 1, retried: 1 },
+          },
           [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
         );
 
@@ -766,8 +774,12 @@ describe('task', function () {
 
         const { tasks } = await createJobnikTree(
           prisma,
-          {},
-          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: { ...defaultStatusCounts, total: 1, inProgress: 1 },
+          },
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 1 }]
         );
 
@@ -850,7 +862,7 @@ describe('task', function () {
 
         const { stage, tasks } = await createJobnikTree(
           prisma,
-          {},
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
           { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, maxAttempts: 2, attempts: 1 }]
         );
@@ -903,16 +915,61 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED and stage also to COMPLETED", async function () {
+      it('should return 200 status code and complete task and stage when job has multiple stages', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
         const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
-        const expectedStageStatus = { status: TaskOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
+        const expectedStageStatus = { status: StageOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
 
         const { stage, tasks } = await createJobnikTree(
           prisma,
-          {},
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
+        );
+
+        const secondStage = await requestSender.addStage({
+          pathParams: { jobId: stage.jobId },
+          requestBody: {
+            type: 'Second Stage',
+            data: {},
+            userMetadata: {},
+          },
+        });
+
+        if (secondStage.status !== StatusCodes.CREATED) {
+          throw new Error('Failed to create second stage');
+        }
+
+        const taskId = tasks[0]!.id;
+        const stageId = stage.id;
+
+        const updateStatusResponse = await requestSender.updateTaskStatus({
+          pathParams: { taskId },
+          requestBody: updateStatusInput,
+        });
+
+        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
+
+        expect(updateStatusResponse).toSatisfyApiSpec();
+        expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
+        expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+        expect(getJobResponse.body).toMatchObject({ status: JobOperationStatus.IN_PROGRESS, percentage: 50 });
+      });
+
+      it('should return 200 status code and complete task, stage, and job when all tasks and stages are finished', async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
+        const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
+        const expectedTaskStatus = { status: TaskOperationStatus.COMPLETED };
+        const expectedStageStatus = { status: StageOperationStatus.COMPLETED, percentage: 100, summary: expectedSummary };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
           { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
@@ -927,10 +984,12 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+        expect(getJobResponse.body).toMatchObject({ status: JobOperationStatus.COMPLETED });
       });
     });
 
