@@ -1117,7 +1117,7 @@ describe('stage', function () {
 
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
-      it("should return 201 status code and modify stages's status", async function () {
+      it("should return 200 status code and modify stages's status", async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
 
         const setStatusResponse = await requestSender.updateStageStatus({
@@ -1133,7 +1133,7 @@ describe('stage', function () {
         expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
 
-      it("should return 201 status code and move stage's status to pending (first stage is completed)", async function () {
+      it("should return 200 status code and move stage's status to pending (first stage is completed)", async function () {
         const { stage: stage1 } = await createJobnikTree(
           prisma,
           {},
@@ -1167,7 +1167,44 @@ describe('stage', function () {
         expect(getSecondStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
 
-      it("should return 201 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
+      it("should return 200 status code and not move second stage's status to pending if is WAITING", async function () {
+        const { stage: stage1 } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [],
+          { createStage: true, createTasks: false }
+        );
+        const secondStageResponse = await requestSender.addStage({
+          pathParams: { jobId: stage1.jobId },
+          requestBody: { type: 'SECOND_STAGE', data: {}, userMetadata: {} },
+        });
+
+        if (secondStageResponse.status !== StatusCodes.CREATED) {
+          throw new Error('Failed to create second stage');
+        }
+
+        const stage2 = secondStageResponse.body;
+
+        await requestSender.updateStageStatus({
+          pathParams: { stageId: stage2.id },
+          requestBody: { status: StageOperationStatus.WAITING },
+        });
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: stage1.id },
+          requestBody: { status: StageOperationStatus.COMPLETED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage2.id } });
+
+        expect(getSecondStageResponse).toHaveProperty('body.status', StageOperationStatus.WAITING);
+      });
+
+      it("should return 200 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
         const { job, stage } = await createJobnikTree(
           prisma,
           { xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING, traceparent: DEFAULT_TRACEPARENT },
