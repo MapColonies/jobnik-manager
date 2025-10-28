@@ -208,7 +208,7 @@ export class StageManager {
         },
       });
 
-      if (previousStage?.status !== StageOperationStatus.COMPLETED) {
+      if (previousStage!.status !== StageOperationStatus.COMPLETED) {
         throw new IllegalStageStatusTransitionError(`Previous stage is not ${StageOperationStatus.COMPLETED}`);
       }
     }
