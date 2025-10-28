@@ -15,7 +15,6 @@ import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
 import {
-  completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   jobEntityWithAbortStatus,
   jobEntityWithStages,
