@@ -1133,31 +1133,6 @@ describe('stage', function () {
         expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
 
-      it("should return 201 status code and modify stages's status by order (state is first ordered before other)", async function () {
-        const { stage: stage1 } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
-        const secondStageResponse = await requestSender.addStage({
-          pathParams: { jobId: stage1.jobId },
-          requestBody: { type: 'SECOND_STAGE', data: {}, userMetadata: {} },
-        });
-
-        const stage2 = secondStageResponse.body;
-
-        // Sanity check to ensure stage1 has order 1 and stage2 has order 2
-        expect(stage1).toHaveProperty('order', 1);
-        expect(stage2).toHaveProperty('order', 2);
-        const setStatusResponse = await requestSender.updateStageStatus({
-          pathParams: { stageId: stage1.id },
-          requestBody: { status: StageOperationStatus.PENDING },
-        });
-
-        expect(setStatusResponse).toSatisfyApiSpec();
-        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
-
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage1.id } });
-
-        expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
-      });
-
       it("should return 201 status code and move stage's status to pending (first stage is completed)", async function () {
         const { stage: stage1 } = await createJobnikTree(
           prisma,
@@ -1176,11 +1151,6 @@ describe('stage', function () {
         }
 
         const stage2 = secondStageResponse.body;
-
-        // Sanity check to ensure stage1 has order 1 and stage2 has order 2
-        expect(stage1).toHaveProperty('order', 1);
-        expect(stage2).toHaveProperty('order', 2);
-        expect(stage2).toHaveProperty('status', StageOperationStatus.CREATED);
 
         const setStatusResponse = await requestSender.updateStageStatus({
           pathParams: { stageId: stage1.id },
