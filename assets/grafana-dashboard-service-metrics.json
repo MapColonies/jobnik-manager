@@ -271,7 +271,7 @@
           "displayMode": "list",
           "placement": "right",
           "showLegend": true,
-          "values": ["value"]
+          "values": []
         },
         "pieType": "pie",
         "reduceOptions": {
@@ -1297,8 +1297,8 @@
     "list": [
       {
         "current": {
-          "text": "ronen-prom",
-          "value": "beyqp0cdfnoqoc"
+          "text": "Prometheus",
+          "value": "prometheus"
         },
         "includeAll": false,
         "label": "Datasource",
@@ -1381,13 +1381,13 @@
     ]
   },
   "time": {
-    "from": "now-3h",
+    "from": "now-6h",
     "to": "now"
   },
   "timepicker": {},
   "timezone": "",
   "title": "Jobnik Manager - Comprehensive Dashboard (Job Lifecycle & Service Metrics)",
   "uid": "jobnik-manager-comprehensive-dashboard",
-  "version": 81,
+  "version": 85,
   "weekStart": ""
 }

@@ -14,15 +14,13 @@ import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundE
 import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
-import { JobMetrics } from './metrics';
 
 @injectable()
 export class JobManager {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
-    @inject(SERVICES.TRACER) public readonly tracer: Tracer,
-    @inject(JobMetrics) private readonly jobMetrics: JobMetrics
+    @inject(SERVICES.TRACER) public readonly tracer: Tracer
   ) {}
 
   @withSpanAsyncV4
@@ -139,7 +137,6 @@ export class JobManager {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
-    const previousStatus = job.status;
     const nextStatusChange = OperationStatusMapper[status];
     const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
@@ -162,15 +159,6 @@ export class JobManager {
     };
 
     await prisma.job.update(updateQueryBody);
-
-    // Calculate processing duration (time since last update)
-    const currentTime = new Date();
-    const lastUpdateTime = new Date(job.updateTime);
-    const MILLISECONDS_PER_SECOND = 1000;
-    const processingDurationSeconds = (currentTime.getTime() - lastUpdateTime.getTime()) / MILLISECONDS_PER_SECOND;
-
-    // Record job status transition metric for pod activity tracking
-    this.jobMetrics.recordJobStatusTransition(job.name, previousStatus, status, job.priority, processingDurationSeconds);
   }
 
   @withSpanAsyncV4

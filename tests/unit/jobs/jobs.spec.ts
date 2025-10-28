@@ -3,7 +3,6 @@ import { trace } from '@opentelemetry/api';
 import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
-import { JobMetrics } from '@src/jobs/models/metrics';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { randomUuid } from '@tests/unit/generator';
@@ -13,18 +12,11 @@ import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages }
 let jobManager: JobManager;
 const prisma = new PrismaClient();
 const tracer = trace.getTracer(SERVICE_NAME);
-
-// Create mock JobMetrics
-const mockJobMetrics = {
-  recordJobCompletionMetrics: jest.fn(),
-  recordJobStatusTransition: jest.fn(),
-} as unknown as JobMetrics;
-
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer, mockJobMetrics);
+    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
   });
 
   afterEach(() => {

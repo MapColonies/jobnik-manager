@@ -25,7 +25,6 @@ import {
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
-import { TaskMetrics } from './metrics';
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function generatePrioritizedTaskQuery(stageType: string) {
@@ -82,8 +81,7 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(SERVICES.CONFIG) private readonly config: ConfigType,
-    @inject(TaskMetrics) private readonly taskMetrics: TaskMetrics
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType
   ) {}
 
   @withSpanAsyncV4
@@ -318,9 +316,6 @@ export class TaskManager {
       // Update each stale task to FAILED status using the existing TaskManager API
       const updateResults = await this.updateStaleTasksStatus(staleTasks);
 
-      // Update metrics for stale task releases
-      this.taskMetrics.recordStaleTasksReleased(updateResults.successCount, updateResults.failureCount);
-
       this.logger.info({
         msg: 'Task cleanup completed successfully',
         updatedTasksCount: updateResults.successCount,
@@ -364,11 +359,6 @@ export class TaskManager {
       }
 
       const updatedTask = updatedTasks[0];
-
-      // Record metrics for the task status transition
-      // Use current time as reference for metrics recording
-      const metricsTimestamp = new Date();
-      await this.taskMetrics.recordTaskMetrics(task, nextStatus, metricsTimestamp, tx);
 
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
