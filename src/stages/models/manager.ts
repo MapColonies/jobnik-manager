@@ -237,7 +237,6 @@ export class StageManager {
     await prisma.stage.update(updateQueryBody);
 
     const nextStageOrder = stage.order + 1;
-
     // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
     if (status === StageOperationStatus.COMPLETED) {
       const nextStage = await prisma.stage.findFirst({
