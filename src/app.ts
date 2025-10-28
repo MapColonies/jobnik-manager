@@ -8,6 +8,7 @@ import { ServerBuilder } from './serverBuilder';
 import { SERVICES } from './common/constants';
 import { verifyDbSetup } from './db/createConnection';
 import { TaskManager } from './tasks/models/manager';
+import { SERVICE_METRICS_SYMBOL } from './common/serviceMetrics';
 
 async function getApp(registerOptions?: RegisterOptions): Promise<[Application, DependencyContainer]> {
   const container = await registerExternalValues(registerOptions);
@@ -18,8 +19,11 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
 
   await verifyDbSetup(prisma, dbConfig.schema);
 
+  container.resolve(SERVICE_METRICS_SYMBOL); // Initialize service metrics
+
   const app = container.resolve(ServerBuilder).build();
 
+  // Schedule cron job to clean stale tasks
   if (cronConfig.enabled) {
     const taskManager = container.resolve(TaskManager);
     if (!validate(cronConfig.schedule)) {

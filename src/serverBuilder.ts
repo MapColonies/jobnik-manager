@@ -29,6 +29,7 @@ export class ServerBuilder {
   public constructor(
     @inject(SERVICES.CONFIG) private readonly config: ConfigType,
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
+    @inject(SERVICES.SERVICE_METRICS) private readonly serviceMetricsRegistry: Registry,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
     @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
     @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router,
@@ -58,12 +59,27 @@ export class ServerBuilder {
     this.serverInstance.use('/jobs', this.jobRouter);
     this.serverInstance.use('/stages', this.stageRouter);
     this.serverInstance.use('/tasks', this.taskRouter);
+
     this.buildDocsRoutes();
   }
 
   private registerPreRoutesMiddleware(): void {
-    this.serverInstance.use(collectMetricsExpressMiddleware({ registry: this.metricsRegistry }));
-    this.serverInstance.use(httpLogger({ logger: this.logger, ignorePaths: ['/metrics'] }));
+    this.serverInstance.use(collectMetricsExpressMiddleware({ registry: this.metricsRegistry, includeOperationId: true }));
+    this.serverInstance.use(httpLogger({ logger: this.logger, ignorePaths: ['/metrics', '/service-metrics'] }));
+
+    // Add service-level metrics endpoint
+    this.serverInstance.use('/service-metrics', (req, res, next) => {
+      const registry = this.serviceMetricsRegistry;
+      registry
+        .metrics()
+        .then((metrics) => {
+          res.set('Content-Type', registry.contentType);
+          res.end(metrics);
+        })
+        .catch((error) => {
+          next(error);
+        });
+    });
 
     if (this.config.get('server.response.compression.enabled')) {
       this.serverInstance.use(compression(this.config.get('server.response.compression.options') as unknown as compression.CompressionFilter));

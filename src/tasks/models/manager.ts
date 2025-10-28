@@ -12,6 +12,7 @@ import { prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { taskStateMachine, updateTaskMachineState } from '@src/tasks/models/taskStateMachine';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
+import { type ConfigType } from '@src/common/config';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
 import {
@@ -21,7 +22,6 @@ import {
   TaskNotFoundError,
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
-import { type ConfigType } from '@src/common/config';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -275,7 +275,6 @@ export class TaskManager {
 
   /**
    * Cleans up stale tasks based on the configured time delta
-   * @param config - Cron configuration containing time delta settings
    */
   @withSpanAsyncV4
   public async cleanStaleTasks(): Promise<void> {
@@ -359,9 +358,11 @@ export class TaskManager {
         throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
       }
 
+      const updatedTask = updatedTasks[0];
+
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
-      return updatedTasks[0];
+      return updatedTask;
     });
   }
 
