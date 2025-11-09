@@ -43,6 +43,7 @@ describe('JobManager', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('#Stages', () => {
@@ -598,17 +599,18 @@ describe('JobManager', () => {
             id: stageId,
             status: StageOperationStatus.CREATED,
             job: { status: JobOperationStatus.CREATED },
-            order: 1,
+            order: 2,
           } as unknown as StageWithTasks;
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder1);
           jest
             .spyOn(prisma.stage, 'update')
             .mockResolvedValueOnce({ ...stageEntityOrder1, status: StageOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot });
-          jest.spyOn(prisma.stage, 'findFirst').mockResolvedValue(stageEntityOrder2);
+          jest.spyOn(prisma.stage, 'findFirst').mockResolvedValueOnce({ ...stageEntityOrder2, status: StageOperationStatus.COMPLETED });
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder2);
           jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder2);
           jest.spyOn(prisma.stage, 'count').mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder2);
           jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
 
           await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();

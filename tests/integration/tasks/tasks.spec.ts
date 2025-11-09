@@ -969,7 +969,7 @@ describe('task', function () {
 
         const { stage, tasks } = await createJobnikTree(
           prisma,
-          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
           { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
