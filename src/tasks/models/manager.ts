@@ -359,7 +359,9 @@ export class TaskManager {
 
       await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
 
-      // todo - on current versions will cause also to stage to be failed - need to change after stage manager update
+      // TODO - Check if this stage type should propagate failure to parent job
+      // For now, all task failures cause stage failure, but in future versions
+      // some stages may be configured as optional (non-blocking)
       if (nextStatus === TaskOperationStatus.FAILED) {
         const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
 
