@@ -13,7 +13,7 @@ import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { TaskCreateModel } from '@src/tasks/models/models';
+import { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
   completedStageXstatePersistentSnapshot,
@@ -106,10 +106,6 @@ describe('task', function () {
       it('should return 400 status code and a relevant validation error message when the stage type is longer of 50 characters', async function () {
         const longStageType = faker.string.alpha(51);
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_type: longStageType } });
-
-        if (response.status !== StatusCodes.BAD_REQUEST) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -245,10 +241,6 @@ describe('task', function () {
         const stageId = stage.id;
 
         const getTasksResponse = await requestSender.getTasksByStageId({ pathParams: { stageId } });
-
-        if (getTasksResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
 
         expect(getTasksResponse).toSatisfyApiSpec();
         expect(getTasksResponse.body).toHaveLength(2);
@@ -470,10 +462,6 @@ describe('task', function () {
         const createTaskSpan = memoryExporter.getFinishedSpans().find((span) => span.name === 'addTasks');
         const finishedSpanContext = createTaskSpan?.spanContext();
 
-        if (createTaskResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
         expect(createTaskResponse).toSatisfyApiSpec();
         expect(createTaskResponse).toMatchObject({
           body: [{ traceparent: `00-${finishedSpanContext?.traceId}-${finishedSpanContext?.spanId}-0${finishedSpanContext?.traceFlags}` }],
@@ -632,10 +620,6 @@ describe('task', function () {
           pathParams: { stageId: faker.string.uuid() },
         });
 
-        if (response.status !== StatusCodes.NOT_FOUND) {
-          throw new Error();
-        }
-
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
@@ -739,12 +723,8 @@ describe('task', function () {
 
         const taskId = tasks[0]!.id;
         const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
-
-        if (getTaskResponseBeforeUpdate.status !== StatusCodes.OK) {
-          throw new Error('Failed to retrieve task before update');
-        }
-
-        const previousStartTime = getTaskResponseBeforeUpdate.body.startTime;
+        const taskBeforeUpdate = getTaskResponseBeforeUpdate.body as TaskModel;
+        const previousStartTime = taskBeforeUpdate.startTime;
 
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId },
@@ -752,13 +732,9 @@ describe('task', function () {
         });
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-
-        if (getTaskResponse.status !== StatusCodes.OK) {
-          throw new Error('Failed to retrieve task after update');
-        }
-
+        const task = getTaskResponse.body as TaskModel;
         expect(updateStatusResponse).toSatisfyApiSpec();
-        expect(new Date(getTaskResponse.body.startTime!)).toBeAfter(new Date(previousStartTime!));
+        expect(new Date(task.startTime!)).toBeAfter(new Date(previousStartTime!));
       });
 
       it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
