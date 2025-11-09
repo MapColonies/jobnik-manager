@@ -118,10 +118,6 @@ describe('job', function () {
       it('should return 400 status code and a relevant validation error message when the job priority param is incorrect', async function () {
         const response = await requestSender.findJobs({ queryParams: { priority: 'BAD_PRIORITY' as Priority } });
 
-        if (response.status !== StatusCodes.BAD_REQUEST) {
-          throw new Error();
-        }
-
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
@@ -134,10 +130,6 @@ describe('job', function () {
 
       it('should return 400 status code and a relevant validation error message when adding unknown query parameters', async function () {
         const response = await requestSender.findJobs({ queryParams: { someExtraParam: 'FOO' } as unknown as Record<string, unknown> });
-
-        if (response.status !== StatusCodes.BAD_REQUEST) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -194,10 +186,6 @@ describe('job', function () {
           requestBody: { ...createJobRequestBody, traceparent: undefined },
         });
 
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
         await memoryExporter.forceFlush();
         const finishedSpanContext = memoryExporter.getFinishedSpans()[0]?.spanContext();
 
@@ -216,10 +204,6 @@ describe('job', function () {
           requestBody: { ...createJobRequestBody, traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01', tracestate: 'foo=bar' },
         });
 
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.CREATED,
@@ -235,10 +219,6 @@ describe('job', function () {
         const response = await requestSender.createJob({
           requestBody: { ...createJobRequestBody, traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01', tracestate: undefined },
         });
-
-        if (response.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -261,10 +241,6 @@ describe('job', function () {
         const response = await requestSender.createJob({
           requestBody: badRequestBody,
         });
-
-        if (response.status !== StatusCodes.BAD_REQUEST) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({

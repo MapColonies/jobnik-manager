@@ -12,10 +12,15 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { StageCreateModel } from '@src/stages/models/models';
+import { StageCreateModel, StageModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { abortedXstatePersistentSnapshot, completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import {
+  abortedXstatePersistentSnapshot,
+  completedStageXstatePersistentSnapshot,
+  inProgressStageXstatePersistentSnapshot,
+  pendingStageXstatePersistentSnapshot,
+} from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
@@ -93,10 +98,6 @@ describe('stage', function () {
 
         const response = await requestSender.getStages();
 
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
-
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
         expect(response.body).toBeArray();
@@ -118,10 +119,6 @@ describe('stage', function () {
         const jobId = job.id;
 
         const response = await requestSender.getStages({ queryParams: { job_id: jobId, should_return_tasks: true } });
-
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -164,10 +161,6 @@ describe('stage', function () {
       it('should return 400 status code and a relevant validation error message when the stage type is larger than 50 characters', async function () {
         const longStageType = faker.string.alpha(51);
         const response = await requestSender.getStages({ queryParams: { stage_type: longStageType } });
-
-        if (response.status !== StatusCodes.BAD_REQUEST) {
-          throw new Error();
-        }
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -226,10 +219,6 @@ describe('stage', function () {
           queryParams: { should_return_tasks: undefined },
         });
 
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
-
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -248,10 +237,6 @@ describe('stage', function () {
           queryParams: { should_return_tasks: true },
         });
 
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
-
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: StageOperationStatus.CREATED, id: stage.id } });
         expect(getStageResponse.body).toHaveProperty('tasks');
@@ -267,10 +252,6 @@ describe('stage', function () {
           pathParams: { stageId: stage.id },
           queryParams: { should_return_tasks: false },
         });
-
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: { status: StageOperationStatus.CREATED, id: stage.id } });
@@ -429,10 +410,6 @@ describe('stage', function () {
         });
 
         const getStageResponse = await requestSender.getStagesByJobId({ pathParams: { jobId: createdJobId } });
-
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
@@ -875,10 +852,6 @@ describe('stage', function () {
           pathParams: { jobId: job.id },
         });
 
-        if (getStagesResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
-
         expect(getStagesResponse).toMatchObject({
           status: StatusCodes.OK,
           body: [{ order: 1 }, { order: 2 }, { order: 3 }],
@@ -903,10 +876,6 @@ describe('stage', function () {
         const addStageSpan = memoryExporter.getFinishedSpans().find((span) => span.name === 'addStage');
         const finishedSpanContext = addStageSpan?.spanContext();
 
-        if (addStageResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
-
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.CREATED,
@@ -929,10 +898,6 @@ describe('stage', function () {
           requestBody: createStagesPayload,
           pathParams: { jobId: job.id },
         });
-
-        if (addStageResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
 
         expect(addStageResponse).toSatisfyApiSpec();
 
@@ -959,10 +924,6 @@ describe('stage', function () {
           requestBody: createStagesPayload,
           pathParams: { jobId: job.id },
         });
-
-        if (addStageResponse.status !== StatusCodes.CREATED) {
-          throw new Error();
-        }
 
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
@@ -1062,10 +1023,6 @@ describe('stage', function () {
           pathParams: { jobId: testJobId },
         });
 
-        if (response.status !== StatusCodes.NOT_FOUND) {
-          throw new Error();
-        }
-
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.NOT_FOUND,
@@ -1111,7 +1068,7 @@ describe('stage', function () {
 
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
-      it("should return 201 status code and modify stages's status", async function () {
+      it("should return 200 status code and modify stages's status", async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
 
         const setStatusResponse = await requestSender.updateStageStatus({
@@ -1127,7 +1084,70 @@ describe('stage', function () {
         expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
       });
 
-      it("should return 201 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
+      it("should return 200 status code and move stage's status to pending (first stage is completed)", async function () {
+        const { stage: stage1 } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [],
+          { createStage: true, createTasks: false }
+        );
+        const secondStageResponse = await requestSender.addStage({
+          pathParams: { jobId: stage1.jobId },
+          requestBody: { type: 'SECOND_STAGE', data: {}, userMetadata: {} },
+        });
+
+        const stage2 = secondStageResponse.body as StageModel;
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: stage1.id },
+          requestBody: { status: StageOperationStatus.COMPLETED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage1.id } });
+        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage2.id } });
+
+        expect(getStageResponse).toHaveProperty('body.status', StageOperationStatus.COMPLETED);
+        expect(getSecondStageResponse).toHaveProperty('body.status', StageOperationStatus.PENDING);
+      });
+
+      it("should return 200 status code and not move second stage's status to pending if is WAITING", async function () {
+        const { stage: stage1 } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          [],
+          { createStage: true, createTasks: false }
+        );
+        const secondStageResponse = await requestSender.addStage({
+          pathParams: { jobId: stage1.jobId },
+          requestBody: { type: 'SECOND_STAGE', data: {}, userMetadata: {} },
+        });
+
+        const stage2 = secondStageResponse.body as StageModel;
+
+        await requestSender.updateStageStatus({
+          pathParams: { stageId: stage2.id },
+          requestBody: { status: StageOperationStatus.WAITING },
+        });
+
+        const setStatusResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: stage1.id },
+          requestBody: { status: StageOperationStatus.COMPLETED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toHaveProperty('status', StatusCodes.OK);
+
+        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage2.id } });
+
+        expect(getSecondStageResponse).toHaveProperty('body.status', StageOperationStatus.WAITING);
+      });
+
+      it("should return 200 status code and modify stages to IN_PROGRESS with Job's status updating", async function () {
         const { job, stage } = await createJobnikTree(
           prisma,
           { xstate: pendingStageXstatePersistentSnapshot, status: JobOperationStatus.PENDING, traceparent: DEFAULT_TRACEPARENT },
@@ -1169,6 +1189,31 @@ describe('stage', function () {
           status: StatusCodes.BAD_REQUEST,
           body: {
             message: illegalStatusTransitionErrorMessage(stage.status, StageOperationStatus.COMPLETED),
+            code: 'ILLEGAL_STAGE_STATUS_TRANSITION',
+          },
+        });
+      });
+
+      it('should return 400 with detailed error for invalid status transition (not ordered stage - CREATED -> PENDING)', async function () {
+        const { stage: stage1 } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+
+        const secondStageResponse = await requestSender.addStage({
+          pathParams: { jobId: stage1.jobId },
+          requestBody: { type: 'SECOND_STAGE', data: {}, userMetadata: {} },
+        });
+
+        const stage2 = secondStageResponse.body as StageModel;
+
+        const updateStageResponse = await requestSender.updateStageStatus({
+          pathParams: { stageId: stage2.id },
+          requestBody: { status: StageOperationStatus.PENDING },
+        });
+
+        expect(updateStageResponse).toSatisfyApiSpec();
+        expect(updateStageResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: {
+            message: 'Previous stage is not COMPLETED',
             code: 'ILLEGAL_STAGE_STATUS_TRANSITION',
           },
         });
