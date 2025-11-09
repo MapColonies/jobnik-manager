@@ -12,6 +12,10 @@ metadata:
     environment: {{ include "jobnik-manager.environment" . }}
     release: {{ $releaseName }}
     {{- include "jobnik-manager.labels" . | nindent 4 }}
+  annotations:
+    prometheus.io/path: /service-metrics
+    prometheus.io/port: {{ .Values.env.port | quote }}
+    prometheus.io/scrape: {{ .Values.mclabels.prometheus.enabled }}
 spec:
   {{- if eq $cloudProviderFlavor "minikube" }}
   type: NodePort
