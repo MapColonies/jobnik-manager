@@ -12,7 +12,6 @@ import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages }
 let jobManager: JobManager;
 const prisma = new PrismaClient();
 const tracer = trace.getTracer(SERVICE_NAME);
-
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
