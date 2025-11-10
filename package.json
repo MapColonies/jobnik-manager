@@ -104,7 +104,7 @@
     "pretty-quick": "^4.1.1",
     "prisma": "^6.19.0",
     "prisma-json-types-generator": "^3.6.2",
-    "rimraf": "^6.0.1",
+    "rimraf": "^6.1.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "tsc-alias": "^1.8.11",
