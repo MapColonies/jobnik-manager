@@ -67,7 +67,7 @@ describe('TaskSweeper', () => {
           ]
         );
 
-        // // Verify initial state
+        // Verify initial state
         const initialTasks = await prisma.task.findMany({
           where: { stageId: stage.id },
           select: { id: true, status: true, startTime: true, maxAttempts: true, attempts: true },
@@ -89,13 +89,17 @@ describe('TaskSweeper', () => {
         // Verify stage summary was updated
         const updatedStage = await prisma.stage.findUnique({
           where: { id: stage.id },
-          select: { summary: true },
+          select: { summary: true, status: true },
         });
 
-        expect(updatedStage?.summary).toMatchObject({
-          failed: 2,
-          inProgress: 0,
-          total: 2,
+        // Verify stage reflects failed tasks
+        expect(updatedStage).toMatchObject({
+          summary: {
+            failed: 2,
+            inProgress: 0,
+            total: 2,
+          },
+          status: StageOperationStatus.FAILED,
         });
       });
 

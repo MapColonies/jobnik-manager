@@ -3,7 +3,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { subHours, subMinutes } from 'date-fns';
-import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
+import { PrismaClient, Prisma, StageOperationStatus, TaskOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -423,8 +423,13 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskId = faker.string.uuid();
 
-          const jobEntity = createJobEntity({ id: jobId });
-          const stageEntity = createStageEntity({ jobId: jobEntity.id, id: stageId });
+          const jobEntity = createJobEntity({ id: jobId, status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot });
+          const stageEntity = createStageEntity({
+            jobId: jobEntity.id,
+            id: stageId,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          });
           const taskEntity = createTaskEntity({
             stageId: stageEntity.id,
             id: taskId,
@@ -442,6 +447,12 @@ describe('JobManager', () => {
               },
               stage: {
                 findUnique: jest.fn().mockResolvedValue(stageEntity),
+                findFirst: jest.fn().mockResolvedValue(null),
+                update: jest.fn().mockResolvedValue({ ...stageEntity, status: StageOperationStatus.FAILED }),
+              },
+              job: {
+                findUnique: jest.fn().mockResolvedValue(jobEntity),
+                update: jest.fn().mockResolvedValue(null),
               },
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 

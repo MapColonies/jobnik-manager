@@ -15,6 +15,7 @@ import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
 import {
+  completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   jobEntityWithAbortStatus,
   jobEntityWithStages,
@@ -42,6 +43,7 @@ describe('JobManager', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('#Stages', () => {
@@ -544,10 +546,72 @@ describe('JobManager', () => {
           } as unknown as StageWithTasks;
 
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder1);
-          jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder1);
+          jest
+            .spyOn(prisma.stage, 'update')
+            .mockResolvedValueOnce({ ...stageEntityOrder1, status: StageOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot });
           jest.spyOn(prisma.stage, 'findFirst').mockResolvedValue(stageEntityOrder2);
           jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder2);
           jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder2);
+          jest.spyOn(prisma.stage, 'count').mockResolvedValue(2).mockResolvedValueOnce(1);
+          jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
+
+          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();
+        });
+
+        it('should successfully complete the final stage and also complete the job', async function () {
+          const stageId = faker.string.uuid();
+          const stageEntityObject = {
+            ...stageEntity,
+            id: stageId,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            job: { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+            order: 1,
+          } as unknown as StageWithTasks;
+
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityObject);
+          jest.spyOn(prisma.stage, 'findFirst').mockResolvedValue(null);
+          jest
+            .spyOn(prisma.stage, 'update')
+            .mockResolvedValueOnce({ ...stageEntityObject, status: StageOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot });
+          jest.spyOn(prisma.stage, 'findFirst').mockResolvedValue(null);
+          jest.spyOn(prisma.stage, 'count').mockResolvedValue(1);
+          jest.spyOn(prisma.job, 'update').mockResolvedValue({ ...jobEntityWithStages, status: JobOperationStatus.COMPLETED });
+          jest
+            .spyOn(prisma.job, 'findUnique')
+            .mockResolvedValue({ ...jobEntityWithStages, status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot });
+          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();
+        });
+
+        it("should successfully complete stage and also update in-progress job's percentage", async function () {
+          const stageId = faker.string.uuid();
+          const stageEntityOrder1 = {
+            ...stageEntity,
+            id: stageId,
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            job: { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+            order: 1,
+          } as unknown as StageWithTasks;
+
+          const stageEntityOrder2 = {
+            ...stageEntity,
+            id: stageId,
+            status: StageOperationStatus.CREATED,
+            job: { status: JobOperationStatus.CREATED },
+            order: 2,
+          } as unknown as StageWithTasks;
+
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder1);
+          jest
+            .spyOn(prisma.stage, 'update')
+            .mockResolvedValueOnce({ ...stageEntityOrder1, status: StageOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot });
+          jest.spyOn(prisma.stage, 'findFirst').mockResolvedValueOnce({ ...stageEntityOrder2, status: StageOperationStatus.COMPLETED });
+          jest.spyOn(prisma.stage, 'findUnique').mockResolvedValueOnce(stageEntityOrder2);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder2);
+          jest.spyOn(prisma.stage, 'count').mockResolvedValueOnce(2).mockResolvedValueOnce(1);
+          jest.spyOn(prisma.stage, 'update').mockResolvedValueOnce(stageEntityOrder2);
+          jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
 
           await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();
         });
@@ -654,7 +718,11 @@ describe('JobManager', () => {
 
           const jobId = faker.string.uuid();
           const stageId = faker.string.uuid();
-          const jobEntity = createJobEntity({ id: jobId }) as unknown as JobPrismaObject;
+          const jobEntity = createJobEntity({
+            id: jobId,
+            status: JobOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+          }) as unknown as JobPrismaObject;
           const stageEntity = createStageEntity({
             jobId: jobEntity.id,
             id: stageId,
@@ -668,6 +736,11 @@ describe('JobManager', () => {
                 job: { ...jobEntity, status: JobOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot },
               }),
               update: jest.fn().mockResolvedValueOnce(null),
+              count: jest.fn().mockResolvedValueOnce(2).mockResolvedValueOnce(2),
+            },
+            job: {
+              findUnique: jest.fn().mockResolvedValue(jobEntity),
+              update: jest.fn().mockResolvedValue(null),
             },
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
