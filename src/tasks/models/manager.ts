@@ -279,7 +279,7 @@ export class TaskManager {
   public async dequeue(stageType: string): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
-      [ATTR_MESSAGING_MESSAGE_ID]: stageType,
+      [ATTR_MESSAGING_DESTINATION_NAME]: stageType,
     });
 
     const queryBody = generatePrioritizedTaskQuery(stageType);
