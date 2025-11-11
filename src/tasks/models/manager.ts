@@ -1,9 +1,10 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import type { Tracer } from '@opentelemetry/api';
+import { trace, type Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { subMinutes } from 'date-fns';
+import { INFRA_CONVENTIONS } from '@map-colonies/telemetry/conventions';
 import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
@@ -22,6 +23,7 @@ import {
   TaskNotFoundError,
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
+import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src/common/semconv';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -86,6 +88,11 @@ export class TaskManager {
 
   @withSpanAsyncV4
   public async addTasks(stageId: string, tasksPayload: TaskCreateModel[]): Promise<TaskModel[]> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const createTaskActor = createActor(taskStateMachine).start();
     createTaskActor.send({ type: 'pend' });
     const persistenceSnapshot = createTaskActor.getPersistedSnapshot();
@@ -157,6 +164,13 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_DESTINATION_NAME]: params?.stage_type,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: params?.stage_id,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: params?.status,
+    });
+
     const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
     const queryBody: Prisma.TaskFindManyArgs = {
@@ -178,6 +192,11 @@ export class TaskManager {
 
   @withSpanAsyncV4
   public async getTaskById(taskId: string): Promise<TaskModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: taskId,
+    });
+
     const task = await this.getTaskEntityById(taskId);
 
     if (!task) {
@@ -189,6 +208,10 @@ export class TaskManager {
 
   @withSpanAsyncV4
   public async getTasksByStageId(stageId: string): Promise<TaskModel[]> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
     // To validate existence of stage, if not will throw StageNotFoundError
     await this.stageManager.getStageById(stageId);
 
@@ -205,6 +228,10 @@ export class TaskManager {
 
   @withSpanAsyncV4
   public async updateUserMetadata(taskId: string, userMetadata: Record<string, unknown>): Promise<void> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: taskId,
+    });
     const updateQueryBody = {
       where: {
         id: taskId,
@@ -226,6 +253,12 @@ export class TaskManager {
 
   @withSpanAsyncV4
   public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: taskId,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
+    });
+
     const task = await this.getTaskEntityById(taskId);
 
     if (!task) {
@@ -244,6 +277,11 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   public async dequeue(stageType: string): Promise<TaskModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: stageType,
+    });
+
     const queryBody = generatePrioritizedTaskQuery(stageType);
 
     const task = await this.prisma.task.findFirst(queryBody);
@@ -263,6 +301,11 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   public async getTaskEntityById(taskId: string, tx?: PrismaTransaction): Promise<TaskPrismaObject | null> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: taskId,
+    });
+
     const prisma = tx ?? this.prisma;
     const queryBody = {
       where: {
@@ -336,6 +379,14 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: task.id,
+      [INFRA_CONVENTIONS.infra.jobnik.task.status]: status,
+      [INFRA_CONVENTIONS.infra.jobnik.task.attempts]: task.attempts,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
+    });
+
     return this.prisma.$transaction(async (tx) => {
       const previousStatus = task.status;
       const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
