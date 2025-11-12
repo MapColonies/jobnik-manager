@@ -632,6 +632,9 @@ describe('JobManager', () => {
             maxAttempts: 2,
             stageId: staleTaskOneHour.stageId,
             traceparent: DEFAULT_TRACEPARENT,
+            userMetadata: {},
+            creationTime: new Date().toISOString(),
+            updateTime: new Date().toISOString(),
           });
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
@@ -662,6 +665,9 @@ describe('JobManager', () => {
               maxAttempts: 2,
               stageId: staleTaskOneHour.stageId,
               traceparent: DEFAULT_TRACEPARENT,
+              creationTime: new Date().toISOString(),
+              updateTime: new Date().toISOString(),
+              userMetadata: {},
             })
             .mockRejectedValueOnce(new Error('Task update failed'));
 

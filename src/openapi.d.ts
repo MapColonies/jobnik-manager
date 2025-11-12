@@ -778,8 +778,8 @@ export type components = {
     stageResponse: components['schemas']['createStagePayload'] & {
       id: components['schemas']['stageId'];
       summary: components['schemas']['summary'];
-      percentage?: components['schemas']['percentage'];
-      status?: components['schemas']['stageOperationStatus'];
+      percentage: components['schemas']['percentage'];
+      status: components['schemas']['stageOperationStatus'];
       jobId: components['schemas']['jobId'];
       order: components['schemas']['order'];
       traceparent: components['schemas']['traceparent'];
@@ -824,9 +824,9 @@ export type components = {
       id: components['schemas']['taskId'];
       data: components['schemas']['taskPayload'];
       stageId: components['schemas']['stageId'];
-      userMetadata?: components['schemas']['userMetadata'];
-      creationTime?: components['schemas']['creationTime'];
-      updateTime?: components['schemas']['updateTime'];
+      userMetadata: components['schemas']['userMetadata'];
+      creationTime: components['schemas']['creationTime'];
+      updateTime: components['schemas']['updateTime'];
       startTime?: components['schemas']['startTime'];
       endTime?: components['schemas']['endTime'];
       status: components['schemas']['taskOperationStatus'];

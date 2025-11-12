@@ -2051,6 +2051,9 @@ components:
             - jobId
             - order
             - traceparent
+            - userMetadata
+            - percentage
+            - status
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -2161,6 +2164,9 @@ components:
         - attempts
         - maxAttempts
         - traceparent
+        - userMetadata
+        - creationTime
+        - updateTime
       additionalProperties: false
     defaultOkMessage:
       type: object
