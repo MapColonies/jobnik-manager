@@ -324,7 +324,7 @@ export class StageManager {
     } else if (status === StageOperationStatus.FAILED) {
       // Update job status to FAILED
       await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
-      trace.getActiveSpan()?.addEvent('Job set to FAILED', { jobId: stage.jobId });
+      trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
     }
 
     //#endregion
