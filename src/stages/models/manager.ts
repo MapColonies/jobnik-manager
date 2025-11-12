@@ -320,7 +320,7 @@ export class StageManager {
     if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
-      trace.getActiveSpan()?.addEvent('Job set to IN_PROGRESS', { jobId: stage.jobId });
+      trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
     } else if (status === StageOperationStatus.FAILED) {
       // Update job status to FAILED
       await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
