@@ -386,7 +386,7 @@ export class StageManager {
     // and the stage is not already in progress
     if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
-      trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS', { stageId });
+      trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS because first task started', { stageId });
     }
   }
 
