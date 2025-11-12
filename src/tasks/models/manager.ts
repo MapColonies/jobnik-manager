@@ -76,6 +76,7 @@ function generatePrioritizedTaskQuery(stageType: string) {
 
   return queryBody;
 }
+
 @injectable()
 export class TaskManager {
   public constructor(
@@ -164,13 +165,6 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
-      [ATTR_MESSAGING_DESTINATION_NAME]: params?.stage_type,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: params?.stage_id,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: params?.status,
-    });
-
     const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
     const queryBody: Prisma.TaskFindManyArgs = {
@@ -290,6 +284,11 @@ export class TaskManager {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: task.id,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
+    });
+
     const dequeuedTask = await this.updateAndValidateStatus(task, TaskOperationStatus.IN_PROGRESS);
     return convertPrismaToTaskResponse(dequeuedTask);
   }
@@ -301,8 +300,7 @@ export class TaskManager {
    */
   @withSpanAsyncV4
   public async getTaskEntityById(taskId: string, tx?: PrismaTransaction): Promise<TaskPrismaObject | null> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_ID]: taskId,
     });
 
@@ -434,6 +432,7 @@ export class TaskManager {
         });
 
         await this.stageManager.updateStatus(task.stageId, StageOperationStatus.FAILED, tx);
+        trace.getActiveSpan()?.addEvent('Stage set to FAILED', { stageId: task.stageId });
       }
 
       return updatedTasks[0];

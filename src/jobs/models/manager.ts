@@ -28,12 +28,6 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
-      [INFRA_CONVENTIONS.infra.jobnik.job.name]: params?.job_name,
-      [INFRA_CONVENTIONS.infra.jobnik.job.priority]: params?.priority,
-    });
-
     let queryBody = undefined;
 
     if (params !== undefined) {
@@ -80,6 +74,10 @@ export class JobManager {
       const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
       const res = this.convertPrismaToJobResponse(createdJob);
 
+      spanActive?.setAttributes({
+        [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: res.id,
+      });
+
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
@@ -90,8 +88,7 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async getJobById(jobId: string, includeStages?: boolean): Promise<JobModel> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
     });
 
@@ -106,8 +103,7 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updateUserMetadata(jobId: string, userMetadata: Record<string, unknown>): Promise<void> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
     });
 
@@ -132,8 +128,7 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
       [INFRA_CONVENTIONS.infra.jobnik.job.priority]: priority,
     });
@@ -162,8 +157,7 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
       [INFRA_CONVENTIONS.infra.jobnik.job.status]: status,
     });
@@ -202,8 +196,7 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async deleteJob(jobId: string): Promise<void> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
     });
 

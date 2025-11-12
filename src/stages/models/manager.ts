@@ -64,6 +64,10 @@ export class StageManager {
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.job.name]: job.name,
+      [ATTR_MESSAGING_DESTINATION_NAME]: stagePayload.type,
+    });
 
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
 
@@ -110,6 +114,10 @@ export class StageManager {
     try {
       const stage = await this.prisma.stage.create(queryBody);
 
+      spanActive?.setAttributes({
+        [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stage.id,
+      });
+
       return convertPrismaToStageResponse(stage);
     } catch (error) {
       this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
@@ -120,13 +128,6 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
-      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: params?.job_id,
-      [ATTR_MESSAGING_DESTINATION_NAME]: params?.stage_type,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: params?.stage_operation_status,
-    });
-
     let queryBody = undefined;
     if (params !== undefined) {
       queryBody = {
@@ -160,6 +161,10 @@ export class StageManager {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: stage.jobId,
+    });
+
     return convertPrismaToStageResponse(stage);
   }
 
@@ -192,8 +197,7 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async getSummaryByStageId(stageId: string): Promise<StageSummary> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
     });
 
@@ -206,8 +210,7 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async updateUserMetadata(stageId: string, userMetadata: Record<string, unknown>): Promise<void> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
     });
 
@@ -299,6 +302,7 @@ export class StageManager {
 
       if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
         await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
+        trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
       }
 
       const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
@@ -308,15 +312,19 @@ export class StageManager {
           msg: 'Job completed as all stages are done',
           jobId: stage.jobId,
         });
+
+        trace.getActiveSpan()?.addEvent('Job set to COMPLETED', { jobId: stage.jobId });
       }
     }
 
     if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+      trace.getActiveSpan()?.addEvent('Job set to IN_PROGRESS', { jobId: stage.jobId });
     } else if (status === StageOperationStatus.FAILED) {
       // Update job status to FAILED
       await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
+      trace.getActiveSpan()?.addEvent('Job set to FAILED', { jobId: stage.jobId });
     }
 
     //#endregion
@@ -334,8 +342,7 @@ export class StageManager {
     stageId: string,
     options: T = {} as T
   ): Promise<null | GetStageEntityByIdReturnType<T>> {
-    const spanActive = trace.getActiveSpan();
-    spanActive?.setAttributes({
+    trace.getActiveSpan()?.setAttributes({
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
     });
 
@@ -379,6 +386,7 @@ export class StageManager {
     // and the stage is not already in progress
     if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
+      trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS', { stageId });
     }
   }
 
@@ -411,6 +419,7 @@ export class StageManager {
         jobId: stage.jobId,
       });
       await this.updateJobCompletionProgress(stage.jobId, tx);
+      trace.getActiveSpan()?.addEvent('Stage set to COMPLETED', { stageId: stage.id });
     }
   }
 
