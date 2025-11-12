@@ -1968,6 +1968,11 @@ components:
         - data
         - userMetadata
         - traceparent
+        - status
+        - percentage
+        - creationTime
+        - updateTime
+        - priority
       description: |
         Complete job information with status and metadata.
 

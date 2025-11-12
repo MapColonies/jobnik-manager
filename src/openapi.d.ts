@@ -737,13 +737,13 @@ export type components = {
      *      */
     job: {
       id: components['schemas']['jobId'];
-      status?: components['schemas']['jobOperationStatus'];
-      percentage?: components['schemas']['percentage'];
-      creationTime?: components['schemas']['creationTime'];
-      updateTime?: components['schemas']['updateTime'];
+      status: components['schemas']['jobOperationStatus'];
+      percentage: components['schemas']['percentage'];
+      creationTime: components['schemas']['creationTime'];
+      updateTime: components['schemas']['updateTime'];
       name: components['schemas']['jobName'];
       data: components['schemas']['jobPayload'];
-      priority?: components['schemas']['priority'];
+      priority: components['schemas']['priority'];
       userMetadata: components['schemas']['userMetadata'];
       traceparent: components['schemas']['traceparent'];
       tracestate?: components['schemas']['tracestate'];
