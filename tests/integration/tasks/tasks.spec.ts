@@ -669,7 +669,7 @@ describe('task', function () {
 
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
-      it("should return 200 status code and change tasks's status to PENDING", async function () {
+      it("should return 200 status code and change tasks's status to COMPLETED", async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const expectedSummary = { ...defaultStatusCounts, completed: 1, inProgress: 0, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
