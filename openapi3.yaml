@@ -502,18 +502,19 @@ paths:
       - $ref: '#/components/parameters/jobId'
     put:
       operationId: updateStatus
-      summary: Change job's operational status
+      summary: Update job status for workflow control
       description: |
-        Updates the operational status of a job, which may cascade changes to all 
-        related stages and tasks. This endpoint can be used to pause, resume, abort,
-        or otherwise control the execution flow of a job.
+        Updates the operational status of a job to control its workflow execution. This endpoint 
+        supports user-initiated operations including PENDING (resume), ABORTED (cancel), and 
+        PAUSED (suspend), which may cascade changes to related stages and tasks.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed job or completing a failed job without
-        proper remediation.
+        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, CREATED) are managed 
+        automatically by the system based on stage and task completion, and cannot be set through 
+        this endpoint.
 
-        When a job's status is changed, the system will automatically update timestamps
-        and completion percentages as appropriate.
+        Status changes follow a state machine that enforces valid transitions. When a job's status 
+        is changed, the system will automatically update timestamps and completion percentages as 
+        appropriate.
       tags:
         - jobs
       requestBody:
@@ -940,18 +941,19 @@ paths:
       operationId: updateStageStatus
       parameters:
         - $ref: '#/components/parameters/stageId'
-      summary: Change stage's operational status
+      summary: Update stage status to trigger workflow progression
       description: |
-        Updates the operational status of a stage, which may cascade changes to all 
-        related tasks. This endpoint can be used to pause, resume, abort, or otherwise 
-        control the execution flow of a stage.
+        Updates the operational status of a stage to PENDING, which may trigger workflow 
+        transitions and cascade changes to related tasks and the parent job. This endpoint 
+        is restricted to manually advancing stages in the workflow sequence.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like resuming a completed stage or completing a failed stage without
-        proper remediation.
+        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED, 
+        WAITING, CREATED) are managed automatically by the system based on task completion, 
+        job state, and workflow rules.
 
-        Changes to a stage's status may affect the parent job's status if certain 
-        conditions are met.
+        Status changes follow a state machine that enforces valid transitions. When a stage's 
+        status changes, it may automatically update the parent job's status and trigger 
+        transitions in subsequent stages (e.g., activating the next stage in the sequence).
       tags:
         - stages
       requestBody:
@@ -1518,17 +1520,18 @@ paths:
       - $ref: '#/components/parameters/taskId'
     put:
       operationId: updateTaskStatus
-      summary: Change task's operational status
+      summary: Mark task as completed or failed
       description: |
-        Updates the operational status of a task, which may trigger cascading updates
-        to the parent stage and job. This endpoint can be used to mark tasks as complete, 
-        failed, aborted, or otherwise control the execution flow.
+        Updates the operational status of a task to either COMPLETED or FAILED, which may trigger 
+        cascading updates to the parent stage and job. This endpoint is restricted to marking tasks 
+        as finished by external workers.
 
-        Status changes follow a state machine that enforces valid transitions, preventing
-        operations like completing a paused task without proper resumption.
+        Internal status transitions (such as PENDING to IN_PROGRESS) are managed automatically 
+        by the system through the dequeue operation and cannot be set through this endpoint.
 
-        When a task's status is changed, the system will automatically update the parent stage's
-        summary statistics and may affect the stage's overall status.
+        Status changes follow a state machine that enforces valid transitions. When a task's status 
+        is changed, the system will automatically update the parent stage's summary statistics and 
+        may affect the stage's overall status.
       tags:
         - tasks
       requestBody:
@@ -1553,11 +1556,6 @@ paths:
                 description: Update task status to FAILED when processing encounters errors
                 value:
                   status: 'FAILED'
-              retry_task:
-                summary: Mark task for retry
-                description: Update task status to RETRIED for automatic retry processing
-                value:
-                  status: 'RETRIED'
       responses:
         '200':
           description: Task status successfully changed
@@ -1640,7 +1638,7 @@ components:
       description: Filter tasks by their operational status
       required: false
       schema:
-        $ref: '#/components/schemas/taskOperationStatus'
+        $ref: '#/components/schemas/taskOperationStatusResponse'
     jobNameQueryParam:
       in: query
       name: job_name
@@ -1721,7 +1719,7 @@ components:
         Used to find stages in specific execution states.
       required: false
       schema:
-        $ref: '#/components/schemas/stageOperationStatus'
+        $ref: '#/components/schemas/stageOperationStatusResponse'
   schemas:
     creationTime:
       type: string
@@ -1824,6 +1822,18 @@ components:
       type: string
       enum:
         - PENDING
+        - ABORTED
+        - PAUSED
+      example: PENDING
+      description: |
+        Allowed operational statuses for user-initiated job status updates via PUT /jobs/{jobId}/status.
+        Supports workflow control operations including PENDING (resume), ABORTED (cancel), and PAUSED (suspend).
+        Other status transitions (IN_PROGRESS, COMPLETED, FAILED, CREATED) are managed internally by the system 
+        based on stage and task completion.
+    jobOperationStatusResponse:
+      type: string
+      enum:
+        - PENDING
         - IN_PROGRESS
         - COMPLETED
         - FAILED
@@ -1832,9 +1842,19 @@ components:
         - CREATED
       example: PENDING
       description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Current operational state of a job in responses, representing all possible states throughout its lifecycle.
+        Includes system-managed states (IN_PROGRESS, COMPLETED, FAILED, CREATED) and user-controllable states 
+        via PUT /jobs/{jobId}/status (PENDING, ABORTED, PAUSED).
         Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     stageOperationStatus:
+      type: string
+      enum:
+        - PENDING
+      description: |
+        Allowed operational status for user-initiated stage status updates via PUT /stages/{stageId}/status.
+        Currently restricted to PENDING to allow users to manually trigger stage transitions in the workflow.
+        Other status transitions (IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED, WAITING, CREATED) are managed internally by the system.
+    stageOperationStatusResponse:
       type: string
       enum:
         - PENDING
@@ -1846,9 +1866,20 @@ components:
         - CREATED
       example: CREATED
       description: |
-        Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+        Current operational state of a stage in responses, representing all possible states throughout its lifecycle.
+        Includes system-managed states like CREATED and user-controllable states via PUT /stages/{stageId}/status.
         Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
     taskOperationStatus:
+      type: string
+      enum:
+        - COMPLETED
+        - FAILED
+      example: COMPLETED
+      description: |
+        Allowed operational statuses for user-initiated task status updates via PUT /tasks/{taskId}/status.
+        Only COMPLETED and FAILED are permitted, as these represent the final states a worker can report.
+        Other status transitions (PENDING, IN_PROGRESS, CREATED, RETRIED) are managed internally by the system.
+    taskOperationStatusResponse:
       type: string
       enum:
         - PENDING
@@ -1986,7 +2017,7 @@ components:
         id:
           $ref: '#/components/schemas/jobId'
         status:
-          $ref: '#/components/schemas/jobOperationStatus'
+          $ref: '#/components/schemas/jobOperationStatusResponse'
         percentage:
           $ref: '#/components/schemas/percentage'
         creationTime:
@@ -2074,7 +2105,7 @@ components:
             percentage:
               $ref: '#/components/schemas/percentage'
             status:
-              $ref: '#/components/schemas/stageOperationStatus'
+              $ref: '#/components/schemas/stageOperationStatusResponse'
             jobId:
               $ref: '#/components/schemas/jobId'
             order:
@@ -2159,7 +2190,7 @@ components:
         endTime:
           $ref: '#/components/schemas/endTime'
         status:
-          $ref: '#/components/schemas/taskOperationStatus'
+          $ref: '#/components/schemas/taskOperationStatusResponse'
         attempts:
           $ref: '#/components/schemas/attempts'
         maxAttempts:
