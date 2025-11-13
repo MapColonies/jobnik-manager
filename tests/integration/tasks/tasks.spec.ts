@@ -695,7 +695,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
       });
 
-      it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
+      it("should return 200 status code and change task's to finite state (COMPLETED) and add endTime", async function () {
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
         const { tasks } = await createJobnikTree(
