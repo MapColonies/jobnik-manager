@@ -2,7 +2,9 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import type { Tracer } from '@opentelemetry/api';
+import { trace } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
+import { INFRA_CONVENTIONS } from '@map-colonies/telemetry/conventions';
 import type { PrismaClient, Priority } from '@prismaClient';
 import { Prisma, JobOperationStatus } from '@prismaClient';
 import { SERVICES } from '@common/constants';
@@ -11,6 +13,7 @@ import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/
 import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
+import { ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
 import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -48,6 +51,12 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async createJob(body: JobCreateModel): Promise<JobModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.job.name]: body.name,
+      [INFRA_CONVENTIONS.infra.jobnik.job.priority]: body.priority,
+    });
+
     try {
       const createJobActor = createActor(jobStateMachine).start();
       createJobActor.send({ type: OperationStatusMapper[JobOperationStatus.PENDING] });
@@ -65,6 +74,10 @@ export class JobManager {
       const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
       const res = this.convertPrismaToJobResponse(createdJob);
 
+      spanActive?.setAttributes({
+        [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: res.id,
+      });
+
       this.logger.debug({ msg: 'Created new job successfully', response: res });
       return res;
     } catch (error) {
@@ -75,6 +88,10 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async getJobById(jobId: string, includeStages?: boolean): Promise<JobModel> {
+    trace.getActiveSpan()?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const job = await this.getJobEntityById(jobId, { includeStages });
 
     if (!job) {
@@ -86,6 +103,10 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updateUserMetadata(jobId: string, userMetadata: Record<string, unknown>): Promise<void> {
+    trace.getActiveSpan()?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const updateQueryBody = {
       where: {
         id: jobId,
@@ -107,6 +128,11 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updatePriority(jobId: string, priority: Priority): Promise<void> {
+    trace.getActiveSpan()?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+      [INFRA_CONVENTIONS.infra.jobnik.job.priority]: priority,
+    });
+
     const job = await this.getJobEntityById(jobId);
 
     if (!job) {
@@ -131,6 +157,11 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
+    trace.getActiveSpan()?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+      [INFRA_CONVENTIONS.infra.jobnik.job.status]: status,
+    });
+
     const prisma = tx ?? this.prisma;
 
     const job = await this.getJobEntityById(jobId, { tx });
@@ -165,6 +196,10 @@ export class JobManager {
 
   @withSpanAsyncV4
   public async deleteJob(jobId: string): Promise<void> {
+    trace.getActiveSpan()?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const job = await this.getJobEntityById(jobId);
 
     if (!job) {
@@ -197,6 +232,11 @@ export class JobManager {
     jobId: string,
     options: { includeStages?: IncludeStages; tx?: PrismaTransaction } = {}
   ): Promise<JobPrismaObject<IncludeStages> | null> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const prisma = options.tx ?? this.prisma;
     const queryBody = {
       where: {

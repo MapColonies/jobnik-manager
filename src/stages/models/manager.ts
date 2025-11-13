@@ -1,8 +1,9 @@
 import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
-import type { Tracer } from '@opentelemetry/api';
+import { trace, type Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
+import { INFRA_CONVENTIONS } from '@map-colonies/telemetry/conventions';
 import type { PrismaClient } from '@prismaClient';
 import { JobOperationStatus, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
@@ -14,6 +15,7 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundError, StageNotFoundError } from '@src/common/generated/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { PrismaTransaction } from '@src/db/types';
+import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateModel,
@@ -52,11 +54,20 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async addStage(jobId: string, stagePayload: StageCreateModel): Promise<StageModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const job = await this.jobManager.getJobEntityById(jobId);
 
     if (!job) {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.job.name]: job.name,
+      [ATTR_MESSAGING_DESTINATION_NAME]: stagePayload.type,
+    });
 
     const checkJobStatus = createActor(jobStateMachine, { snapshot: job.xstate }).start();
 
@@ -103,6 +114,10 @@ export class StageManager {
     try {
       const stage = await this.prisma.stage.create(queryBody);
 
+      spanActive?.setAttributes({
+        [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stage.id,
+      });
+
       return convertPrismaToStageResponse(stage);
     } catch (error) {
       this.logger.error(`Failed adding stage to job with error: ${(error as Error).message}`);
@@ -135,17 +150,31 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async getStageById(stageId: string, includeTasks?: boolean): Promise<StageModel> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const stage = await this.getStageEntityById(stageId, { includeTasks });
 
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
 
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: stage.jobId,
+    });
+
     return convertPrismaToStageResponse(stage);
   }
 
   @withSpanAsyncV4
   public async getStagesByJobId(jobId: string, includeTasks?: boolean): Promise<StageModel[]> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     // To validate existence of job, if not will throw JobNotFoundError
     await this.jobManager.getJobById(jobId);
 
@@ -168,6 +197,10 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async getSummaryByStageId(stageId: string): Promise<StageSummary> {
+    trace.getActiveSpan()?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const stage = await this.getStageById(stageId);
 
     const summary = stage.summary;
@@ -177,6 +210,10 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async updateUserMetadata(stageId: string, userMetadata: Record<string, unknown>): Promise<void> {
+    trace.getActiveSpan()?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const updateQueryBody = {
       where: {
         id: stageId,
@@ -198,6 +235,12 @@ export class StageManager {
 
   @withSpanAsyncV4
   public async updateStatus(stageId: string, status: StageOperationStatus, tx?: PrismaTransaction): Promise<void> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
+    });
+
     const prisma = tx ?? this.prisma;
 
     const stage = await this.getStageEntityById(stageId, { includeJob: true, tx });
@@ -259,6 +302,7 @@ export class StageManager {
 
       if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
         await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
+        trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
       }
 
       const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
@@ -268,15 +312,19 @@ export class StageManager {
           msg: 'Job completed as all stages are done',
           jobId: stage.jobId,
         });
+
+        trace.getActiveSpan()?.addEvent('Job set to COMPLETED', { jobId: stage.jobId });
       }
     }
 
     if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+      trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
     } else if (status === StageOperationStatus.FAILED) {
       // Update job status to FAILED
       await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
+      trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
     }
 
     //#endregion
@@ -294,6 +342,10 @@ export class StageManager {
     stageId: string,
     options: T = {} as T
   ): Promise<null | GetStageEntityByIdReturnType<T>> {
+    trace.getActiveSpan()?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const prisma = options.tx ?? this.prisma;
 
     const queryBody = {
@@ -317,6 +369,11 @@ export class StageManager {
    */
   @withSpanAsyncV4
   public async updateStageProgressFromTaskChanges(stageId: string, summaryUpdatePayload: UpdateSummaryCount, tx: PrismaTransaction): Promise<void> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
+    });
+
     const stage = (await this.getStageEntityById(stageId, { includeJob: true, tx })) as StageIncludingJob;
 
     // update stage summary aggregated task data
@@ -329,6 +386,7 @@ export class StageManager {
     // and the stage is not already in progress
     if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
+      trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS because first task started', { stageId });
     }
   }
 
@@ -339,6 +397,15 @@ export class StageManager {
    */
   @withSpanAsyncV4
   private async updateStageProgress(stage: StageIncludingJob, summary: StageSummary, tx: PrismaTransaction): Promise<void> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stage.id,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: stage.status,
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: stage.jobId,
+      [ATTR_MESSAGING_DESTINATION_NAME]: stage.type,
+      [INFRA_CONVENTIONS.infra.jobnik.job.name]: stage.job.name,
+    });
+
     const completionPercentage = getCurrentPercentage(summary);
     const stageUpdatedData: Prisma.StageUpdateInput = { percentage: completionPercentage };
 
@@ -352,6 +419,7 @@ export class StageManager {
         jobId: stage.jobId,
       });
       await this.updateJobCompletionProgress(stage.jobId, tx);
+      trace.getActiveSpan()?.addEvent('Stage set to COMPLETED', { stageId: stage.id });
     }
   }
 
@@ -364,6 +432,11 @@ export class StageManager {
    */
   @withSpanAsyncV4
   private async getNextStageOrder(jobId: string): Promise<number> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const lastStageResult = await this.prisma.stage.aggregate({
       where: { jobId },
       _max: { order: true },
@@ -383,6 +456,11 @@ export class StageManager {
    */
   @withSpanAsyncV4
   private async updateJobCompletionProgress(jobId: string, tx?: PrismaTransaction): Promise<{ completedStages: number; totalStages: number }> {
+    const spanActive = trace.getActiveSpan();
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
+    });
+
     const prisma = tx ?? this.prisma;
 
     const [totalStages, completedStages] = await Promise.all([
