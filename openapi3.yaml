@@ -251,6 +251,7 @@ paths:
                         data:
                           validation_split: 0.2
                           preprocessing_steps: ['normalize', 'encode_categorical']
+                        userMetadata: {}
                         summary:
                           pending: 0
                           inProgress: 0
@@ -269,6 +270,7 @@ paths:
                         data:
                           cross_validation_folds: 5
                           early_stopping: true
+                        userMetadata: {}
                         summary:
                           pending: 1
                           inProgress: 2
@@ -287,6 +289,7 @@ paths:
                         data:
                           metrics: ['accuracy', 'precision', 'recall', 'f1_score']
                           validation_dataset: '/data/ml/validation_set.parquet'
+                        userMetadata: {}
                         summary:
                           pending: 3
                           inProgress: 0
@@ -1252,6 +1255,7 @@ paths:
                       status: 'PENDING'
                       attempts: 0
                       maxAttempts: 3
+                      userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
                       traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-aa111bb222c902b7-01'
@@ -1264,6 +1268,7 @@ paths:
                       status: 'IN_PROGRESS'
                       attempts: 1
                       maxAttempts: 3
+                      userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:32:15Z'
                       startTime: '2025-07-27T10:32:15Z'
@@ -1277,6 +1282,7 @@ paths:
                       status: 'COMPLETED'
                       attempts: 1
                       maxAttempts: 3
+                      userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:35:45Z'
                       startTime: '2025-07-27T10:33:20Z'
@@ -1291,6 +1297,7 @@ paths:
                       status: 'FAILED'
                       attempts: 3
                       maxAttempts: 3
+                      userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:38:12Z'
                       startTime: '2025-07-27T10:36:05Z'
@@ -1961,6 +1968,11 @@ components:
         - data
         - userMetadata
         - traceparent
+        - status
+        - percentage
+        - creationTime
+        - updateTime
+        - priority
       description: |
         Complete job information with status and metadata.
 
@@ -2051,6 +2063,9 @@ components:
             - jobId
             - order
             - traceparent
+            - userMetadata
+            - percentage
+            - status
           properties:
             id:
               $ref: '#/components/schemas/stageId'
@@ -2161,6 +2176,9 @@ components:
         - attempts
         - maxAttempts
         - traceparent
+        - userMetadata
+        - creationTime
+        - updateTime
       additionalProperties: false
     defaultOkMessage:
       type: object
