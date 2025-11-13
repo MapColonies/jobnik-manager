@@ -16,6 +16,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
+  abortedStageXstatePersistentSnapshot,
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
@@ -554,11 +555,14 @@ describe('task', function () {
       });
 
       it('should return 400 when attempting to add tasks to a finalized stage', async function () {
-        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const { stage } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.ABORTED, xstate: abortedStageXstatePersistentSnapshot },
+          [],
+          { createStage: true, createTasks: false }
+        );
         const stageId = stage.id;
-
-        // generate some stage in finite state (aborted)
-        await requestSender.updateStageStatus({ pathParams: { stageId }, requestBody: { status: StageOperationStatus.ABORTED } });
 
         const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
 
@@ -666,11 +670,16 @@ describe('task', function () {
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
       it("should return 200 status code and change tasks's status to PENDING", async function () {
-        const initialSummary = { ...defaultStatusCounts, created: 1, total: 1 };
-        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0, total: 1 };
-        const updateStatusInput = { status: TaskOperationStatus.PENDING };
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+        const expectedSummary = { ...defaultStatusCounts, completed: 1, inProgress: 0, total: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
-        const { stage, tasks } = await createJobnikTree(prisma, {}, { summary: initialSummary }, [{}]);
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
+        );
 
         const taskId = tasks[0]!.id;
 
@@ -681,68 +690,9 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
-
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
-      });
-
-      it("should return 200 status code and change tasks's status to IN_PROGRESS and add startTime", async function () {
-        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
-
-        const { tasks } = await createJobnikTree(
-          prisma,
-          {},
-          {
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: { ...defaultStatusCounts, total: 1, pending: 1 },
-          },
-          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
-        );
-
-        const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
-
-        const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId },
-          requestBody: updateStatusInput,
-        });
-
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        expect(updateStatusResponse).toSatisfyApiSpec();
-        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('startTime');
-        expect(getTaskResponse.body).toHaveProperty('startTime');
-      });
-
-      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED and startTime value was updated", async function () {
-        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
-
-        const { tasks } = await createJobnikTree(
-          prisma,
-          {},
-          {
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: { ...defaultStatusCounts, total: 1, retried: 1 },
-          },
-          [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
-        );
-
-        const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
-        const taskBeforeUpdate = getTaskResponseBeforeUpdate.body as TaskModel;
-        const previousStartTime = taskBeforeUpdate.startTime;
-
-        const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId },
-          requestBody: updateStatusInput,
-        });
-
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const task = getTaskResponse.body as TaskModel;
-        expect(updateStatusResponse).toSatisfyApiSpec();
-        expect(new Date(task.startTime!)).toBeAfter(new Date(previousStartTime!));
       });
 
       it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
@@ -952,11 +902,13 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: secondStage.body.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+        expect(getSecondStageResponse.body).toMatchObject({ status: StageOperationStatus.PENDING });
         expect(getJobResponse.body).toMatchObject({ status: JobOperationStatus.IN_PROGRESS, percentage: 50 });
       });
 
@@ -1035,7 +987,7 @@ describe('task', function () {
       it('should return a 404 status code along with a message that specifies that a task with the given id was not found', async function () {
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
@@ -1053,7 +1005,7 @@ describe('task', function () {
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -1069,7 +1021,7 @@ describe('task', function () {
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -1319,6 +1271,88 @@ describe('task', function () {
             stageId: stageLowPriority.id,
           },
         });
+      });
+
+      it('should add startTime when dequeuing task', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_STARTIME_CHECK',
+          },
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
+        );
+
+        const taskId = tasks[0]!.id;
+
+        // Get task before dequeue to verify it doesn't have startTime
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { stageType: 'SOME_TEST_TYPE_STARTIME_CHECK' },
+        });
+
+        // Get task after dequeue to verify it has startTime
+        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: taskId,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+          },
+        });
+        expect(getTaskResponseBeforeDequeue.body).not.toHaveProperty('startTime');
+        expect(getTaskResponseAfterDequeue.body).toHaveProperty('startTime');
+      });
+
+      it('should update startTime when dequeuing RETRIED task', async function () {
+        const initialSummary = { ...defaultStatusCounts, retried: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_RETRIED_STARTIME',
+          },
+          [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
+        );
+
+        const taskId = tasks[0]!.id;
+
+        // Get task before dequeue to capture previous startTime
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const taskBeforeDequeue = getTaskResponseBeforeDequeue.body as TaskModel;
+        const previousStartTime = taskBeforeDequeue.startTime;
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { stageType: 'SOME_TEST_TYPE_RETRIED_STARTIME' },
+        });
+
+        // Get task after dequeue to verify startTime was updated
+        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const taskAfterDequeue = getTaskResponseAfterDequeue.body as TaskModel;
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: taskId,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+          },
+        });
+        expect(new Date(taskAfterDequeue.startTime!)).toBeAfter(new Date(previousStartTime!));
       });
     });
 

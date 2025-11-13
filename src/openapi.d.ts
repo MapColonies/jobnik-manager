@@ -341,17 +341,18 @@ export type paths = {
     };
     get?: never;
     /**
-     * Change stage's operational status
-     * @description Updates the operational status of a stage, which may cascade changes to all
-     *     related tasks. This endpoint can be used to pause, resume, abort, or otherwise
-     *     control the execution flow of a stage.
+     * Update stage status to trigger workflow progression
+     * @description Updates the operational status of a stage to PENDING, which may trigger workflow
+     *     transitions and cascade changes to related tasks and the parent job. This endpoint
+     *     is restricted to manually advancing stages in the workflow sequence.
      *
-     *     Status changes follow a state machine that enforces valid transitions, preventing
-     *     operations like resuming a completed stage or completing a failed stage without
-     *     proper remediation.
+     *     Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED,
+     *     WAITING, CREATED) are managed automatically by the system based on task completion,
+     *     job state, and workflow rules.
      *
-     *     Changes to a stage's status may affect the parent job's status if certain
-     *     conditions are met.
+     *     Status changes follow a state machine that enforces valid transitions. When a stage's
+     *     status changes, it may automatically update the parent job's status and trigger
+     *     transitions in subsequent stages (e.g., activating the next stage in the sequence).
      *
      */
     put: operations['updateStageStatus'];
@@ -528,16 +529,17 @@ export type paths = {
     };
     get?: never;
     /**
-     * Change task's operational status
-     * @description Updates the operational status of a task, which may trigger cascading updates
-     *     to the parent stage and job. This endpoint can be used to mark tasks as complete,
-     *     failed, aborted, or otherwise control the execution flow.
+     * Mark task as completed or failed
+     * @description Updates the operational status of a task to either COMPLETED or FAILED, which may trigger
+     *     cascading updates to the parent stage and job. This endpoint is restricted to marking tasks
+     *     as finished by external workers.
      *
-     *     Status changes follow a state machine that enforces valid transitions, preventing
-     *     operations like completing a paused task without proper resumption.
+     *     Internal status transitions (such as PENDING to IN_PROGRESS) are managed automatically
+     *     by the system through the dequeue operation and cannot be set through this endpoint.
      *
-     *     When a task's status is changed, the system will automatically update the parent stage's
-     *     summary statistics and may affect the stage's overall status.
+     *     Status changes follow a state machine that enforces valid transitions. When a task's status
+     *     is changed, the system will automatically update the parent stage's summary statistics and
+     *     may affect the stage's overall status.
      *
      */
     put: operations['updateTaskStatus'];
@@ -650,13 +652,31 @@ export type components = {
      */
     jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED';
     /**
-     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
+     * @description Allowed operational status for user-initiated stage status updates via PUT /stages/{stageId}/status.
+     *     Currently restricted to PENDING to allow users to manually trigger stage transitions in the workflow.
+     *     Other status transitions (IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED, WAITING, CREATED) are managed internally by the system.
+     *
+     * @enum {string}
+     */
+    stageOperationStatus: 'PENDING';
+    /**
+     * @description Current operational state of a stage in responses, representing all possible states throughout its lifecycle.
+     *     Includes system-managed states like CREATED and user-controllable states via PUT /stages/{stageId}/status.
      *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
      *
      * @example CREATED
      * @enum {string}
      */
-    stageOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING' | 'CREATED';
+    stageOperationStatusResponse: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING' | 'CREATED';
+    /**
+     * @description Allowed operational statuses for user-initiated task status updates via PUT /tasks/{taskId}/status.
+     *     Only COMPLETED and FAILED are permitted, as these represent the final states a worker can report.
+     *     Other status transitions (PENDING, IN_PROGRESS, CREATED, RETRIED) are managed internally by the system.
+     *
+     * @example COMPLETED
+     * @enum {string}
+     */
+    taskOperationStatus: 'COMPLETED' | 'FAILED';
     /**
      * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
      *     Finite states from which no further transitions are possible include: COMPLETED and FAILED.
@@ -664,7 +684,7 @@ export type components = {
      * @example PENDING
      * @enum {string}
      */
-    taskOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CREATED' | 'RETRIED';
+    taskOperationStatusResponse: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CREATED' | 'RETRIED';
     /**
      * @description Category or type of job processing being performed, used for filtering and system behaviors
      * @example DEFAULT
@@ -779,7 +799,7 @@ export type components = {
       id: components['schemas']['stageId'];
       summary: components['schemas']['summary'];
       percentage: components['schemas']['percentage'];
-      status: components['schemas']['stageOperationStatus'];
+      status: components['schemas']['stageOperationStatusResponse'];
       jobId: components['schemas']['jobId'];
       order: components['schemas']['order'];
       traceparent: components['schemas']['traceparent'];
@@ -829,7 +849,7 @@ export type components = {
       updateTime: components['schemas']['updateTime'];
       startTime?: components['schemas']['startTime'];
       endTime?: components['schemas']['endTime'];
-      status: components['schemas']['taskOperationStatus'];
+      status: components['schemas']['taskOperationStatusResponse'];
       attempts: components['schemas']['attempts'];
       maxAttempts: components['schemas']['maxAttempts'];
       traceparent: components['schemas']['traceparent'];
@@ -881,7 +901,7 @@ export type components = {
     /** @description Unique identifier for the task */
     taskId: components['schemas']['taskId'];
     /** @description Filter tasks by their operational status */
-    paramsTaskStatus: components['schemas']['taskOperationStatus'];
+    paramsTaskStatus: components['schemas']['taskOperationStatusResponse'];
     /** @description Filter jobs by their name/type */
     jobNameQueryParam: components['schemas']['jobName'];
     /** @description Filter jobs by their priority level */
@@ -905,7 +925,7 @@ export type components = {
     /** @description Filter results by stage operational status (e.g., PENDING, IN_PROGRESS).
      *     Used to find stages in specific execution states.
      *      */
-    stageStatus: components['schemas']['stageOperationStatus'];
+    stageStatus: components['schemas']['stageOperationStatusResponse'];
   };
   requestBodies: never;
   headers: never;
