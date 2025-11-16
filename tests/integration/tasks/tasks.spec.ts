@@ -16,6 +16,7 @@ import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors'
 import { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
+  abortedStageXstatePersistentSnapshot,
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
   pendingStageXstatePersistentSnapshot,
@@ -61,7 +62,7 @@ describe('task', function () {
 
   describe('#getTasks', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and the matching task', async function () {
+      it('should return 200 with the matching task', async function () {
         const { stage, tasks } = await createJobnikTree(prisma);
 
         const taskId = tasks[0]!.id;
@@ -75,7 +76,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 200 status code and empty array', async function () {
+      it('should return 200 with empty array', async function () {
         const someRandomUuid = faker.string.uuid();
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: someRandomUuid } });
 
@@ -86,7 +87,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 200 status code and all the tasks if no query params were defined', async function () {
+      it('should return 200 with all tasks when no query params defined', async function () {
         await createJobnikTree(prisma, {}, {}, [{}, {}]);
 
         const response = await requestSender.getTasksByCriteria();
@@ -103,7 +104,7 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 status code and a relevant validation error message when the stage type is longer of 50 characters', async function () {
+      it('should return 400 when stage type exceeds 50 characters', async function () {
         const longStageType = faker.string.alpha(51);
         const response = await requestSender.getTasksByCriteria({ queryParams: { stage_type: longStageType } });
 
@@ -117,7 +118,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 400 status code and a relevant validation error message when adding unknown query parameters', async function () {
+      it('should return 400 when adding unknown query parameters', async function () {
         const response = await requestSender.getTasksByCriteria({ queryParams: { someExtraParam: 'FOO' } as unknown as Record<string, unknown> });
 
         expect(response).toSatisfyApiSpec();
@@ -127,7 +128,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 400 status code and a relevant validation error message when the status param is incorrect', async function () {
+      it('should return 400 when status param is incorrect', async function () {
         const response = await requestSender.getTasksByCriteria({ queryParams: { status: 'BAD_STATUS' as TaskOperationStatus } });
 
         expect(response).toSatisfyApiSpec();
@@ -142,7 +143,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
@@ -155,7 +156,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
@@ -172,7 +173,7 @@ describe('task', function () {
 
   describe('#getTaskById', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and return the stage', async function () {
+      it('should return 200 with the task', async function () {
         const { tasks } = await createJobnikTree(prisma);
         const taskId = tasks[0]!.id;
 
@@ -184,7 +185,7 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return a 404 status code with a validation error message if the requested task does not exist', async function () {
+      it('should return 404 when task does not exist', async function () {
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
@@ -194,7 +195,7 @@ describe('task', function () {
         });
       });
 
-      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+      it('should return 400 when supplying bad uuid', async function () {
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: 'badUuid' } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
@@ -206,7 +207,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
@@ -219,7 +220,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
@@ -236,7 +237,7 @@ describe('task', function () {
 
   describe('#getTaskByStageId', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and return the tasks', async function () {
+      it('should return 200 with the tasks', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [{}, {}]);
         const stageId = stage.id;
 
@@ -253,7 +254,7 @@ describe('task', function () {
         });
       });
 
-      it('should return a 200 status code with empty array object if no tasks exists for the requested stage', async function () {
+      it('should return 200 with empty array when no tasks exist for stage', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -268,7 +269,7 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return status code 400 when supplying bad uuid', async function () {
+      it('should return 400 when supplying bad uuid', async function () {
         const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: 'someInvalidStageId' } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
@@ -278,7 +279,7 @@ describe('task', function () {
         });
       });
 
-      it('should return status code 404 when a stage with the given uuid does not exists', async function () {
+      it('should return 404 when stage does not exist', async function () {
         const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
@@ -290,7 +291,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
@@ -303,7 +304,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
@@ -320,7 +321,7 @@ describe('task', function () {
 
   describe('#updateUserMetadata', function () {
     describe('Happy Path', function () {
-      it("should return 201 status code and modify tasks's userMetadata object", async function () {
+      it("should return 201 and modify task's userMetadata", async function () {
         const userMetadataInput = { someTestKey: 'someTestData' };
         const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
         const taskId = tasks[0]!.id;
@@ -338,7 +339,7 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return a 404 status code along with a message that specifies that a task with the given id was not found', async function () {
+      it('should return 404 when task not found', async function () {
         const getTaskResponse = await requestSender.updateTaskUserMetadata({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { avi: 'avi' },
@@ -351,7 +352,7 @@ describe('task', function () {
         });
       });
 
-      it('should return a 400 status code and a message indicating the request body has an invalid structure', async function () {
+      it('should return 400 when request body is invalid', async function () {
         const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
         const taskId = tasks[0]!.id;
 
@@ -369,7 +370,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
@@ -382,7 +383,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
@@ -399,7 +400,7 @@ describe('task', function () {
 
   describe('#addTasks', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and create the related tasks for current stage', async function () {
+      it('should return 200 and create tasks for stage', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -420,7 +421,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 200 and create new tasks for a stage with existing tasks', async function () {
+      it('should return 200 and create new tasks for stage with existing tasks', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [
           { status: TaskOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot },
         ]);
@@ -444,7 +445,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 201 status code and create the tasks with generated traceparent from active span', async function () {
+      it('should return 201 and create tasks with generated traceparent from active span', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -468,7 +469,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 201 status code and create the tasks with provided traceparent and tracestate', async function () {
+      it('should return 201 and create tasks with provided traceparent and tracestate', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -495,7 +496,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 201 status code and create the tasks with provided traceparent without tracestate', async function () {
+      it('should return 201 and create tasks with provided traceparent without tracestate', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -529,7 +530,7 @@ describe('task', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+      it('should return 400 when supplying bad uuid', async function () {
         const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: 'someInvalidStageId' } });
 
         expect(addTasksResponse).toMatchObject({
@@ -538,7 +539,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 400 when the request contains an incorrect body', async function () {
+      it('should return 400 when request body is incorrect', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -554,11 +555,14 @@ describe('task', function () {
       });
 
       it('should return 400 when attempting to add tasks to a finalized stage', async function () {
-        const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        const { stage } = await createJobnikTree(
+          prisma,
+          {},
+          { status: StageOperationStatus.ABORTED, xstate: abortedStageXstatePersistentSnapshot },
+          [],
+          { createStage: true, createTasks: false }
+        );
         const stageId = stage.id;
-
-        // generate some stage in finite state (aborted)
-        await requestSender.updateStageStatus({ pathParams: { stageId }, requestBody: { status: StageOperationStatus.ABORTED } });
 
         const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
 
@@ -588,7 +592,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 400 when the request contains an invalid traceparent format', async function () {
+      it('should return 400 when traceparent format is invalid', async function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
@@ -609,7 +613,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 404 when attempting to update a non-existent stage ID', async function () {
+      it('should return 404 when stage does not exist', async function () {
         const createTaskPayload = {
           data: {},
           userMetadata: {},
@@ -629,7 +633,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
@@ -645,7 +649,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
@@ -665,12 +669,17 @@ describe('task', function () {
 
   describe('#updateStatus', function () {
     describe('Happy Path', function () {
-      it("should return 200 status code and change tasks's status to PENDING", async function () {
-        const initialSummary = { ...defaultStatusCounts, created: 1, total: 1 };
-        const expectedSummary = { ...defaultStatusCounts, pending: 1, created: 0, total: 1 };
-        const updateStatusInput = { status: TaskOperationStatus.PENDING };
+      it('should update task to COMPLETED and update stage summary', async function () {
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+        const expectedSummary = { ...defaultStatusCounts, completed: 1, inProgress: 0, total: 1 };
+        const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
-        const { stage, tasks } = await createJobnikTree(prisma, {}, { summary: initialSummary }, [{}]);
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot },
+          { status: StageOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, summary: initialSummary },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
+        );
 
         const taskId = tasks[0]!.id;
 
@@ -681,71 +690,12 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
-
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
       });
 
-      it("should return 200 status code and change tasks's status to IN_PROGRESS and add startTime", async function () {
-        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
-
-        const { tasks } = await createJobnikTree(
-          prisma,
-          {},
-          {
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: { ...defaultStatusCounts, total: 1, pending: 1 },
-          },
-          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
-        );
-
-        const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
-
-        const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId },
-          requestBody: updateStatusInput,
-        });
-
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        expect(updateStatusResponse).toSatisfyApiSpec();
-        expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('startTime');
-        expect(getTaskResponse.body).toHaveProperty('startTime');
-      });
-
-      it("should return 200 status code and change tasks's status to IN_PROGRESS from RETRIED and startTime value was updated", async function () {
-        const updateStatusInput = { status: TaskOperationStatus.IN_PROGRESS };
-
-        const { tasks } = await createJobnikTree(
-          prisma,
-          {},
-          {
-            status: StageOperationStatus.IN_PROGRESS,
-            xstate: inProgressStageXstatePersistentSnapshot,
-            summary: { ...defaultStatusCounts, total: 1, retried: 1 },
-          },
-          [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
-        );
-
-        const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
-        const taskBeforeUpdate = getTaskResponseBeforeUpdate.body as TaskModel;
-        const previousStartTime = taskBeforeUpdate.startTime;
-
-        const updateStatusResponse = await requestSender.updateTaskStatus({
-          pathParams: { taskId },
-          requestBody: updateStatusInput,
-        });
-
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const task = getTaskResponse.body as TaskModel;
-        expect(updateStatusResponse).toSatisfyApiSpec();
-        expect(new Date(task.startTime!)).toBeAfter(new Date(previousStartTime!));
-      });
-
-      it("should return 200 status code and change tasks's to finite state (COMPLETED) and add endTime", async function () {
+      it('should update task to COMPLETED and add endTime', async function () {
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
 
         const { tasks } = await createJobnikTree(
@@ -769,7 +719,7 @@ describe('task', function () {
         expect(getTaskResponse.body).toHaveProperty('endTime');
       });
 
-      it("should return 200 status code and change tasks's to finite state (FAILED) and add endTime", async function () {
+      it('should update task to FAILED and add endTime', async function () {
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
 
         const { tasks } = await createJobnikTree(
@@ -798,7 +748,7 @@ describe('task', function () {
         expect(getTaskResponse.body).toHaveProperty('endTime');
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED without changing stage's state to COMPLETED", async function () {
+      it('should update task to COMPLETED without completing stage', async function () {
         const initialSummary = { ...defaultStatusCounts, total: 1000, completed: 998, inProgress: 1, pending: 1 };
         const expectedSummary = { ...defaultStatusCounts, total: 1000, completed: 999, inProgress: 0, pending: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
@@ -825,7 +775,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
       });
 
-      it("should return 200 status code and change tasks's status to RETRIED and increase attempts", async function () {
+      it('should update task to RETRIED and increase attempts', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
         const expectedSummary = { ...defaultStatusCounts, retried: 1, inProgress: 0, failed: 0, total: 1 };
@@ -854,7 +804,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
       });
 
-      it("should return 200 status code and change tasks's status to FAILED", async function () {
+      it('should update task to FAILED', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.FAILED };
         const expectedSummary = { ...defaultStatusCounts, retried: 0, inProgress: 0, failed: 1, total: 1 };
@@ -882,7 +832,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
       });
 
-      it("should return 200 status code and change tasks's status to COMPLETED", async function () {
+      it('should update task to COMPLETED', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 2, total: 2 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 1, completed: 1, total: 2 };
@@ -915,7 +865,7 @@ describe('task', function () {
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
       });
 
-      it('should return 200 status code and complete task and stage when job has multiple stages', async function () {
+      it('should complete task and stage when job has multiple stages', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
@@ -952,15 +902,17 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: secondStage.body.id } });
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
         expect(getStageResponse.body).toMatchObject(expectedStageStatus);
+        expect(getSecondStageResponse.body).toMatchObject({ status: StageOperationStatus.PENDING });
         expect(getJobResponse.body).toMatchObject({ status: JobOperationStatus.IN_PROGRESS, percentage: 50 });
       });
 
-      it('should return 200 status code and complete task, stage, and job when all tasks and stages are finished', async function () {
+      it('should complete task, stage, and job when all finished', async function () {
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
         const updateStatusInput = { status: TaskOperationStatus.COMPLETED };
         const expectedSummary = { ...defaultStatusCounts, inProgress: 0, completed: 1, total: 1 };
@@ -1019,7 +971,7 @@ describe('task', function () {
         });
       });
 
-      it('should return status code 400 when supplying bad uuid as part of the request', async function () {
+      it('should return 400 when supplying bad uuid', async function () {
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: 'badUuid' },
           requestBody: { status: TaskOperationStatus.COMPLETED },
@@ -1032,10 +984,10 @@ describe('task', function () {
         });
       });
 
-      it('should return a 404 status code along with a message that specifies that a task with the given id was not found', async function () {
+      it('should return 404 when task not found', async function () {
         const updateStatusResponse = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
@@ -1047,13 +999,13 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -1063,13 +1015,13 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
-          requestBody: { status: TaskOperationStatus.PENDING },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
         });
 
         expect(response).toSatisfyApiSpec();
@@ -1083,7 +1035,7 @@ describe('task', function () {
 
   describe('#dequeue', function () {
     describe('Happy Path', function () {
-      it('should return 200 status code and available task', async function () {
+      it('should return 200 with available task', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
         const { stage, tasks } = await createJobnikTree(
@@ -1120,7 +1072,7 @@ describe('task', function () {
         expect(getStageResponse.body).toHaveProperty('summary', { ...initialSummary, pending: 0, inProgress: 1, total: 1 });
       });
 
-      it('should return 200 status code and available task and move stage only and job to in progress', async function () {
+      it('should return 200 with available task and move stage to in progress', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
         const { stage, tasks } = await createJobnikTree(
@@ -1156,7 +1108,7 @@ describe('task', function () {
         expect(getStageResponse.body).toHaveProperty('status', StageOperationStatus.IN_PROGRESS);
       });
 
-      it('should return 200 status code and available task and move stage and job to in progress', async function () {
+      it('should return 200 with available task and move stage and job to in progress', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
         const { job, stage, tasks } = await createJobnikTree(
@@ -1195,7 +1147,7 @@ describe('task', function () {
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.IN_PROGRESS);
       });
 
-      it('should return 200 status code and available most prioritized task', async function () {
+      it('should return 200 with most prioritized task', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 3, total: 3 };
         const jobLowPriority = await addJobRecord(
           {
@@ -1320,10 +1272,92 @@ describe('task', function () {
           },
         });
       });
+
+      it('should add startTime when dequeuing task', async function () {
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_STARTIME_CHECK',
+          },
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
+        );
+
+        const taskId = tasks[0]!.id;
+
+        // Get task before dequeue to verify it doesn't have startTime
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { stageType: 'SOME_TEST_TYPE_STARTIME_CHECK' },
+        });
+
+        // Get task after dequeue to verify it has startTime
+        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: taskId,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+          },
+        });
+        expect(getTaskResponseBeforeDequeue.body).not.toHaveProperty('startTime');
+        expect(getTaskResponseAfterDequeue.body).toHaveProperty('startTime');
+      });
+
+      it('should update startTime when dequeuing RETRIED task', async function () {
+        const initialSummary = { ...defaultStatusCounts, retried: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_RETRIED_STARTIME',
+          },
+          [{ status: TaskOperationStatus.RETRIED, xstate: retryTaskXstatePersistentSnapshot, startTime: new Date() }]
+        );
+
+        const taskId = tasks[0]!.id;
+
+        // Get task before dequeue to capture previous startTime
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const taskBeforeDequeue = getTaskResponseBeforeDequeue.body as TaskModel;
+        const previousStartTime = taskBeforeDequeue.startTime;
+
+        const dequeueResponse = await requestSender.dequeueTask({
+          pathParams: { stageType: 'SOME_TEST_TYPE_RETRIED_STARTIME' },
+        });
+
+        // Get task after dequeue to verify startTime was updated
+        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const taskAfterDequeue = getTaskResponseAfterDequeue.body as TaskModel;
+
+        expect(dequeueResponse).toSatisfyApiSpec();
+        expect(dequeueResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: taskId,
+            status: TaskOperationStatus.IN_PROGRESS,
+            stageId: stage.id,
+          },
+        });
+        expect(new Date(taskAfterDequeue.startTime!)).toBeAfter(new Date(previousStartTime!));
+      });
     });
 
     describe('Bad Path', function () {
-      it('should return 400 with bad stage type (length > 50 characters) request error', async function () {
+      it('should return 400 when stage type exceeds 50 characters', async function () {
         const longStageType = faker.string.alpha(51);
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
 
@@ -1341,7 +1375,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 404 without available task', async function () {
+      it('should return 404 when no available task exists', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
         const taskResponse = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_NON_EXIST_STAGE_TYPE' },
@@ -1354,7 +1388,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 404 without available PENDING task', async function () {
+      it('should return 404 when no PENDING task available', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
 
@@ -1383,7 +1417,7 @@ describe('task', function () {
     });
 
     describe('Sad Path', function () {
-      it('should return 500 status code when the database driver throws an error', async function () {
+      it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
         jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
 
@@ -1398,7 +1432,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the database driver throws an unexpected error', async function () {
+      it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
         jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
 
@@ -1413,7 +1447,7 @@ describe('task', function () {
         });
       });
 
-      it('should return 500 status code when the transaction was failed', async function () {
+      it('should return 500 when transaction fails', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
         const { job, stage, tasks } = await createJobnikTree(

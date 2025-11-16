@@ -24,6 +24,14 @@ completedStageActor.send({ type: 'pend' });
 completedStageActor.send({ type: 'process' });
 completedStageActor.send({ type: 'complete' });
 
+const failedStageActor = createActor(stageStateMachine).start();
+failedStageActor.send({ type: 'pend' });
+failedStageActor.send({ type: 'process' });
+failedStageActor.send({ type: 'fail' });
+
+const waitingStageActor = createActor(stageStateMachine).start();
+waitingStageActor.send({ type: 'wait' });
+
 const retriedTaskActor = createActor(taskStateMachine).start();
 retriedTaskActor.send({ type: 'pend' });
 retriedTaskActor.send({ type: 'process' });
@@ -46,6 +54,8 @@ export const abortedXstatePersistentSnapshot = deleteActor.getPersistedSnapshot(
 export const inProgressStageXstatePersistentSnapshot = runningStageActor.getPersistedSnapshot();
 export const abortedStageXstatePersistentSnapshot = abortedStageActor.getPersistedSnapshot();
 export const pendingStageXstatePersistentSnapshot = pendingStageActor.getPersistedSnapshot();
+export const failedStageXstatePersistentSnapshot = failedStageActor.getPersistedSnapshot();
+export const waitingStageXstatePersistentSnapshot = waitingStageActor.getPersistedSnapshot();
 export const retryTaskXstatePersistentSnapshot = retriedTaskActor.getPersistedSnapshot();
 export const completedStageXstatePersistentSnapshot = completedStageActor.getPersistedSnapshot();
 

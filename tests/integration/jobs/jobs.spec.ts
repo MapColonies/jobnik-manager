@@ -12,7 +12,7 @@ import { SERVICES, successMessages } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { abortedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import { abortedStageXstatePersistentSnapshot, completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
@@ -616,6 +616,31 @@ describe('job', function () {
 
     describe('Bad Path', function () {
       it('should return 400 with detailed error for invalid status transition', async function () {
+        const { job } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot },
+          {},
+          [],
+          {
+            createStage: true,
+            createTasks: false,
+          }
+        );
+        const jobId = job.id;
+
+        const setStatusResponse = await requestSender.updateStatus({
+          pathParams: { jobId },
+          requestBody: { status: JobOperationStatus.PAUSED },
+        });
+
+        expect(setStatusResponse).toSatisfyApiSpec();
+        expect(setStatusResponse).toMatchObject({
+          status: StatusCodes.BAD_REQUEST,
+          body: { message: illegalStatusTransitionErrorMessage(job.status, JobOperationStatus.PAUSED), code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
+        });
+      });
+
+      it('should return 400 with detailed error for invalid status', async function () {
         const { job } = await createJobnikTree(prisma, {}, {}, [], {
           createStage: true,
           createTasks: false,
@@ -630,14 +655,17 @@ describe('job', function () {
         expect(setStatusResponse).toSatisfyApiSpec();
         expect(setStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: illegalStatusTransitionErrorMessage(job.status, JobOperationStatus.COMPLETED), code: 'ILLEGAL_JOB_STATUS_TRANSITION' },
+          body: {
+            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as MatcherContext,
+            code: 'VALIDATION_ERROR',
+          },
         });
       });
 
       it('should return 404 with specific error message for non-existent job', async function () {
         const getJobResponse = await requestSender.updateStatus({
           pathParams: { jobId: testJobId },
-          requestBody: { status: JobOperationStatus.COMPLETED },
+          requestBody: { status: JobOperationStatus.PAUSED },
         });
 
         expect(getJobResponse).toSatisfyApiSpec();
