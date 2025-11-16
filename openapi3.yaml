@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: Job Manager Service
   description: Job Manager Service
-  version: 1.0.0
+  version: 0.1.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -61,46 +61,54 @@ paths:
                 summary: Simple job with minimal configuration
                 description: Basic job creation with default priority
                 value:
-                  name: 'data_processing'
+                  name: data_processing
                   data:
-                    input_path: '/data/raw/batch_001'
-                    output_path: '/data/processed/batch_001'
-                    format: 'parquet'
+                    input_path: /data/raw/batch_001
+                    output_path: /data/processed/batch_001
+                    format: parquet
               complex_job:
                 summary: Complex job with full configuration
                 description: Job with high priority and custom metadata
                 value:
-                  name: 'critical_analysis'
+                  name: critical_analysis
                   data:
                     input_sources:
-                      - '/data/source1/*.csv'
-                      - '/data/source2/*.json'
+                      - /data/source1/*.csv
+                      - /data/source2/*.json
                     transformations:
-                      - type: 'filter'
-                        conditions: ["status = 'active'", "created_date > '2024-01-01'"]
-                      - type: 'aggregate'
-                        group_by: ['region', 'category']
-                        metrics: ['sum(revenue)', 'count(transactions)']
+                      - type: filter
+                        conditions:
+                          - status = 'active'
+                          - created_date > '2024-01-01'
+                      - type: aggregate
+                        group_by:
+                          - region
+                          - category
+                        metrics:
+                          - sum(revenue)
+                          - count(transactions)
                     output_config:
-                      format: 'delta'
-                      partitions: ['year', 'month']
-                      compression: 'snappy'
-                  priority: 'VERY_HIGH'
+                      format: delta
+                      partitions:
+                        - year
+                        - month
+                      compression: snappy
+                  priority: VERY_HIGH
                   userMetadata:
-                    department: 'analytics'
-                    owner: 'data-team@company.com'
+                    department: analytics
+                    owner: data-team@company.com
                     deadline: '2025-08-01T00:00:00Z'
-                    cost_center: 'CC-12345'
+                    cost_center: CC-12345
               job_with_tracing:
                 summary: Job with explicit tracing context
                 description: Job creation with provided distributed tracing context
                 value:
-                  name: 'traced_processing'
+                  name: traced_processing
                   data:
-                    input_path: '/data/traced/batch_001'
-                    output_path: '/data/output/batch_001'
-                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
-                  tracestate: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
+                    input_path: /data/traced/batch_001
+                    output_path: /data/output/batch_001
+                  traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+                  tracestate: rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
       responses:
         '201':
           description: Job created successfully
@@ -112,50 +120,58 @@ paths:
                 simple_job_response:
                   summary: Response for simple job creation
                   value:
-                    id: '550e8400-e29b-41d4-a716-446655440000'
-                    name: 'data_processing'
-                    status: 'PENDING'
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    name: data_processing
+                    status: PENDING
                     percentage: 0
-                    priority: 'MEDIUM'
+                    priority: MEDIUM
                     creationTime: '2025-07-27T10:30:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
                     data:
-                      input_path: '/data/raw/batch_001'
-                      output_path: '/data/processed/batch_001'
-                      format: 'parquet'
+                      input_path: /data/raw/batch_001
+                      output_path: /data/processed/batch_001
+                      format: parquet
                     userMetadata: {}
-                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+                    traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
                 complex_job_response:
                   summary: Response for complex job creation
                   value:
-                    id: '660f9511-f3ac-52e5-b827-557766551111'
-                    name: 'critical_analysis'
-                    status: 'PENDING'
+                    id: 660f9511-f3ac-52e5-b827-557766551111
+                    name: critical_analysis
+                    status: PENDING
                     percentage: 0
-                    priority: 'VERY_HIGH'
+                    priority: VERY_HIGH
                     creationTime: '2025-07-27T10:30:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
                     data:
                       input_sources:
-                        - '/data/source1/*.csv'
-                        - '/data/source2/*.json'
+                        - /data/source1/*.csv
+                        - /data/source2/*.json
                       transformations:
-                        - type: 'filter'
-                          conditions: ["status = 'active'", "created_date > '2024-01-01'"]
-                        - type: 'aggregate'
-                          group_by: ['region', 'category']
-                          metrics: ['sum(revenue)', 'count(transactions)']
+                        - type: filter
+                          conditions:
+                            - status = 'active'
+                            - created_date > '2024-01-01'
+                        - type: aggregate
+                          group_by:
+                            - region
+                            - category
+                          metrics:
+                            - sum(revenue)
+                            - count(transactions)
                       output_config:
-                        format: 'delta'
-                        partitions: ['year', 'month']
-                        compression: 'snappy'
+                        format: delta
+                        partitions:
+                          - year
+                          - month
+                        compression: snappy
                     userMetadata:
-                      department: 'analytics'
-                      owner: 'data-team@company.com'
+                      department: analytics
+                      owner: data-team@company.com
                       deadline: '2025-08-01T00:00:00Z'
-                      cost_center: 'CC-12345'
-                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
-                    tracestate: 'analytics=dept123,priority=very_high'
+                      cost_center: CC-12345
+                    traceparent: 00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01
+                    tracestate: analytics=dept123,priority=very_high
         '400':
           description: Invalid request, could not create job
           content:
@@ -167,18 +183,25 @@ paths:
                   summary: Validation error
                   description: Request failed due to missing required fields
                   value:
-                    message: "Validation failed: 'name' is required and must be a non-empty string. 'data' is required and must be an object."
-                    code: 'VALIDATION_ERROR'
+                    message: >-
+                      Validation failed: 'name' is required and must be a
+                      non-empty string. 'data' is required and must be an
+                      object.
+                    code: VALIDATION_ERROR
                 invalid_priority:
                   summary: Invalid priority value
                   value:
-                    message: "Invalid priority value 'SUPER_HIGH'. Valid values are: VERY_HIGH, HIGH, MEDIUM, LOW, VERY_LOW."
-                    code: 'VALIDATION_ERROR'
+                    message: >-
+                      Invalid priority value 'SUPER_HIGH'. Valid values are:
+                      VERY_HIGH, HIGH, MEDIUM, LOW, VERY_LOW.
+                    code: VALIDATION_ERROR
                 malformed_data:
                   summary: Malformed request data
                   value:
-                    message: 'Invalid JSON format in request body. Expected object but received array at line 1, column 1.'
-                    code: 'VALIDATION_ERROR'
+                    message: >-
+                      Invalid JSON format in request body. Expected object but
+                      received array at line 1, column 1.
+                    code: VALIDATION_ERROR
         '500':
           description: Internal server error
           content:
@@ -193,12 +216,17 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeStages'
       summary: Retrieve a specific job by its ID
-      description: |
+      description: >
         Fetches detailed information about a job using its unique identifier.
+
         Includes job configuration, status, metadata, and completion percentage.
 
-        Optional inclusion of related stage data via the should_return_stages parameter,
-        which allows clients to retrieve the complete job hierarchy in a single request.
+
+        Optional inclusion of related stage data via the should_return_stages
+        parameter,
+
+        which allows clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -213,37 +241,43 @@ paths:
                   summary: Job with complete stage and task hierarchy
                   description: Full job details when should_return_stages=true
                   value:
-                    id: '550e8400-e29b-41d4-a716-446655440000'
-                    name: 'ml_pipeline'
-                    status: 'IN_PROGRESS'
+                    id: 550e8400-e29b-41d4-a716-446655440000
+                    name: ml_pipeline
+                    status: IN_PROGRESS
                     percentage: 45
-                    priority: 'HIGH'
+                    priority: HIGH
                     creationTime: '2025-07-27T08:00:00Z'
                     updateTime: '2025-07-27T10:30:00Z'
-                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
+                    traceparent: 00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01
                     data:
-                      model_type: 'random_forest'
-                      training_data: '/data/ml/training_set.parquet'
-                      features: ['age', 'income', 'location', 'purchase_history']
-                      target: 'churn_probability'
+                      model_type: random_forest
+                      training_data: /data/ml/training_set.parquet
+                      features:
+                        - age
+                        - income
+                        - location
+                        - purchase_history
+                      target: churn_probability
                       hyperparameters:
                         n_estimators: 100
                         max_depth: 10
                         min_samples_split: 5
                     userMetadata:
-                      experiment_id: 'EXP-2025-001'
-                      researcher: 'ml-team@company.com'
-                      budget: '$5000'
+                      experiment_id: EXP-2025-001
+                      researcher: ml-team@company.com
+                      budget: $5000
                     stages:
-                      - id: 'dd301d64-69b2-4b49-ba26-fb2a87fa0150'
-                        type: 'data_preparation'
-                        status: 'COMPLETED'
+                      - id: dd301d64-69b2-4b49-ba26-fb2a87fa0150
+                        type: data_preparation
+                        status: COMPLETED
                         percentage: 100
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 1
                         data:
                           validation_split: 0.2
-                          preprocessing_steps: ['normalize', 'encode_categorical']
+                          preprocessing_steps:
+                            - normalize
+                            - encode_categorical
                         userMetadata: {}
                         summary:
                           pending: 0
@@ -253,12 +287,13 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
-                      - id: '2d9b2481-ec1c-4efd-9350-f33bd79d51eb'
-                        type: 'model_training'
-                        status: 'IN_PROGRESS'
+                        traceparent: >-
+                          00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01
+                      - id: 2d9b2481-ec1c-4efd-9350-f33bd79d51eb
+                        type: model_training
+                        status: IN_PROGRESS
                         percentage: 60
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 2
                         data:
                           cross_validation_folds: 5
@@ -272,16 +307,21 @@ paths:
                           created: 0
                           retried: 0
                           total: 5
-                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
-                      - id: '637c05f3-e0b0-4c26-a791-89308c58e316'
-                        type: 'model_evaluation'
-                        status: 'WAITING'
+                        traceparent: >-
+                          00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01
+                      - id: 637c05f3-e0b0-4c26-a791-89308c58e316
+                        type: model_evaluation
+                        status: WAITING
                         percentage: 0
-                        jobId: '550e8400-e29b-41d4-a716-446655440000'
+                        jobId: 550e8400-e29b-41d4-a716-446655440000
                         order: 3
                         data:
-                          metrics: ['accuracy', 'precision', 'recall', 'f1_score']
-                          validation_dataset: '/data/ml/validation_set.parquet'
+                          metrics:
+                            - accuracy
+                            - precision
+                            - recall
+                            - f1_score
+                          validation_dataset: /data/ml/validation_set.parquet
                         userMetadata: {}
                         summary:
                           pending: 3
@@ -291,26 +331,27 @@ paths:
                           created: 0
                           retried: 0
                           total: 3
-                        traceparent: '00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01'
+                        traceparent: >-
+                          00-550e8400e29b41d4a716446655440000-22b378cc5ca902b7-01
                 simple_job:
                   summary: Simple job without stages
                   description: Basic job details when should_return_stages=false
                   value:
-                    id: '660f9511-f3ac-52e5-b827-557766551111'
-                    name: 'data_backup'
-                    status: 'COMPLETED'
+                    id: 660f9511-f3ac-52e5-b827-557766551111
+                    name: data_backup
+                    status: COMPLETED
                     percentage: 100
-                    priority: 'LOW'
+                    priority: LOW
                     creationTime: '2025-07-26T14:00:00Z'
                     updateTime: '2025-07-26T15:30:00Z'
-                    traceparent: '00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01'
+                    traceparent: 00-660f9511f3ac52e5b827557766551111-22b378cc5ca902b7-01
                     data:
-                      source_path: '/data/production'
-                      destination: 's3://backup-bucket/2025-07-26'
-                      compression: 'gzip'
+                      source_path: /data/production
+                      destination: s3://backup-bucket/2025-07-26
+                      compression: gzip
                       encryption: true
                     userMetadata:
-                      backup_type: 'daily'
+                      backup_type: daily
                       retention_days: 30
         '400':
           description: Invalid request, could not get job
@@ -333,15 +374,25 @@ paths:
     delete:
       operationId: deleteJob
       summary: Delete a job and all its associated resources (stages, tasks)
-      description: |
-        Permanently removes a job and all its associated stages and tasks from the system.
-        This operation cascades to delete all child resources and cannot be undone.
+      description: >
+        Permanently removes a job and all its associated stages and tasks from
+        the system.
+
+        This operation cascades to delete all child resources and cannot be
+        undone.
+
 
         The job must exist in the system for this operation to succeed.
-        Jobs can only be deleted when they are in a finite state (COMPLETED, FAILED, or ABORTED).
-        Attempting to delete a job in any other state will result in a 400 error.
 
-        Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
+        Jobs can only be deleted when they are in a finite state (COMPLETED,
+        FAILED, or ABORTED).
+
+        Attempting to delete a job in any other state will result in a 400
+        error.
+
+
+        Returns a success message with code JOB_DELETED_SUCCESSFULLY when
+        completed.
       tags:
         - jobs
       responses:
@@ -361,14 +412,19 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     required:
                       - code
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'JOB_NOT_IN_FINITE_STATE']
+                        enum:
+                          - VALIDATION_ERROR
+                          - JOB_NOT_IN_FINITE_STATE
         '404':
           description: Job not found
           content:
@@ -387,12 +443,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/jobId'
       summary: Update job's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific job.
-        This endpoint allows clients to attach or modify arbitrary data related to a job
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a job
+
         without affecting the job's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - jobs
@@ -435,12 +497,19 @@ paths:
     patch:
       operationId: updateJobPriority
       summary: Modify job's priority level
-      description: |
+      description: >
         Updates the priority level for a specific job.
-        This affects how the job is scheduled relative to other jobs in the system.
 
-        Higher priority jobs will be processed before lower priority ones when resources
-        are constrained. Priority changes take effect immediately and apply to all 
+        This affects how the job is scheduled relative to other jobs in the
+        system.
+
+
+        Higher priority jobs will be processed before lower priority ones when
+        resources
+
+        are constrained. Priority changes take effect immediately and apply to
+        all 
+
         pending tasks associated with the job.
       tags:
         - jobs
@@ -472,18 +541,18 @@ paths:
               schema:
                 type: string
           content: {}
-        '404':
-          description: Job not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/jobNotFoundResponse'
         '400':
           description: Invalid priority value or other request error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/badRequestResponse'
+        '404':
+          description: Job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/jobNotFoundResponse'
         '500':
           description: Internal server error
           content:
@@ -496,17 +565,31 @@ paths:
     put:
       operationId: updateStatus
       summary: Update job status for workflow control
-      description: |
-        Updates the operational status of a job to control its workflow execution. This endpoint 
-        supports user-initiated operations including PENDING (resume), ABORTED (cancel), and 
+      description: >
+        Updates the operational status of a job to control its workflow
+        execution. This endpoint 
+
+        supports user-initiated operations including PENDING (resume), ABORTED
+        (cancel), and 
+
         PAUSED (suspend), which may cascade changes to related stages and tasks.
 
-        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, CREATED) are managed 
-        automatically by the system based on stage and task completion, and cannot be set through 
+
+        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED,
+        CREATED) are managed 
+
+        automatically by the system based on stage and task completion, and
+        cannot be set through 
+
         this endpoint.
 
-        Status changes follow a state machine that enforces valid transitions. When a job's status 
-        is changed, the system will automatically update timestamps and completion percentages as 
+
+        Status changes follow a state machine that enforces valid transitions.
+        When a job's status 
+
+        is changed, the system will automatically update timestamps and
+        completion percentages as 
+
         appropriate.
       tags:
         - jobs
@@ -538,12 +621,17 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION']
+                        enum:
+                          - VALIDATION_ERROR
+                          - ILLEGAL_JOB_STATUS_TRANSITION
         '404':
           description: Job not found
           content:
@@ -564,16 +652,28 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve all stages for a specific job in execution order
-      description: |
-        Fetches all stages associated with the specified job ID, automatically ordered by 
-        their execution sequence (order field). Provides complete information about each 
+      description: >
+        Fetches all stages associated with the specified job ID, automatically
+        ordered by 
+
+        their execution sequence (order field). Provides complete information
+        about each 
+
         stage including type, status, progress, and sequential order number.
 
-        Stages are returned in ascending order based on their order field (1, 2, 3, etc.)
-        to maintain the correct workflow execution sequence defined when stages were created.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        allowing clients to retrieve the complete job hierarchy in a single request.
+        Stages are returned in ascending order based on their order field (1, 2,
+        3, etc.)
+
+        to maintain the correct workflow execution sequence defined when stages
+        were created.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        allowing clients to retrieve the complete job hierarchy in a single
+        request.
       tags:
         - jobs
       responses:
@@ -607,14 +707,24 @@ paths:
     post:
       operationId: addStage
       summary: Add a new stage as the last stage in the job workflow
-      description: |
+      description: >
         Appends a new stage to an existing job with automatic order assignment.
-        The stage will be added after any existing stages in the job's workflow sequence.
-        Each stage is automatically assigned an incremental order number (1, 2, 3, etc.) 
+
+        The stage will be added after any existing stages in the job's workflow
+        sequence.
+
+        Each stage is automatically assigned an incremental order number (1, 2,
+        3, etc.) 
+
         within the scope of its parent job to maintain execution sequence.
 
-        This endpoint allows for extending job workflows at runtime by adding new processing steps.
-        The order field ensures stages are processed in the correct sequence when retrieved.
+
+        This endpoint allows for extending job workflows at runtime by adding
+        new processing steps.
+
+        The order field ensures stages are processed in the correct sequence
+        when retrieved.
+
 
         The job must exist and be in a valid state to accept new stages.
       parameters:
@@ -632,44 +742,45 @@ paths:
                 summary: Data processing stage
                 description: Stage for data transformation and validation
                 value:
-                  type: 'data_processing'
+                  type: data_processing
                   data:
-                    processing_type: 'batch'
+                    processing_type: batch
                     chunk_size: 1000
                     validation_rules:
                       - 'not_null: [id, timestamp]'
                       - 'range: [amount, 0, 1000000]'
                   userMetadata:
-                    estimated_duration: '2h'
+                    estimated_duration: 2h
                     resource_requirements:
-                      cpu: '4 cores'
-                      memory: '8GB'
+                      cpu: 4 cores
+                      memory: 8GB
               waiting_stage:
                 summary: Manual approval stage
                 description: Stage that waits for manual intervention
                 value:
-                  type: 'manual_approval'
+                  type: manual_approval
                   startAsWaiting: true
                   data:
-                    approval_type: 'quality_check'
-                    reviewers: ['senior-analyst@company.com']
+                    approval_type: quality_check
+                    reviewers:
+                      - senior-analyst@company.com
                     checklist:
-                      - 'Data quality metrics within acceptable range'
-                      - 'No PII detected in output'
-                      - 'Performance benchmarks met'
+                      - Data quality metrics within acceptable range
+                      - No PII detected in output
+                      - Performance benchmarks met
                   userMetadata:
-                    priority: 'high'
-                    sla: '24h'
+                    priority: high
+                    sla: 24h
               stage_with_tracing:
                 summary: Stage with distributed tracing
                 description: Stage creation with provided tracing context
                 value:
-                  type: 'data_validation'
+                  type: data_validation
                   data:
-                    validation_type: 'schema_check'
+                    validation_type: schema_check
                     strict_mode: true
-                  traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
-                  tracestate: 'vendor=trace123,service=validation'
+                  traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+                  tracestate: vendor=trace123,service=validation
       responses:
         '201':
           description: Stage successfully created and added to the job
@@ -681,23 +792,23 @@ paths:
                 processing_stage_response:
                   summary: Response for data processing stage creation
                   value:
-                    id: 'e9db7d16-a84c-4297-a45d-e59665760084'
-                    type: 'data_processing'
-                    status: 'CREATED'
+                    id: e9db7d16-a84c-4297-a45d-e59665760084
+                    type: data_processing
+                    status: CREATED
                     percentage: 0
-                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    jobId: 550e8400-e29b-41d4-a716-446655440000
                     order: 1
                     data:
-                      processing_type: 'batch'
+                      processing_type: batch
                       chunk_size: 1000
                       validation_rules:
                         - 'not_null: [id, timestamp]'
                         - 'range: [amount, 0, 1000000]'
                     userMetadata:
-                      estimated_duration: '2h'
+                      estimated_duration: 2h
                       resource_requirements:
-                        cpu: '4 cores'
-                        memory: '8GB'
+                        cpu: 4 cores
+                        memory: 8GB
                     summary:
                       pending: 0
                       inProgress: 0
@@ -706,27 +817,28 @@ paths:
                       created: 0
                       retried: 0
                       total: 0
-                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-33c489dd6db902b7-01'
-                    tracestate: 'processing=batch001,stage=data_proc'
+                    traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-33c489dd6db902b7-01
+                    tracestate: processing=batch001,stage=data_proc
                 waiting_stage_response:
                   summary: Response for manual approval stage creation
                   value:
-                    id: '4f45bec6-08c4-4f7a-a3ea-be65eddc1235'
-                    type: 'manual_approval'
-                    status: 'WAITING'
+                    id: 4f45bec6-08c4-4f7a-a3ea-be65eddc1235
+                    type: manual_approval
+                    status: WAITING
                     percentage: 0
-                    jobId: '550e8400-e29b-41d4-a716-446655440000'
+                    jobId: 550e8400-e29b-41d4-a716-446655440000
                     order: 2
                     data:
-                      approval_type: 'quality_check'
-                      reviewers: ['senior-analyst@company.com']
+                      approval_type: quality_check
+                      reviewers:
+                        - senior-analyst@company.com
                       checklist:
-                        - 'Data quality metrics within acceptable range'
-                        - 'No PII detected in output'
-                        - 'Performance benchmarks met'
+                        - Data quality metrics within acceptable range
+                        - No PII detected in output
+                        - Performance benchmarks met
                     userMetadata:
-                      priority: 'high'
-                      sla: '24h'
+                      priority: high
+                      sla: 24h
                     summary:
                       pending: 0
                       inProgress: 0
@@ -735,7 +847,7 @@ paths:
                       created: 0
                       retried: 0
                       total: 0
-                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-44d59aee7ec902b7-01'
+                    traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-44d59aee7ec902b7-01
         '400':
           description: Invalid request format.
           content:
@@ -744,12 +856,17 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'JOB_IN_FINITE_STATE']
+                        enum:
+                          - VALIDATION_ERROR
+                          - JOB_IN_FINITE_STATE
         '404':
           description: Job not found
           content:
@@ -771,12 +888,18 @@ paths:
         - $ref: '#/components/parameters/stageStatus'
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve stages matching specified criteria
-      description: |
-        Returns a filtered list of stages based on the provided query parameters.
+      description: >
+        Returns a filtered list of stages based on the provided query
+        parameters.
+
         Supports filtering by job ID, stage type, and status.
 
-        Optional inclusion of related task data via the should_return_tasks parameter
-        allows clients to retrieve the complete stage hierarchy in a single request.
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter
+
+        allows clients to retrieve the complete stage hierarchy in a single
+        request.
       tags:
         - stages
       responses:
@@ -808,12 +931,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/includeTasks'
       summary: Retrieve a specific stage by its ID
-      description: |
+      description: >
         Fetches detailed information about a stage using its unique identifier.
-        Includes stage configuration, status, metadata, and completion information.
 
-        Optional inclusion of related task data via the should_return_tasks parameter,
-        which allows clients to retrieve the complete stage hierarchy in a single request.
+        Includes stage configuration, status, metadata, and completion
+        information.
+
+
+        Optional inclusion of related task data via the should_return_tasks
+        parameter,
+
+        which allows clients to retrieve the complete stage hierarchy in a
+        single request.
       tags:
         - stages
       responses:
@@ -847,12 +976,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Get stage progress summary
-      description: |
+      description: >
         Retrieves aggregated statistics about the tasks within a specific stage.
-        Provides counts of tasks by status (pending, in progress, completed, etc.) 
+
+        Provides counts of tasks by status (pending, in progress, completed,
+        etc.) 
+
         and a total task count for monitoring stage progress.
 
-        This endpoint is useful for displaying progress indicators or status dashboards
+
+        This endpoint is useful for displaying progress indicators or status
+        dashboards
+
         without needing to retrieve and process all individual task details.
       tags:
         - stages
@@ -887,12 +1022,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Update stage's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific stage.
-        This endpoint allows clients to attach or modify arbitrary data related to a stage
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a stage
+
         without affecting the stage's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - stages
@@ -935,22 +1076,40 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       summary: Update stage status to trigger workflow progression
-      description: |
-        Updates the operational status of a stage to PENDING, which may trigger workflow 
-        transitions and cascade changes to related tasks and the parent job. This endpoint 
+      description: >
+        Updates the operational status of a stage to PENDING, which may trigger
+        workflow 
+
+        transitions and cascade changes to related tasks and the parent job.
+        This endpoint 
+
         is restricted to manually advancing stages in the workflow sequence.
 
+
         Common use cases:
+
         - Resuming a WAITING stage (e.g., after manual intervention or approval)
+
         - Unblocking workflow progression when a stage is ready to proceed
 
-        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED, 
-        WAITING, CREATED) are managed automatically by the system based on task completion, 
+
+        Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED,
+        ABORTED, 
+
+        WAITING, CREATED) are managed automatically by the system based on task
+        completion, 
+
         job state, and workflow rules.
 
-        Status changes follow a state machine that enforces valid transitions. When a stage's 
-        status changes, it may automatically update the parent job's status and trigger 
-        transitions in subsequent stages (e.g., activating the next stage in the sequence).
+
+        Status changes follow a state machine that enforces valid transitions.
+        When a stage's 
+
+        status changes, it may automatically update the parent job's status and
+        trigger 
+
+        transitions in subsequent stages (e.g., activating the next stage in the
+        sequence).
       tags:
         - stages
       requestBody:
@@ -981,12 +1140,17 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'ILLEGAL_STAGE_STATUS_TRANSITION']
+                        enum:
+                          - VALIDATION_ERROR
+                          - ILLEGAL_STAGE_STATUS_TRANSITION
         '404':
           description: Stage not found
           content:
@@ -1001,21 +1165,30 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for internal server errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for internal server errors,
+                      providing a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['DATABASE_RELATED_ERROR', 'UNKNOWN_ERROR', 'ILLEGAL_JOB_STATUS_TRANSITION', 'JOB_NOT_FOUND']
+                        enum:
+                          - DATABASE_RELATED_ERROR
+                          - UNKNOWN_ERROR
+                          - ILLEGAL_JOB_STATUS_TRANSITION
+                          - JOB_NOT_FOUND
   /stages/{stageId}/tasks:
     parameters:
       - $ref: '#/components/parameters/stageId'
     get:
       operationId: getTasksByStageId
       summary: Retrieve all tasks for a specific stage
-      description: |
+      description: >
         Fetches all tasks associated with the specified stage ID.
-        Provides complete information about each task including type, status, and attempt count.
+
+        Provides complete information about each task including type, status,
+        and attempt count.
       responses:
         '200':
           description: Successfully retrieved tasks for the specified stage
@@ -1048,12 +1221,19 @@ paths:
     post:
       operationId: addTasks
       summary: Add new tasks to an existing stage
-      description: |
+      description: >
         Creates and appends new tasks to an existing stage.
-        This endpoint allows for extending stage processing capabilities by adding more work units.
 
-        Task objects require type and data properties, with optional user metadata and 
-        maximum attempt configuration. Tasks are created with an initial status of PENDING.
+        This endpoint allows for extending stage processing capabilities by
+        adding more work units.
+
+
+        Task objects require type and data properties, with optional user
+        metadata and 
+
+        maximum attempt configuration. Tasks are created with an initial status
+        of PENDING.
+
 
         The stage must exist and be in a valid state to accept new tasks.
       parameters:
@@ -1074,69 +1254,73 @@ paths:
                 description: Batch creation of tasks for processing multiple files
                 value:
                   - data:
-                      file_path: '/data/input/file_001.csv'
-                      output_path: '/data/processed/file_001.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_001.csv
+                      output_path: /data/processed/file_001.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '125MB'
-                      estimated_time: '5m'
+                      file_size: 125MB
+                      estimated_time: 5m
                     maxAttempts: 3
                   - data:
-                      file_path: '/data/input/file_002.csv'
-                      output_path: '/data/processed/file_002.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_002.csv
+                      output_path: /data/processed/file_002.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '89MB'
-                      estimated_time: '3m'
+                      file_size: 89MB
+                      estimated_time: 3m
                     maxAttempts: 3
                   - data:
-                      file_path: '/data/input/file_003.csv'
-                      output_path: '/data/processed/file_003.parquet'
-                      transformation: 'csv_to_parquet'
+                      file_path: /data/input/file_003.csv
+                      output_path: /data/processed/file_003.parquet
+                      transformation: csv_to_parquet
                     userMetadata:
-                      file_size: '256MB'
-                      estimated_time: '8m'
+                      file_size: 256MB
+                      estimated_time: 8m
                     maxAttempts: 5
               api_integration_tasks:
                 summary: API integration tasks with different configurations
                 value:
                   - data:
-                      endpoint: 'https://api.external.com/customers'
-                      method: 'GET'
+                      endpoint: https://api.external.com/customers
+                      method: GET
                       headers:
-                        Authorization: 'Bearer ${API_TOKEN}'
+                        Authorization: Bearer ${API_TOKEN}
                       pagination:
                         page_size: 100
                         max_pages: 50
                     userMetadata:
-                      source: 'customer_system'
-                      priority: 'high'
+                      source: customer_system
+                      priority: high
                   - data:
-                      endpoint: 'https://api.external.com/orders'
-                      method: 'GET'
+                      endpoint: https://api.external.com/orders
+                      method: GET
                       headers:
-                        Authorization: 'Bearer ${API_TOKEN}'
+                        Authorization: Bearer ${API_TOKEN}
                       query_params:
                         start_date: '2025-01-01'
                         end_date: '2025-07-27'
                     userMetadata:
-                      source: 'order_system'
-                      priority: 'medium'
+                      source: order_system
+                      priority: medium
               tasks_with_tracing:
                 summary: Tasks with distributed tracing context
                 description: Task creation with tracing information for observability
                 value:
                   - data:
-                      process_type: 'data_enrichment'
-                      input_dataset: 'customer_profiles'
-                      enrichment_sources: ['demographic_api', 'credit_api']
-                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
-                    tracestate: 'customer=enrich123,priority=high'
+                      process_type: data_enrichment
+                      input_dataset: customer_profiles
+                      enrichment_sources:
+                        - demographic_api
+                        - credit_api
+                    traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
+                    tracestate: customer=enrich123,priority=high
                     maxAttempts: 2
                   - data:
-                      process_type: 'data_validation'
-                      validation_rules: ['email_format', 'phone_format']
-                    traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-11a268bb4ba902b7-01'
+                      process_type: data_validation
+                      validation_rules:
+                        - email_format
+                        - phone_format
+                    traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-11a268bb4ba902b7-01
                     maxAttempts: 1
       responses:
         '201':
@@ -1151,134 +1335,138 @@ paths:
                 file_processing_tasks_response:
                   summary: Response for multiple file processing tasks creation
                   value:
-                    - id: '3f09f17d-029e-417f-b84e-d6782efc2371'
+                    - id: 3f09f17d-029e-417f-b84e-d6782efc2371
                       data:
-                        file_path: '/data/input/file_001.csv'
-                        output_path: '/data/processed/file_001.parquet'
-                        transformation: 'csv_to_parquet'
-                      stageId: '5251e4cb-3f34-4be7-812f-dca3fa6e733a'
+                        file_path: /data/input/file_001.csv
+                        output_path: /data/processed/file_001.parquet
+                        transformation: csv_to_parquet
+                      stageId: 5251e4cb-3f34-4be7-812f-dca3fa6e733a
                       userMetadata:
-                        file_size: '125MB'
-                        estimated_time: '5m'
-                      status: 'PENDING'
+                        file_size: 125MB
+                        estimated_time: 5m
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 3
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-55e6abbf8fd902b7-01'
-                      tracestate: 'file=001,processing=csv_parquet'
-                    - id: '469e8a0c-9232-4144-920f-fb5cef356ff7'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-55e6abbf8fd902b7-01
+                      tracestate: file=001,processing=csv_parquet
+                    - id: 469e8a0c-9232-4144-920f-fb5cef356ff7
                       data:
-                        file_path: '/data/input/file_002.csv'
-                        output_path: '/data/processed/file_002.parquet'
-                        transformation: 'csv_to_parquet'
-                      stageId: '6e1e2e25-22ee-4e24-b394-c544d253ff43'
+                        file_path: /data/input/file_002.csv
+                        output_path: /data/processed/file_002.parquet
+                        transformation: csv_to_parquet
+                      stageId: 6e1e2e25-22ee-4e24-b394-c544d253ff43
                       userMetadata:
-                        file_size: '89MB'
-                        estimated_time: '3m'
-                      status: 'PENDING'
+                        file_size: 89MB
+                        estimated_time: 3m
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 3
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-66f7bcc090e902b7-01'
-                      tracestate: 'file=002,processing=csv_parquet'
-                    - id: '6a7ecf04-4455-41d1-aa04-8786178cb4a3'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-66f7bcc090e902b7-01
+                      tracestate: file=002,processing=csv_parquet
+                    - id: 6a7ecf04-4455-41d1-aa04-8786178cb4a3
                       data:
-                        file_path: '/data/input/file_003.csv'
-                        output_path: '/data/processed/file_003.parquet'
-                        transformation: 'csv_to_parquet'
-                      stageId: '714ef37c-218f-4818-a166-cbc13d2850a6'
+                        file_path: /data/input/file_003.csv
+                        output_path: /data/processed/file_003.parquet
+                        transformation: csv_to_parquet
+                      stageId: 714ef37c-218f-4818-a166-cbc13d2850a6
                       userMetadata:
-                        file_size: '256MB'
-                        estimated_time: '8m'
-                      status: 'PENDING'
+                        file_size: 256MB
+                        estimated_time: 8m
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 5
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-77081dd1a1f902b7-01'
-                      tracestate: 'file=003,processing=csv_parquet'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-77081dd1a1f902b7-01
+                      tracestate: file=003,processing=csv_parquet
                 api_integration_tasks_response:
                   summary: Response for API integration tasks creation
                   value:
-                    - id: 'ddfad658-da33-4573-b5a3-d70a204a3e0b'
+                    - id: ddfad658-da33-4573-b5a3-d70a204a3e0b
                       data:
-                        endpoint: 'https://api.external.com/customers'
-                        method: 'GET'
+                        endpoint: https://api.external.com/customers
+                        method: GET
                         headers:
-                          Authorization: 'Bearer ${API_TOKEN}'
+                          Authorization: Bearer ${API_TOKEN}
                         pagination:
                           page_size: 100
                           max_pages: 50
-                      stageId: 'a09866f1-74f1-49c1-b996-268586ad346d'
+                      stageId: a09866f1-74f1-49c1-b996-268586ad346d
                       userMetadata:
-                        source: 'customer_system'
-                        priority: 'high'
-                      status: 'PENDING'
+                        source: customer_system
+                        priority: high
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 3
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-88192ee2b20902b7-01'
-                      tracestate: 'api=customers,source=external'
-                    - id: 'df59d74e-f442-4e66-b8c9-b312ad948c47'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-88192ee2b20902b7-01
+                      tracestate: api=customers,source=external
+                    - id: df59d74e-f442-4e66-b8c9-b312ad948c47
                       data:
-                        endpoint: 'https://api.external.com/orders'
-                        method: 'GET'
+                        endpoint: https://api.external.com/orders
+                        method: GET
                         headers:
-                          Authorization: 'Bearer ${API_TOKEN}'
+                          Authorization: Bearer ${API_TOKEN}
                         query_params:
                           start_date: '2025-01-01'
                           end_date: '2025-07-27'
-                      stageId: '4daa6a5c-da33-4cbe-8e4a-dbc00182fcfa'
+                      stageId: 4daa6a5c-da33-4cbe-8e4a-dbc00182fcfa
                       userMetadata:
-                        source: 'order_system'
-                        priority: 'medium'
-                      status: 'PENDING'
+                        source: order_system
+                        priority: medium
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 3
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-99203ff3c31902b7-01'
-                      tracestate: 'api=orders,source=external'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-99203ff3c31902b7-01
+                      tracestate: api=orders,source=external
                 tasks_with_lifecycle_states:
-                  summary: Tasks showing different lifecycle states with timing information
-                  description: Examples of tasks in various states showing startTime and endTime usage
+                  summary: >-
+                    Tasks showing different lifecycle states with timing
+                    information
+                  description: >-
+                    Examples of tasks in various states showing startTime and
+                    endTime usage
                   value:
-                    - id: 'f1a2b3c4-5678-90ab-cdef-123456789012'
+                    - id: f1a2b3c4-5678-90ab-cdef-123456789012
                       data:
-                        process_type: 'data_processing'
-                        input_file: '/data/raw/dataset_001.json'
-                      stageId: '1a2b3c4d-5e6f-7890-ab12-345678901234'
-                      status: 'PENDING'
+                        process_type: data_processing
+                        input_file: /data/raw/dataset_001.json
+                      stageId: 1a2b3c4d-5e6f-7890-ab12-345678901234
+                      status: PENDING
                       attempts: 0
                       maxAttempts: 3
                       userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:30:00Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-aa111bb222c902b7-01'
-                      tracestate: 'state=pending'
-                    - id: 'f2a3b4c5-6789-01bc-def2-345678901234'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-aa111bb222c902b7-01
+                      tracestate: state=pending
+                    - id: f2a3b4c5-6789-01bc-def2-345678901234
                       data:
-                        process_type: 'data_validation'
-                        input_file: '/data/raw/dataset_002.json'
-                      stageId: '2b3c4d5e-6f78-9012-bc34-567890123456'
-                      status: 'IN_PROGRESS'
+                        process_type: data_validation
+                        input_file: /data/raw/dataset_002.json
+                      stageId: 2b3c4d5e-6f78-9012-bc34-567890123456
+                      status: IN_PROGRESS
                       attempts: 1
                       maxAttempts: 3
                       userMetadata: {}
                       creationTime: '2025-07-27T10:30:00Z'
                       updateTime: '2025-07-27T10:32:15Z'
                       startTime: '2025-07-27T10:32:15Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-bb222cc333d902b7-01'
-                      tracestate: 'state=in_progress'
-                    - id: 'f3a4b5c6-789a-12cd-ef34-567890123456'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-bb222cc333d902b7-01
+                      tracestate: state=in_progress
+                    - id: f3a4b5c6-789a-12cd-ef34-567890123456
                       data:
-                        process_type: 'data_export'
-                        output_file: '/data/processed/dataset_003.parquet'
-                      stageId: '3c4d5e6f-7890-1234-cd56-789012345678'
-                      status: 'COMPLETED'
+                        process_type: data_export
+                        output_file: /data/processed/dataset_003.parquet
+                      stageId: 3c4d5e6f-7890-1234-cd56-789012345678
+                      status: COMPLETED
                       attempts: 1
                       maxAttempts: 3
                       userMetadata: {}
@@ -1286,14 +1474,16 @@ paths:
                       updateTime: '2025-07-27T10:35:45Z'
                       startTime: '2025-07-27T10:33:20Z'
                       endTime: '2025-07-27T10:35:45Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-cc333dd444e902b7-01'
-                      tracestate: 'state=completed'
-                    - id: 'f4a5b6c7-89ab-23de-f456-789012345678'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-cc333dd444e902b7-01
+                      tracestate: state=completed
+                    - id: f4a5b6c7-89ab-23de-f456-789012345678
                       data:
-                        process_type: 'data_cleanup'
-                        cleanup_rules: ['remove_duplicates', 'validate_schema']
-                      stageId: '4d5e6f78-9012-3456-de78-901234567890'
-                      status: 'FAILED'
+                        process_type: data_cleanup
+                        cleanup_rules:
+                          - remove_duplicates
+                          - validate_schema
+                      stageId: 4d5e6f78-9012-3456-de78-901234567890
+                      status: FAILED
                       attempts: 3
                       maxAttempts: 3
                       userMetadata: {}
@@ -1301,8 +1491,8 @@ paths:
                       updateTime: '2025-07-27T10:38:12Z'
                       startTime: '2025-07-27T10:36:05Z'
                       endTime: '2025-07-27T10:38:12Z'
-                      traceparent: '00-4bf92f3577b34da6a3ce929d0e0e4736-dd444ee555f902b7-01'
-                      tracestate: 'state=failed'
+                      traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-dd444ee555f902b7-01
+                      tracestate: state=failed
         '400':
           description: Invalid request format or validation error
           content:
@@ -1311,12 +1501,18 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'STAGE_IN_FINITE_STATE', 'NOT_ALLOWED_TO_ADD_TASKS_TO_IN_PROGRESS_STAGE']
+                        enum:
+                          - VALIDATION_ERROR
+                          - STAGE_IN_FINITE_STATE
+                          - NOT_ALLOWED_TO_ADD_TASKS_TO_IN_PROGRESS_STAGE
         '404':
           description: Stage not found
           content:
@@ -1335,15 +1531,25 @@ paths:
     patch:
       operationId: dequeueTask
       summary: Find and claim the highest priority pending task of specified stage type
-      description: |
-        Retrieves the highest priority task of the specified stage type that is in PENDING or RETRIED status, 
-        and automatically updates its status to IN_PROGRESS. This endpoint implements a priority-based 
+      description: >
+        Retrieves the highest priority task of the specified stage type that is
+        in PENDING or RETRIED status, 
+
+        and automatically updates its status to IN_PROGRESS. This endpoint
+        implements a priority-based 
+
         work queue pattern where workers can claim the next available task.
 
-        The endpoint considers task priority (inherited from the parent job), searches only for tasks 
-        that are in valid states (PENDING or RETRIED), and updates related stage and job status if needed.
 
-        If successful, returns the complete task details with status updated to IN_PROGRESS.
+        The endpoint considers task priority (inherited from the parent job),
+        searches only for tasks 
+
+        that are in valid states (PENDING or RETRIED), and updates related stage
+        and job status if needed.
+
+
+        If successful, returns the complete task details with status updated to
+        IN_PROGRESS.
       tags:
         - stages
       responses:
@@ -1373,22 +1579,23 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for internal server errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for internal server errors,
+                      providing a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
                         enum:
-                          [
-                            'DATABASE_RELATED_ERROR',
-                            'UNKNOWN_ERROR',
-                            'TASK_STATUS_UPDATE_FAILED',
-                            'ILLEGAL_TASK_STATUS_TRANSITION',
-                            'ILLEGAL_STAGE_STATUS_TRANSITION',
-                            'ILLEGAL_JOB_STATUS_TRANSITION',
-                            'STAGE_NOT_FOUND',
-                            'JOB_NOT_FOUND',
-                          ]
+                          - DATABASE_RELATED_ERROR
+                          - UNKNOWN_ERROR
+                          - TASK_STATUS_UPDATE_FAILED
+                          - ILLEGAL_TASK_STATUS_TRANSITION
+                          - ILLEGAL_STAGE_STATUS_TRANSITION
+                          - ILLEGAL_JOB_STATUS_TRANSITION
+                          - STAGE_NOT_FOUND
+                          - JOB_NOT_FOUND
   /tasks:
     parameters:
       - $ref: '#/components/parameters/paramStageId'
@@ -1399,12 +1606,18 @@ paths:
     get:
       operationId: getTasksByCriteria
       summary: Retrieve tasks matching specified criteria
-      description: |
+      description: >
         Returns a filtered list of tasks based on the provided query parameters.
-        Supports filtering by stage ID, task type, date range, and operational status.
 
-        This endpoint is useful for monitoring task progress across multiple stages and jobs,
-        enabling clients to build custom dashboards or track specific task types.
+        Supports filtering by stage ID, task type, date range, and operational
+        status.
+
+
+        This endpoint is useful for monitoring task progress across multiple
+        stages and jobs,
+
+        enabling clients to build custom dashboards or track specific task
+        types.
       responses:
         '200':
           description: Successfully retrieved matching tasks
@@ -1434,9 +1647,11 @@ paths:
     get:
       operationId: getTaskById
       summary: Retrieve a specific task by its ID
-      description: |
+      description: >
         Fetches detailed information about a task using its unique identifier.
-        Returns complete task data including type, status, payload, and attempt information.
+
+        Returns complete task data including type, status, payload, and attempt
+        information.
       responses:
         '200':
           description: Task data retrieved successfully
@@ -1470,12 +1685,18 @@ paths:
       parameters:
         - $ref: '#/components/parameters/taskId'
       summary: Update task's custom metadata
-      description: |
+      description: >
         Updates the user-defined metadata object for a specific task.
-        This endpoint allows clients to attach or modify arbitrary data related to a task
+
+        This endpoint allows clients to attach or modify arbitrary data related
+        to a task
+
         without affecting the task's core properties or execution status.
 
-        User metadata is useful for storing application-specific context, tracking information,
+
+        User metadata is useful for storing application-specific context,
+        tracking information,
+
         or any custom data needed by client applications.
       tags:
         - tasks
@@ -1518,16 +1739,29 @@ paths:
     put:
       operationId: updateTaskStatus
       summary: Mark task as completed or failed
-      description: |
-        Updates the operational status of a task to either COMPLETED or FAILED, which may trigger 
-        cascading updates to the parent stage and job. This endpoint is restricted to marking tasks 
+      description: >
+        Updates the operational status of a task to either COMPLETED or FAILED,
+        which may trigger 
+
+        cascading updates to the parent stage and job. This endpoint is
+        restricted to marking tasks 
+
         as finished by external workers.
 
-        Internal status transitions (such as PENDING to IN_PROGRESS) are managed automatically 
-        by the system through the dequeue operation and cannot be set through this endpoint.
 
-        Status changes follow a state machine that enforces valid transitions. When a task's status 
-        is changed, the system will automatically update the parent stage's summary statistics and 
+        Internal status transitions (such as PENDING to IN_PROGRESS) are managed
+        automatically 
+
+        by the system through the dequeue operation and cannot be set through
+        this endpoint.
+
+
+        Status changes follow a state machine that enforces valid transitions.
+        When a task's status 
+
+        is changed, the system will automatically update the parent stage's
+        summary statistics and 
+
         may affect the stage's overall status.
       tags:
         - tasks
@@ -1547,12 +1781,12 @@ paths:
                 summary: Mark task as completed
                 description: Update task status to COMPLETED after successful execution
                 value:
-                  status: 'COMPLETED'
+                  status: COMPLETED
               fail_task:
                 summary: Mark task as failed
                 description: Update task status to FAILED when processing encounters errors
                 value:
-                  status: 'FAILED'
+                  status: FAILED
       responses:
         '200':
           description: Task status successfully changed
@@ -1568,12 +1802,17 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for bad request errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for bad request errors, providing
+                      a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
-                        enum: ['VALIDATION_ERROR', 'ILLEGAL_TASK_STATUS_TRANSITION']
+                        enum:
+                          - VALIDATION_ERROR
+                          - ILLEGAL_TASK_STATUS_TRANSITION
         '404':
           description: Task not found
           content:
@@ -1588,24 +1827,24 @@ paths:
                 allOf:
                   - $ref: '#/components/schemas/baseErrorResponse'
                   - type: object
-                    description: |
-                      Error response structure for internal server errors, providing a consistent
-                      format for common-readable error codes and human-readable messages.
+                    description: >
+                      Error response structure for internal server errors,
+                      providing a consistent
+
+                      format for common-readable error codes and human-readable
+                      messages.
                     properties:
                       code:
                         enum:
-                          [
-                            'DATABASE_RELATED_ERROR',
-                            'UNKNOWN_ERROR',
-                            'TASK_STATUS_UPDATE_FAILED',
-                            'ILLEGAL_TASK_STATUS_TRANSITION',
-                            'ILLEGAL_STAGE_STATUS_TRANSITION',
-                            'ILLEGAL_JOB_STATUS_TRANSITION',
-                            'STAGE_NOT_FOUND',
-                            'JOB_NOT_FOUND',
-                          ]
+                          - DATABASE_RELATED_ERROR
+                          - UNKNOWN_ERROR
+                          - TASK_STATUS_UPDATE_FAILED
+                          - ILLEGAL_TASK_STATUS_TRANSITION
+                          - ILLEGAL_STAGE_STATUS_TRANSITION
+                          - ILLEGAL_JOB_STATUS_TRANSITION
+                          - STAGE_NOT_FOUND
+                          - JOB_NOT_FOUND
 security: []
-
 components:
   parameters:
     jobId:
@@ -1729,11 +1968,15 @@ components:
     startTime:
       type: string
       format: date-time
-      description: Timestamp indicating when the resource began processing (in-progress state)
+      description: >-
+        Timestamp indicating when the resource began processing (in-progress
+        state)
     endTime:
       type: string
       format: date-time
-      description: Timestamp indicating when the resource reached a finite state (e.g., COMPLETED, FAILED, ABORTED)
+      description: >-
+        Timestamp indicating when the resource reached a finite state (e.g.,
+        COMPLETED, FAILED, ABORTED)
     jobId:
       type: string
       format: uuid
@@ -1785,13 +2028,16 @@ components:
       description: |
         W3C traceparent for distributed tracing. Auto-injected if not provided.
         See [W3C Trace Context](https://www.w3.org/TR/trace-context/).
-      pattern: '^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$'
-      example: '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01'
+      pattern: ^[\da-f]{2}-[\da-f]{32}-[\da-f]{16}-[\da-f]{2}$
+      example: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
     tracestate:
       type: string
-      description: W3C tracestate for distributed tracing. Optional, auto-injected if available.
-      pattern: '^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+)*$'
-      example: 'rojo=00f067aa0ba902b7,congo=t61rcWkgMzE'
+      description: >-
+        W3C tracestate for distributed tracing. Optional, auto-injected if
+        available.
+      pattern: >-
+        ^[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+(?:,[a-z0-9][a-z0-9_\\-\\*\\/]*=[^,=]+)*$
+      example: rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
     successMessages:
       type: string
       enum:
@@ -1808,8 +2054,10 @@ components:
         - ABORTED
         - PAUSED
       example: PENDING
-      description: |
-        User-controllable job statuses: PENDING (resume), ABORTED (cancel), PAUSED (suspend).
+      description: >
+        User-controllable job statuses: PENDING (resume), ABORTED (cancel),
+        PAUSED (suspend).
+
         System-managed: IN_PROGRESS, COMPLETED, FAILED, CREATED.
     jobOperationStatusResponse:
       type: string
@@ -1822,16 +2070,20 @@ components:
         - PAUSED
         - CREATED
       example: PENDING
-      description: |
-        All job states. User-controllable: PENDING, ABORTED, PAUSED. System-managed: IN_PROGRESS, COMPLETED, FAILED, CREATED.
+      description: >
+        All job states. User-controllable: PENDING, ABORTED, PAUSED.
+        System-managed: IN_PROGRESS, COMPLETED, FAILED, CREATED.
+
         Terminal states: COMPLETED, FAILED, ABORTED.
     stageOperationStatus:
       type: string
       enum:
         - PENDING
-      description: |
+      description: >
         User-controllable stage status: PENDING only.
-        System-managed: IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING, CREATED.
+
+        System-managed: IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING,
+        CREATED.
     stageOperationStatusResponse:
       type: string
       enum:
@@ -1843,8 +2095,10 @@ components:
         - WAITING
         - CREATED
       example: PENDING
-      description: |
-        All stage states. User-controllable: PENDING. System-managed: IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING, CREATED.
+      description: >
+        All stage states. User-controllable: PENDING. System-managed:
+        IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING, CREATED.
+
         Terminal states: COMPLETED, FAILED, ABORTED.
     taskOperationStatus:
       type: string
@@ -1878,25 +2132,39 @@ components:
       type: string
       maxLength: 50
       example: unknown
-      description: |
-        Free-form string identifier for stage functionality, allowing flexible categorization
+      description: >
+        Free-form string identifier for stage functionality, allowing flexible
+        categorization
+
         of stage operations. Used for routing tasks to appropriate workers and
-        for filtering in API requests. Can be any descriptive name up to 50 characters.
+
+        for filtering in API requests. Can be any descriptive name up to 50
+        characters.
     returnStage:
       type: boolean
-      description: Flag indicating whether to include complete stage details in job response payloads
+      description: >-
+        Flag indicating whether to include complete stage details in job
+        response payloads
     returnTask:
       type: boolean
-      description: Flag indicating whether to include complete task details in stage response payloads
+      description: >-
+        Flag indicating whether to include complete task details in stage
+        response payloads
     userMetadata:
       type: object
       additionalProperties: true
       default: {}
-      description: Application-specific custom data container that can store arbitrary client information without affecting core operations
+      description: >-
+        Application-specific custom data container that can store arbitrary
+        client information without affecting core operations
     summary:
-      description: |
-        Aggregated task statistics grouped by operational status, providing a complete overview of stage progress.
-        Used for monitoring progress, generating dashboards, and determining when stages/jobs are complete.
+      description: >
+        Aggregated task statistics grouped by operational status, providing a
+        complete overview of stage progress.
+
+        Used for monitoring progress, generating dashboards, and determining
+        when stages/jobs are complete.
+
         The total field should always equal the sum of all other status counts.
       type: object
       properties:
@@ -1958,14 +2226,22 @@ components:
         - data
         - name
       additionalProperties: false
-      description: |
+      description: >
         Input payload for creating a new job in the system.
-        Contains all required configuration for job execution, including processing mode,
+
+        Contains all required configuration for job execution, including
+        processing mode,
+
         custom parameters, metadata.
 
+
         Tracing fields (traceparent, tracestate) are optional:
-        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
-        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+
+        - If traceparent is provided, user's trace context is used (tracestate
+        defaults to null if not provided)
+
+        - If traceparent is not provided, the system automatically injects both
+        traceparent and tracestate 
           from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
     job:
       type: object
@@ -1980,14 +2256,23 @@ components:
         - creationTime
         - updateTime
         - priority
-      description: |
+      description: >
         Complete job information with status and metadata.
 
-        Comprehensive job response model containing all job details including configuration,
-        execution status, progress tracking, and associated metadata. This schema represents
-        the complete state of a job in the system and is returned by job retrieval operations.
 
-        Includes optional stage data when requested via query parameters, allowing clients
+        Comprehensive job response model containing all job details including
+        configuration,
+
+        execution status, progress tracking, and associated metadata. This
+        schema represents
+
+        the complete state of a job in the system and is returned by job
+        retrieval operations.
+
+
+        Includes optional stage data when requested via query parameters,
+        allowing clients
+
         to retrieve the complete job hierarchy in a single request.
       properties:
         id:
@@ -2023,28 +2308,51 @@ components:
           properties:
             startAsWaiting:
               type: boolean
-              description: |
-                Optional flag indicating whether the stage should be created in a waiting state.
-                If true, the stage will not start processing immediately and will require
-                manual intervention to begin execution. Useful for staging workflows where
-                stages need to be prepared but not executed until all dependencies are met.
+              description: >
+                Optional flag indicating whether the stage should be created in
+                a waiting state.
+
+                If true, the stage will not start processing immediately and
+                will require
+
+                manual intervention to begin execution. Useful for staging
+                workflows where
+
+                stages need to be prepared but not executed until all
+                dependencies are met.
               example: false
-          description: |
+          description: >
             Input payload for creating a new processing stage.
-            Defines the stage type, custom configuration data, and user-defined metadata.
-            Used when adding stages to jobs or creating stages as part of job creation.
-            The system automatically assigns an incremental order number to maintain execution sequence.
-            The startAsWaiting flag allows for creating stages that are not immediately active,
-            enabling more complex workflows where stages can be prepared in advance.
+
+            Defines the stage type, custom configuration data, and user-defined
+            metadata.
+
+            Used when adding stages to jobs or creating stages as part of job
+            creation.
+
+            The system automatically assigns an incremental order number to
+            maintain execution sequence.
+
+            The startAsWaiting flag allows for creating stages that are not
+            immediately active,
+
+            enabling more complex workflows where stages can be prepared in
+            advance.
     createStagePayload:
       type: object
-      description: |
+      description: >
         Input payload for creating a new stage within a job.
+
         Contains stage type, operational parameters, and optional user metadata.
 
+
         Tracing fields (traceparent, tracestate) are optional:
-        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
-        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+
+        - If traceparent is provided, user's trace context is used (tracestate
+        defaults to null if not provided)
+
+        - If traceparent is not provided, the system automatically injects both
+        traceparent and tracestate 
           from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         type:
@@ -2088,17 +2396,25 @@ components:
               $ref: '#/components/schemas/order'
             traceparent:
               $ref: '#/components/schemas/traceparent'
-          description: |
-            Complete stage information returned by the API, including all fields from the 
-            creation payload plus system-generated fields like ID, progress statistics,
+          description: >
+            Complete stage information returned by the API, including all fields
+            from the 
+
+            creation payload plus system-generated fields like ID, progress
+            statistics,
+
             execution status, and parent job reference.
     getStageResponse:
       allOf:
         - $ref: '#/components/schemas/stageResponse'
         - type: object
-          description: |
-            Extended stage response that includes associated tasks when requested with 
-            should_return_tasks=true. Used to retrieve the complete stage hierarchy
+          description: >
+            Extended stage response that includes associated tasks when
+            requested with 
+
+            should_return_tasks=true. Used to retrieve the complete stage
+            hierarchy
+
             in a single API call.
           properties:
             tasks:
@@ -2113,20 +2429,31 @@ components:
     taskPayload:
       type: object
       additionalProperties: true
-      description: |
+      description: >
         Custom task configuration data containing operation-specific parameters.
-        The schema varies based on task type and contains all necessary information
+
+        The schema varies based on task type and contains all necessary
+        information
+
         for task execution by workers.
     createTaskPayload:
       type: object
-      description: |
+      description: >
         Input payload for creating a new task within a stage.
-        Contains task type, operational parameters, and optional retry configuration.
+
+        Contains task type, operational parameters, and optional retry
+        configuration.
+
         Used when adding tasks to existing stages.
 
+
         Trace propagation  (traceparent, tracestate) are optional:
-        - If traceparent is provided, user's trace context is used (tracestate defaults to null if not provided)
-        - If traceparent is not provided, the system automatically injects both traceparent and tracestate 
+
+        - If traceparent is provided, user's trace context is used (tracestate
+        defaults to null if not provided)
+
+        - If traceparent is not provided, the system automatically injects both
+        traceparent and tracestate 
           from the active OpenTelemetry context using propagation.inject() (tracestate may still be null if not available)
       properties:
         data:
@@ -2144,9 +2471,13 @@ components:
       additionalProperties: false
     taskResponse:
       type: object
-      description: |
-        Complete task information returned by the API, including all configuration
-        data along with execution status, attempt tracking, and associated stage reference.
+      description: >
+        Complete task information returned by the API, including all
+        configuration
+
+        data along with execution status, attempt tracking, and associated stage
+        reference.
+
         Used when retrieving task details or after task creation.
       properties:
         id:
@@ -2199,10 +2530,15 @@ components:
         - code
     baseErrorResponse:
       type: object
-      description: |
-        Foundation schema for standardized error responses across all API endpoints.
-        Provides consistent structure with human-readable message and common-readable code fields
-        that are extended by individual endpoints to define their specific error scenarios.
+      description: >
+        Foundation schema for standardized error responses across all API
+        endpoints.
+
+        Provides consistent structure with human-readable message and
+        common-readable code fields
+
+        that are extended by individual endpoints to define their specific error
+        scenarios.
       properties:
         message:
           type: string
@@ -2217,8 +2553,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/baseErrorResponse'
         - type: object
-          description: |
-            Provides a unified error response format for internal server errors, including a common-readable error code and a clear, human-readable message to help clients identify and handle issues consistently.
+          description: >
+            Provides a unified error response format for internal server errors,
+            including a common-readable error code and a clear, human-readable
+            message to help clients identify and handle issues consistently.
           properties:
             code:
               enum:
@@ -2230,8 +2568,10 @@ components:
       allOf:
         - $ref: '#/components/schemas/baseErrorResponse'
         - type: object
-          description: |
-            Standardized error response structure for bad request errors, providing a consistent
+          description: >
+            Standardized error response structure for bad request errors,
+            providing a consistent
+
             format for common-readable error codes and human-readable messages.
           properties:
             code:
@@ -2243,9 +2583,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/baseErrorResponse'
         - type: object
-          description: |
-            Standardized error response for cases where a requested job is not found in the system.
-            Provides a consistent format for common-readable error codes and human-readable messages.
+          description: >
+            Standardized error response for cases where a requested job is not
+            found in the system.
+
+            Provides a consistent format for common-readable error codes and
+            human-readable messages.
           properties:
             code:
               enum:
@@ -2256,9 +2599,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/baseErrorResponse'
         - type: object
-          description: |
-            Standardized error response for cases where a requested stage is not found in the system.
-            Provides a consistent format for common-readable error codes and human-readable messages.
+          description: >
+            Standardized error response for cases where a requested stage is not
+            found in the system.
+
+            Provides a consistent format for common-readable error codes and
+            human-readable messages.
           properties:
             code:
               enum:
@@ -2269,9 +2615,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/baseErrorResponse'
         - type: object
-          description: |
-            Standardized error response for cases where a requested task is not found in the system.
-            Provides a consistent format for common-readable error codes and human-readable messages.
+          description: >
+            Standardized error response for cases where a requested task is not
+            found in the system.
+
+            Provides a consistent format for common-readable error codes and
+            human-readable messages.
           properties:
             code:
               enum:
