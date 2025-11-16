@@ -15,7 +15,14 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { StageCreateModel, StageModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { abortedXstatePersistentSnapshot, completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
+import {
+  abortedStageXstatePersistentSnapshot,
+  abortedXstatePersistentSnapshot,
+  completedStageXstatePersistentSnapshot,
+  failedStageXstatePersistentSnapshot,
+  inProgressStageXstatePersistentSnapshot,
+  pendingStageXstatePersistentSnapshot,
+} from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
@@ -1131,14 +1138,28 @@ describe('stage', function () {
     });
 
     describe('Bad Path', function () {
-      it('should return 400 with detailed error for invalid status transition', async function () {
-        const { stage } = await createJobnikTree(
-          prisma,
-          {},
-          { status: StageOperationStatus.COMPLETED, xstate: completedStageXstatePersistentSnapshot },
-          [],
-          { createStage: true, createTasks: false }
-        );
+      it.each([
+        {
+          fromStatus: StageOperationStatus.COMPLETED,
+          fromXstate: completedStageXstatePersistentSnapshot,
+        },
+        {
+          fromStatus: StageOperationStatus.FAILED,
+          fromXstate: failedStageXstatePersistentSnapshot,
+        },
+        {
+          fromStatus: StageOperationStatus.ABORTED,
+          fromXstate: abortedStageXstatePersistentSnapshot,
+        },
+        {
+          fromStatus: StageOperationStatus.IN_PROGRESS,
+          fromXstate: inProgressStageXstatePersistentSnapshot,
+        },
+      ])('should return 400 with detailed error for invalid status transition ($fromStatus -> PENDING)', async function ({ fromStatus, fromXstate }) {
+        const { stage } = await createJobnikTree(prisma, {}, { status: fromStatus, xstate: fromXstate }, [], {
+          createStage: true,
+          createTasks: false,
+        });
 
         const stageId = stage.id;
 
@@ -1151,7 +1172,7 @@ describe('stage', function () {
         expect(updateStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: illegalStatusTransitionErrorMessage(stage.status, StageOperationStatus.PENDING),
+            message: illegalStatusTransitionErrorMessage(fromStatus, StageOperationStatus.PENDING),
             code: 'ILLEGAL_STAGE_STATUS_TRANSITION',
           },
         });
