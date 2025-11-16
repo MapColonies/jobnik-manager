@@ -940,6 +940,10 @@ paths:
         transitions and cascade changes to related tasks and the parent job. This endpoint 
         is restricted to manually advancing stages in the workflow sequence.
 
+        Common use cases:
+        - Resuming a WAITING stage (e.g., after manual intervention or approval)
+        - Unblocking workflow progression when a stage is ready to proceed
+
         Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED, 
         WAITING, CREATED) are managed automatically by the system based on task completion, 
         job state, and workflow rules.
