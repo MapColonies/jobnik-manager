@@ -30,71 +30,62 @@ jobs:
   #         push: true
   #         tags: ${{ secrets.ACR_URL }}/${{ env.DOMAIN }}/${{ github.event.repository.name }}:next-${{ github.sha }}
 
-  push-helm-package:
-    runs-on: ubuntu-latest
-    # needs: push-docker-image
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v5
-
-      # - name: Login to Azure Container Registry
-      #   uses: docker/login-action@v3
-      #   with:
-      #     registry: ${{ secrets.ACR_URL }}
-      #     username: ${{ secrets.ACR_PUSH_USER }}
-      #     password: ${{ secrets.ACR_PUSH_TOKEN }}
-
-      - name: Setup Helm
-        uses: azure/setup-helm@v4
-        with:
-          version: v3.15.4
-
-      - name: Compute chart tag (semver-compatible)
-        id: chart_tag
-        shell: bash
-        run: |
-          BASE_VERSION=$(awk -F ': ' '/^version:/ {print $2}' helm/Chart.yaml)
-          echo "tag=${BASE_VERSION}-next-"$GITHUB_SHA"" >> "$GITHUB_OUTPUT"
-
-      - name: Push Chart to ACR
-        uses: appany/helm-oci-chart-releaser@v0.5.0
-        with:
-          name: ${{ github.event.repository.name }}
-          repository: helm/${{ env.DOMAIN }}
-          tag: ${{ steps.chart_tag.outputs.tag }}
-          path: ./helm
-          registry: ${{ secrets.ACR_URL }}
-          registry_username: ${{ secrets.ACR_PUSH_USER }}
-          registry_password: ${{ secrets.ACR_PUSH_TOKEN }}
-          update_dependencies: 'true' # Defaults to false
-
-
-  # create-new-site-values-branch:
+  # push-helm-package:
   #   runs-on: ubuntu-latest
+  #   # needs: push-docker-image
   #   steps:
-  #     - name: Checkout helm chart repository
+  #     - name: Checkout Repository
   #       uses: actions/checkout@v5
-  #       with:
-  #         repository: MapColonies/site-values
-  #         token: ${{ secrets.GH_PAT }}
-  #         path: site-values
-  #         ref: master
 
-  #     - name: Create and push branch in site-values
-  #       working-directory: site-values
+  #     - name: Setup Helm
+  #       uses: azure/setup-helm@v4
+  #       with:
+  #         version: v3.15.4
+
+  #     - name: Compute chart tag (semver-compatible)
+  #       id: chart_tag
   #       shell: bash
   #       run: |
-  #         set -euo pipefail
-  #         BRANCH_NAME="${{ github.event.repository.name }}-${{ github.sha }}"
-  #         # Ensure we're on the default branch before branching
-  #         git fetch origin --prune
-  #         DEFAULT_BRANCH=$(git remote show origin | awk '/HEAD branch/ {print $NF}')
-  #         git checkout "$DEFAULT_BRANCH"
-  #         # Create branch if it doesn't already exist remotely
-  #         if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
-  #           echo "Branch $BRANCH_NAME already exists on remote; skipping creation."
-  #         else
-  #           git checkout -b "$BRANCH_NAME"
-  #           git push --set-upstream origin "$BRANCH_NAME"
-  #           echo "Created and pushed branch $BRANCH_NAME"
-  #         fi
+  #         BASE_VERSION=$(awk -F ': ' '/^version:/ {print $2}' helm/Chart.yaml)
+  #         echo "tag=${BASE_VERSION}-next-"$GITHUB_SHA"" >> "$GITHUB_OUTPUT"
+
+  #     - name: Push Chart to ACR
+  #       uses: appany/helm-oci-chart-releaser@v0.5.0
+  #       with:
+  #         name: ${{ github.event.repository.name }}
+  #         repository: helm/${{ env.DOMAIN }}
+  #         tag: ${{ steps.chart_tag.outputs.tag }}
+  #         path: ./helm
+  #         registry: ${{ secrets.ACR_URL }}
+  #         registry_username: ${{ secrets.ACR_PUSH_USER }}
+  #         registry_password: ${{ secrets.ACR_PUSH_TOKEN }}
+  #         update_dependencies: 'true' # Defaults to false
+
+  create-new-site-values-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout helm chart repository
+        uses: actions/checkout@v5
+        with:
+          repository: MapColonies/site-values
+          token: ${{ secrets.GH_PAT }}
+          path: site-values
+          ref: master
+
+      - name: Create and push branch in site-values
+        working-directory: site-values
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH_NAME="${{ github.event.repository.name }}-${{ github.sha }}"
+          git fetch origin --prune
+          git checkout master
+          git pull --ff-only origin master
+          # Create branch if it doesn't already exist remotely
+          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+            echo "Branch $BRANCH_NAME already exists on remote; skipping creation."
+          else
+            git checkout -b "$BRANCH_NAME"
+            git push --set-upstream origin "$BRANCH_NAME"
+            echo "Created and pushed branch $BRANCH_NAME"
+          fi
