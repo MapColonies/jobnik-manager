@@ -120,3 +120,6 @@ local.json
 *myvalues*
 local
 local.yaml
+
+.secrets
+.github/events
