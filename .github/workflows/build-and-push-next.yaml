@@ -42,19 +42,12 @@ jobs:
         with:
           version: v3.15.4
 
-      - name: Compute chart tag (semver-compatible)
-        id: chart_tag
-        shell: bash
-        run: |
-          BASE_VERSION=$(awk -F ': ' '/^version:/ {print $2}' helm/Chart.yaml)
-          echo "tag=${BASE_VERSION}-next-"$GITHUB_SHA"" >> "$GITHUB_OUTPUT"
-
       - name: Push Chart to ACR
         uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: ${{ github.event.repository.name }}
           repository: helm/${{ env.DOMAIN }}
-          tag: ${{ steps.chart_tag.outputs.tag }}
+          tag: '0.0.0-next-${{ github.sha }}'  # Using a placeholder version; actual version is set in Chart.yaml
           path: ./helm
           registry: ${{ secrets.ACR_URL }}
           registry_username: ${{ secrets.ACR_PUSH_USER }}
