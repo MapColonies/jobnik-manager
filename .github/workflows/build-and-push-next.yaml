@@ -47,7 +47,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}
           repository: helm/${{ env.DOMAIN }}
-          tag: '0.0.0-next-${{ github.sha }}'  # Using a placeholder version; actual version is set in Chart.yaml
+          tag: '0.0.0-next-${{ github.sha }}' # Using a placeholder version; actual version is set in Chart.yaml
           path: ./helm
           registry: ${{ secrets.ACR_URL }}
           registry_username: ${{ secrets.ACR_PUSH_USER }}
