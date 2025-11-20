@@ -201,8 +201,16 @@ describe('JobManager', () => {
         it('should successfully update job status by id', async function () {
           const jobId = randomUuid;
 
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, id: jobId });
-          jest.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              job: {
+                findUnique: jest.fn().mockResolvedValue({ ...jobEntityWithoutStages, id: jobId }),
+                update: jest.fn().mockResolvedValue(jobEntityWithoutStages),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(jobManager.updateStatus(jobId, JobOperationStatus.PENDING)).toResolve();
         });
@@ -210,13 +218,29 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should fail when updating status for a job that does not exist', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              job: {
+                findUnique: jest.fn().mockResolvedValue(null),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(jobManager.updateStatus('someId', JobOperationStatus.PENDING)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
 
         it('should fail on invalid status transition', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              job: {
+                findUnique: jest.fn().mockResolvedValue(jobEntityWithoutStages),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
             illegalStatusTransitionErrorMessage(jobEntityWithoutStages.status, JobOperationStatus.COMPLETED)
@@ -226,7 +250,15 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when updating status', async function () {
-          jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              job: {
+                findUnique: jest.fn().mockRejectedValueOnce(new Error('db connection error')),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(jobManager.updateStatus('someId', JobOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
         });

@@ -1001,7 +1001,15 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            task: {
+              findUnique: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
@@ -1017,7 +1025,15 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            task: {
+              findUnique: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
@@ -1419,7 +1435,15 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            task: {
+              findFirst: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_NAME' },
@@ -1434,7 +1458,15 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            task: {
+              findFirst: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_NAME' },
@@ -1548,7 +1580,7 @@ describe('task', function () {
             stageId: stageId,
           },
         });
-        //second call will fail with 500 status code
+        //second call will fail with 500 status code due to race condition protection
         expect(secondResponse).toSatisfyApiSpec();
         expect(secondResponse).toMatchObject({
           status: StatusCodes.INTERNAL_SERVER_ERROR,

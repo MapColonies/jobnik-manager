@@ -162,36 +162,13 @@ export class JobManager {
       [INFRA_CONVENTIONS.infra.jobnik.job.status]: status,
     });
 
-    const prisma = tx ?? this.prisma;
-
-    const job = await this.getJobEntityById(jobId, { tx });
-
-    if (!job) {
-      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
+    if (!tx) {
+      return this.prisma.$transaction(async (newTx) => {
+        await this.executeUpdateStatus(jobId, status, newTx);
+      });
     }
 
-    const nextStatusChange = OperationStatusMapper[status];
-    const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
-    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
-
-    if (!isValidStatus) {
-      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(job.status, status));
-    }
-
-    updateActor.send({ type: nextStatusChange });
-    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
-
-    const updateQueryBody = {
-      where: {
-        id: jobId,
-      },
-      data: {
-        status,
-        xstate: newPersistedSnapshot,
-      },
-    };
-
-    await prisma.job.update(updateQueryBody);
+    await this.executeUpdateStatus(jobId, status, tx);
   }
 
   @withSpanAsyncV4
@@ -248,6 +225,38 @@ export class JobManager {
     const job = await prisma.job.findUnique(queryBody);
 
     return job as JobPrismaObject<IncludeStages> | null;
+  }
+
+  @withSpanAsyncV4
+  private async executeUpdateStatus(jobId: string, status: JobOperationStatus, tx: PrismaTransaction): Promise<void> {
+    const job = await this.getJobEntityById(jobId, { tx });
+
+    if (!job) {
+      throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(job.status, status));
+    }
+
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
+    const updateQueryBody = {
+      where: {
+        id: jobId,
+      },
+      data: {
+        status,
+        xstate: newPersistedSnapshot,
+      },
+    };
+
+    await tx.job.update(updateQueryBody);
   }
 
   /**

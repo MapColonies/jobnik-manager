@@ -691,7 +691,15 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            job: {
+              findUnique: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
@@ -704,7 +712,15 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            job: {
+              findUnique: jest.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
