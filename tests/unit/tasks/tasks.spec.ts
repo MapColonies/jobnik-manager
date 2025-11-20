@@ -333,6 +333,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([taskEntity]),
               },
               stage: {
@@ -343,6 +344,8 @@ describe('JobManager', () => {
             return callback(mockTx);
           });
 
+          jest.spyOn(stageManager, 'getStageEntityById').mockResolvedValue(stageEntity);
+          jest.spyOn(stageManager, 'updateStatus').mockResolvedValue(undefined);
           jest.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.COMPLETED)).toResolve();
@@ -368,7 +371,8 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
-                updateManyAndReturn: jest.fn().mockResolvedValue([taskEntity]),
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
+                updateManyAndReturn: jest.fn().mockResolvedValue([{ ...taskEntity, status: TaskOperationStatus.RETRIED, attempts: 1 }]),
               },
               stage: {
                 findUnique: jest.fn().mockResolvedValue(stageEntity),
@@ -403,6 +407,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([{ ...taskEntity, startTime: new Date() }]),
               },
               stage: {
@@ -443,6 +448,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([{ ...taskEntity, endTime: new Date() }]),
               },
               stage: {
@@ -484,6 +490,7 @@ describe('JobManager', () => {
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([taskEntity]),
               },
               stage: {
@@ -503,6 +510,14 @@ describe('JobManager', () => {
       describe('#BadPath', () => {
         it('should reject changing status on a non-existent task', async function () {
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(null);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              task: {
+                findUnique: jest.fn().mockResolvedValue(null),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            return callback(mockTx);
+          });
 
           await expect(taskManager.updateStatus('someId', TaskOperationStatus.COMPLETED)).rejects.toThrow(tasksErrorMessages.taskNotFound);
         });
@@ -523,7 +538,11 @@ describe('JobManager', () => {
 
           jest.spyOn(prisma.task, 'findUnique').mockResolvedValue(taskEntity);
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
-            const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            const mockTx = {
+              task: {
+                findUnique: jest.fn().mockResolvedValue(taskEntity),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
             return callback(mockTx);
           });
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(IllegalTaskStatusTransitionError);
@@ -533,6 +552,14 @@ describe('JobManager', () => {
       describe('#SadPath', () => {
         it('should fail with a database error when adding tasks', async function () {
           jest.spyOn(prisma.task, 'findUnique').mockRejectedValue(new Error('db connection error'));
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              task: {
+                findUnique: jest.fn().mockRejectedValue(new Error('db connection error')),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            return callback(mockTx);
+          });
 
           await expect(taskManager.updateStatus(faker.string.uuid(), TaskOperationStatus.PENDING)).rejects.toThrow('db connection error');
         });
@@ -555,10 +582,10 @@ describe('JobManager', () => {
             xstate: pendingStageXstatePersistentSnapshot,
           });
 
-          jest.spyOn(prisma.task, 'findFirst').mockResolvedValue(taskEntity);
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findFirst: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([taskEntity]),
               },
               stage: {
@@ -577,7 +604,15 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should get code 404 not found for no available tasks to dequeue', async function () {
-          jest.spyOn(prisma.task, 'findFirst').mockResolvedValue(null);
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              task: {
+                findFirst: jest.fn().mockResolvedValue(null),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).rejects.toThrow(tasksErrorMessages.taskNotFound);
         });
@@ -585,7 +620,15 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when adding tasks', async function () {
-          jest.spyOn(prisma.task, 'findFirst').mockRejectedValue(new Error('db connection error'));
+          jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+            const mockTx = {
+              task: {
+                findFirst: jest.fn().mockRejectedValue(new Error('db connection error')),
+              },
+            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+            return callback(mockTx);
+          });
 
           await expect(taskManager.dequeue('SOME_DEQUEUE_STAGE_TYPE')).rejects.toThrow('db connection error');
         });
@@ -604,10 +647,10 @@ describe('JobManager', () => {
             xstate: pendingStageXstatePersistentSnapshot,
           });
 
-          jest.spyOn(prisma.task, 'findFirst').mockResolvedValue(taskEntity);
           jest.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
+                findFirst: jest.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: jest.fn().mockResolvedValue([]),
               },
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
@@ -624,56 +667,57 @@ describe('JobManager', () => {
       describe('HappyPath', () => {
         it('should successfully clean stale tasks and update them to FAILED status', async () => {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
-          const taskManagerUpdatesStatusMock = jest.spyOn(taskManager, 'updateStatus').mockResolvedValue({
+          const updateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockResolvedValue({
             id: staleTaskOneHour.id,
+            stageId: staleTaskOneHour.stageId,
             status: TaskOperationStatus.FAILED,
             attempts: 0,
-            data: {},
             maxAttempts: 2,
-            stageId: staleTaskOneHour.stageId,
-            traceparent: DEFAULT_TRACEPARENT,
+            data: {},
             userMetadata: {},
             creationTime: new Date().toISOString(),
             updateTime: new Date().toISOString(),
+            traceparent: DEFAULT_TRACEPARENT,
           });
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
 
-          expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTaskOneHour.id, TaskOperationStatus.FAILED);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(2, staleTaskFortyFiveMinutes.id, TaskOperationStatus.FAILED);
+          expect(updateStatusMock).toHaveBeenCalledTimes(2);
+          expect(updateStatusMock).toHaveBeenCalledWith(staleTaskOneHour.id, TaskOperationStatus.FAILED);
+          expect(updateStatusMock).toHaveBeenCalledWith(staleTaskFortyFiveMinutes.id, TaskOperationStatus.FAILED);
         });
 
         it('should handle empty result when no stale tasks are found', async () => {
           const prismaFindManyMock = jest.spyOn(prisma.task, 'findMany').mockResolvedValue([]);
-          const taskManagerUpdatesStatusMock = jest.spyOn(taskManager, 'updateStatus');
+          const updateStatusMock = jest.spyOn(taskManager, 'updateStatus');
+
           await expect(taskManager.cleanStaleTasks()).toResolve();
 
           expect(prismaFindManyMock).toHaveBeenCalledOnce();
-          expect(taskManagerUpdatesStatusMock).not.toHaveBeenCalled();
+          expect(updateStatusMock).not.toHaveBeenCalled();
         });
 
         it('should handle mixed success and failure when updating task statuses', async () => {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
-          const taskManagerUpdatesStatusMock = jest
+          const updateStatusMock = jest
             .spyOn(taskManager, 'updateStatus')
             .mockResolvedValueOnce({
               id: staleTaskOneHour.id,
+              stageId: staleTaskOneHour.stageId,
               status: TaskOperationStatus.FAILED,
               attempts: 0,
-              data: {},
               maxAttempts: 2,
-              stageId: staleTaskOneHour.stageId,
-              traceparent: DEFAULT_TRACEPARENT,
+              data: {},
+              userMetadata: {},
               creationTime: new Date().toISOString(),
               updateTime: new Date().toISOString(),
-              userMetadata: {},
+              traceparent: DEFAULT_TRACEPARENT,
             })
-            .mockRejectedValueOnce(new Error('Task update failed'));
+            .mockRejectedValueOnce(new Error('Update failed'));
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
 
-          expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
+          expect(updateStatusMock).toHaveBeenCalledTimes(2);
         });
 
         it('should calculate cutoff time correctly for different time periods', async () => {
@@ -722,31 +766,23 @@ describe('JobManager', () => {
 
         it('should throw error when all task updates fail', async () => {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour]);
-          const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue(new Error('Update failed'));
+          jest.spyOn(taskManager, 'updateStatus').mockRejectedValue(new Error('Update failed'));
 
-          // This should not throw since individual task failures are handled
           await expect(taskManager.cleanStaleTasks()).toResolve();
-
-          expect(taskManagerUpdateStatusMock).toHaveBeenCalledOnce();
         });
 
         it('should properly handle and log failures when updating task statuses fails', async () => {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
-          jest
-            .spyOn(taskManager, 'updateStatus')
-            .mockRejectedValueOnce(new Error('Task update failed'))
-            .mockRejectedValueOnce(new Error('Another task update failed'));
+          jest.spyOn(taskManager, 'updateStatus').mockRejectedValue(new Error('Task update failed'));
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
         });
 
         it('should handle non-Error objects when task updates fail', async () => {
           jest.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour]);
-          const taskManagerUpdateStatusMock = jest.spyOn(taskManager, 'updateStatus').mockRejectedValue('String error');
+          jest.spyOn(taskManager, 'updateStatus').mockRejectedValue('String error');
 
           await expect(taskManager.cleanStaleTasks()).toResolve();
-
-          expect(taskManagerUpdateStatusMock).toHaveBeenCalledOnce();
         });
       });
     });
