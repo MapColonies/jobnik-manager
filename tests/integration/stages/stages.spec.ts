@@ -1240,7 +1240,15 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            stage: {
+              findUnique: vi.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
@@ -1256,7 +1264,16 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+
+        vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          const mockTx = {
+            stage: {
+              findUnique: vi.fn().mockRejectedValueOnce(error),
+            },
+          } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+
+          return callback(mockTx);
+        });
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },

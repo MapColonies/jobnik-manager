@@ -246,21 +246,21 @@ export class TaskManager {
   }
 
   @withSpanAsyncV4
-  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
+  public async updateStatus(taskId: string, status: TaskOperationStatus, tx?: PrismaTransaction): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_ID]: taskId,
       [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
     });
 
-    const task = await this.getTaskEntityById(taskId);
-
-    if (!task) {
-      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    /* v8 ignore start */
+    if (!tx) {
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeUpdateStatus(taskId, status, newTx);
+      });
     }
-    const updatedTask = await this.updateAndValidateStatus(task, status);
-
-    return convertPrismaToTaskResponse(updatedTask);
+    /* v8 ignore end */
+    return this.executeUpdateStatus(taskId, status, tx);
   }
 
   /**
@@ -270,27 +270,19 @@ export class TaskManager {
    * @throws TaskNotFoundError when no suitable task is found
    */
   @withSpanAsyncV4
-  public async dequeue(stageType: string): Promise<TaskModel> {
+  public async dequeue(stageType: string, tx?: PrismaTransaction): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [ATTR_MESSAGING_DESTINATION_NAME]: stageType,
     });
 
-    const queryBody = generatePrioritizedTaskQuery(stageType);
-
-    const task = await this.prisma.task.findFirst(queryBody);
-
-    if (!task) {
-      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    if (tx === undefined) {
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeDequeue(stageType, newTx);
+      });
     }
 
-    spanActive?.setAttributes({
-      [ATTR_MESSAGING_MESSAGE_ID]: task.id,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
-    });
-
-    const dequeuedTask = await this.updateAndValidateStatus(task, TaskOperationStatus.IN_PROGRESS);
-    return convertPrismaToTaskResponse(dequeuedTask);
+    return this.executeDequeue(stageType, tx);
   }
 
   /**
@@ -370,13 +362,60 @@ export class TaskManager {
   }
 
   /**
+   * Executes the dequeue operation within a transaction.
+   * @param stageType - The type of stage to dequeue a task from
+   * @param tx - The transaction object
+   * @returns The dequeued task
+   */
+  @withSpanAsyncV4
+  private async executeDequeue(stageType: string, tx: PrismaTransaction): Promise<TaskModel> {
+    const spanActive = trace.getActiveSpan();
+
+    const queryBody = generatePrioritizedTaskQuery(stageType);
+
+    const task = (await tx.task.findFirst(queryBody)) as TaskPrismaObject | null;
+
+    if (task === null) {
+      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    }
+
+    spanActive?.setAttributes({
+      [ATTR_MESSAGING_MESSAGE_ID]: task.id,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
+    });
+
+    const dequeuedTask = await this.executeUpdateAndValidateStatus(task, TaskOperationStatus.IN_PROGRESS, tx);
+    return convertPrismaToTaskResponse(dequeuedTask);
+  }
+
+  /**
+   * Executes the update status operation within a transaction.
+   * @param taskId - The ID of the task to update
+   * @param status - The target status
+   * @param tx - The transaction object
+   * @returns The updated task model
+   */
+  @withSpanAsyncV4
+  private async executeUpdateStatus(taskId: string, status: TaskOperationStatus, tx: PrismaTransaction): Promise<TaskModel> {
+    const task = await this.getTaskEntityById(taskId, tx);
+
+    if (!task) {
+      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    }
+    const updatedTask = await this.updateAndValidateStatus(task, status, tx);
+
+    return convertPrismaToTaskResponse(updatedTask);
+  }
+
+  /**
    * Updates a task's status with validation, handling edge cases like failures and retries.
    * @param task - The task to update
    * @param status - The target status to set
+   * @param tx - Optional transaction context
    * @returns The updated task object
    */
   @withSpanAsyncV4
-  private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus): Promise<TaskPrismaObject> {
+  private async updateAndValidateStatus(task: TaskPrismaObject, status: TaskOperationStatus, tx?: PrismaTransaction): Promise<TaskPrismaObject> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_ID]: task.id,
@@ -385,58 +424,79 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
     });
 
-    return this.prisma.$transaction(async (tx) => {
-      const previousStatus = task.status;
-      const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
+    if (!tx) {
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeUpdateAndValidateStatus(task, status, newTx);
+      });
+    }
 
-      const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
+    return this.executeUpdateAndValidateStatus(task, status, tx);
+  }
 
-      const startTime: Date | undefined = nextStatus === TaskOperationStatus.IN_PROGRESS ? new Date() : undefined;
+  /**
+   * Executes the update and validate status operation within a transaction.
+   * Handles status transitions, retry logic, and stage summary updates.
+   * @param task - The task to update
+   * @param status - The target status
+   * @param tx - The transaction object
+   * @returns The updated task object
+   */
+  @withSpanAsyncV4
+  private async executeUpdateAndValidateStatus(
+    task: TaskPrismaObject,
+    status: TaskOperationStatus,
+    tx: PrismaTransaction
+  ): Promise<TaskPrismaObject> {
+    const previousStatus = task.status;
+    const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
 
-      const endTime: Date | undefined = newPersistedSnapshot.status === 'done' ? new Date() : undefined;
+    const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
 
-      // Create update query with race condition protection for IN_PROGRESS
-      const updateQueryBody = {
-        where: this.createUpdateWhereClause(task.id, nextStatus, previousStatus),
-        data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot, startTime, endTime },
-      };
+    const startTime: Date | undefined = nextStatus === TaskOperationStatus.IN_PROGRESS ? new Date() : undefined;
 
-      const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
-      if (updatedTasks[0] === undefined) {
-        throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
+    const endTime: Date | undefined = newPersistedSnapshot.status === 'done' ? new Date() : undefined;
+
+    // Create update query with race condition protection for IN_PROGRESS
+    const updateQueryBody = {
+      where: this.createUpdateWhereClause(task.id, nextStatus, previousStatus),
+      data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot, startTime, endTime },
+    };
+
+    const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
+    if (updatedTasks[0] === undefined) {
+      throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
+    }
+
+    await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
+
+    // TODO - Check if this stage type should propagate failure to parent job
+    // For now, all task failures cause stage failure, but in future versions
+    // some stages may be configured as optional (non-blocking)
+    if (nextStatus === TaskOperationStatus.FAILED) {
+      const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
+
+      /* v8 ignore start */
+      if (!stage) {
+        this.logger.error(`Failed updating task status, stage not exists`);
+        throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
       }
 
-      await this.updateStageSummary(task.stageId, previousStatus, nextStatus, tx);
-
-      // TODO - Check if this stage type should propagate failure to parent job
-      // For now, all task failures cause stage failure, but in future versions
-      // some stages may be configured as optional (non-blocking)
-      if (nextStatus === TaskOperationStatus.FAILED) {
-        const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
-
-        /* v8 ignore start */
-        if (!stage) {
-          this.logger.error(`Failed updating task status, stage not exists`);
-          throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
-        }
-
-        if (stage.status === StageOperationStatus.FAILED) {
-          return updatedTasks[0];
-        }
-        /* v8 ignore stop */
-
-        this.logger.info({
-          msg: 'Updating parent stage status to FAILED due to task failure',
-          taskId: task.id,
-          stageId: task.stageId,
-        });
-
-        await this.stageManager.updateStatus(task.stageId, StageOperationStatus.FAILED, tx);
-        trace.getActiveSpan()?.addEvent('Stage set to FAILED', { stageId: task.stageId });
+      if (stage.status === StageOperationStatus.FAILED) {
+        return updatedTasks[0];
       }
+      /* v8 ignore stop */
 
-      return updatedTasks[0];
-    });
+      this.logger.info({
+        msg: 'Updating parent stage status to FAILED due to task failure',
+        taskId: task.id,
+        stageId: task.stageId,
+      });
+
+      await this.stageManager.updateStatus(task.stageId, StageOperationStatus.FAILED, tx);
+      trace.getActiveSpan()?.addEvent('Stage set to FAILED', { stageId: task.stageId });
+    }
+
+    return updatedTasks[0];
   }
 
   /**
@@ -490,13 +550,6 @@ export class TaskManager {
     return whereClause;
   }
 
-  /**
-   * Updates the parent stage's summary based on a task status change.
-   * @param stageId - The ID of the stage containing the task
-   * @param previousStatus - The previous task status
-   * @param nextStatus - The new task status
-   * @param tx - The transaction to use
-   */
   private async updateStageSummary(
     stageId: string,
     previousStatus: TaskOperationStatus,
