@@ -49,7 +49,7 @@
     "@map-colonies/schemas": "^1.13.0",
     "@map-colonies/telemetry": "^10.1.0",
     "@opentelemetry/api": "^1.9.0",
-    "@prisma/adapter-pg": "^6.19.0",
+    "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^6.19.0",
     "@prisma/instrumentation": "^6.19.0",
     "compression": "^1.8.1",
