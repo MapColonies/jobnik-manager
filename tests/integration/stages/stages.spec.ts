@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
@@ -178,7 +179,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
 
@@ -191,7 +192,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
 
@@ -286,7 +287,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
@@ -299,7 +300,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
@@ -450,7 +451,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
@@ -463,7 +464,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
@@ -513,7 +514,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
@@ -526,7 +527,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
@@ -588,7 +589,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
 
@@ -601,7 +602,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
 
@@ -1061,7 +1062,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
           requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
@@ -1077,7 +1078,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
           requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
@@ -1240,7 +1241,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
@@ -1256,7 +1257,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },

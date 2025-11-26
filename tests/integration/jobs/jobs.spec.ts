@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { trace } from '@opentelemetry/api';
@@ -142,7 +143,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.findJobs({});
 
@@ -157,7 +158,7 @@ describe('job', function () {
         const error = new Error('Database error');
         // @ts-expect-error using this flag to mark the error as a Prisma error
         error.isPrismaError = false;
-        jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.findJobs({});
 
@@ -292,7 +293,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
 
         const response = await requestSender.createJob({
           requestBody: createJobRequestBody,
@@ -307,7 +308,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
 
         const response = await requestSender.createJob({
           requestBody: createJobRequestBody,
@@ -389,7 +390,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: testJobId } });
 
@@ -402,7 +403,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: testJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -464,7 +465,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId: testJobId }, requestBody: {} });
 
@@ -477,7 +478,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId: testJobId }, requestBody: {} });
 
@@ -565,7 +566,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: Priority.VERY_HIGH } });
 
@@ -578,7 +579,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: Priority.VERY_HIGH } });
 
@@ -691,7 +692,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
@@ -704,7 +705,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
@@ -800,7 +801,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },
@@ -815,7 +816,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },

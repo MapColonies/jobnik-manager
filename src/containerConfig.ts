@@ -38,6 +38,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
   const prismaClientConfig = createConnectionOptions(dbConfig);
 
+  /* v8 ignore start */
   const healthCheck = (prisma: PrismaClient): HealthCheck => {
     return async (): Promise<void> => {
       const check = prisma.$queryRaw`SELECT 1`.then(() => {
@@ -46,6 +47,7 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       return promiseTimeout<void>(DB_CONNECTION_TIMEOUT, check);
     };
   };
+  /* v8 ignore stop */
 
   const dependencies: InjectionObject<unknown>[] = [
     { token: SERVICES.CONFIG, provider: { useValue: configInstance } },
@@ -65,10 +67,12 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: SERVICES.HEALTHCHECK,
       provider: {
+        /* v8 ignore start */
         useFactory: instanceCachingFactory((container) => {
           const prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
           return healthCheck(prisma);
         }),
+        /* v8 ignore stop */
       },
     },
 
@@ -80,9 +84,11 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       token: 'onSignal',
       provider: {
         useValue: {
+          /* v8 ignore start */
           useValue: async (): Promise<void> => {
             await Promise.all([getTracing().stop()]);
           },
+          /* v8 ignore stop */
         },
       },
     },

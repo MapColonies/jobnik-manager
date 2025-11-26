@@ -1,5 +1,4 @@
 import tsBaseConfig, { namingConventions } from '@map-colonies/eslint-config/ts-base';
-import jestConfig from '@map-colonies/eslint-config/jest';
 import { config } from '@map-colonies/eslint-config/helpers';
 
 const AllowedSqlOperators = {
@@ -26,6 +25,6 @@ const customConfig = {
   },
 };
 
-export default config(jestConfig, tsBaseConfig, customConfig, {
-  ignores: ['src/db/prisma/generated', 'src/common/generated'],
+export default config(tsBaseConfig, customConfig, {
+  ignores: ['src/db/prisma/generated', 'src/common/generated', 'vitest.config.mts'],
 });

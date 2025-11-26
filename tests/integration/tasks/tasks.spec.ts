@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
@@ -145,7 +146,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByCriteria({});
 
@@ -158,7 +159,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByCriteria({});
 
@@ -209,7 +210,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
 
@@ -222,7 +223,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
 
@@ -293,7 +294,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
 
@@ -306,7 +307,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
 
@@ -372,7 +373,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
 
@@ -385,7 +386,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
 
@@ -635,7 +636,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addTasks({
           requestBody: [],
@@ -651,7 +652,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addTasks({
           requestBody: [],
@@ -1001,7 +1002,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
@@ -1017,7 +1018,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskStatus({
           pathParams: { taskId: faker.string.uuid() },
@@ -1419,7 +1420,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
 
         const response = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_NAME' },
@@ -1434,7 +1435,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.task, 'findFirst').mockRejectedValueOnce(error);
 
         const response = await requestSender.dequeueTask({
           pathParams: { stageType: 'SOME_TEST_NAME' },
@@ -1512,7 +1513,7 @@ describe('task', function () {
           continueUpdateSecondTask = resolve;
         });
         const original = prisma.task.findFirst.bind(prisma.task);
-        const spy = jest.spyOn(prisma.task, 'findFirst');
+        const spy = vi.spyOn(prisma.task, 'findFirst');
         //@ts-expect-error Error because of the generics, we just pass the args to the original function
         spy.mockImplementationOnce(async (...args) => {
           const res = await original(...args);

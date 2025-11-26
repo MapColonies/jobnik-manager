@@ -1,4 +1,5 @@
 /// <reference types="jest-extended" />
+import { describe, it, expect } from 'vitest';
 import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import { createDbConnectUrl } from '@src/db/helpers';
 
