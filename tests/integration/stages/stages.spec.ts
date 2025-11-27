@@ -6,7 +6,6 @@ import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
-import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
@@ -169,7 +168,7 @@ describe('stage', function () {
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext,
+            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -279,7 +278,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -433,7 +432,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -506,7 +505,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -581,7 +580,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/is not valid JSON/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/is not valid JSON/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -1035,7 +1034,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -1193,7 +1192,7 @@ describe('stage', function () {
         expect(updateStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });

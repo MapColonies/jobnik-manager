@@ -5,7 +5,6 @@ import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
@@ -123,7 +122,7 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/query\/priority must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/query\/priority must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -135,7 +134,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/Unknown query parameter/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/Unknown query parameter/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -246,7 +245,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must have required property/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body must have required property/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -258,7 +257,7 @@ describe('job', function () {
         expect(createJobResponse).toSatisfyApiSpec();
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -271,7 +270,7 @@ describe('job', function () {
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/name must NOT have fewer than 2 characters/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/name must NOT have fewer than 2 characters/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -285,7 +284,7 @@ describe('job', function () {
         expect(createJobResponse).toSatisfyApiSpec();
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must NOT have additional properties/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body must NOT have additional properties/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -382,7 +381,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -556,7 +555,7 @@ describe('job', function () {
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -657,7 +656,7 @@ describe('job', function () {
         expect(setStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -684,7 +683,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -767,7 +766,7 @@ describe('job', function () {
         expect(deleteJobResponse).toSatisfyApiSpec();
         expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string },
         });
       });
 
