@@ -91,6 +91,12 @@ jobs:
         if: always()
         uses: davelosert/vitest-coverage-report-action@v2
 
+  e2e:
+    name: Run End-to-End Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run E2E tests
+        uses: MapColonies/jobnik-e2e/.github/actions/e2e-tests@master
   build_docker_image:
     runs-on: ubuntu-latest
     steps:
