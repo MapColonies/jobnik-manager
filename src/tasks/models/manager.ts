@@ -414,16 +414,16 @@ export class TaskManager {
       if (nextStatus === TaskOperationStatus.FAILED) {
         const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
 
-        // istanbul ignore if
+        /* v8 ignore start */
         if (!stage) {
           this.logger.error(`Failed updating task status, stage not exists`);
           throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
         }
 
-        // istanbul ignore if
         if (stage.status === StageOperationStatus.FAILED) {
           return updatedTasks[0];
         }
+        /* v8 ignore stop */
 
         this.logger.info({
           msg: 'Updating parent stage status to FAILED due to task failure',
