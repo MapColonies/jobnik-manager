@@ -1,4 +1,4 @@
-FROM node:22 as build
+FROM node:24 AS build
 
 
 WORKDIR /tmp/buildApp
@@ -10,7 +10,7 @@ RUN npm install
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine as production
+FROM node:24-alpine AS production
 
 RUN apk add --no-cache dumb-init openssl
 
