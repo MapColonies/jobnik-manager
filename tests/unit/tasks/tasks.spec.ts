@@ -75,8 +75,11 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
-          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const { creationTime, updateTime, xstate, startTime, endTime, status, ...rest } = taskEntity;
+          // Status is converted from Prisma value (e.g. 'Created') to API value (e.g. 'CREATED')
+          const expectedTask = [
+            { ...rest, status: 'CREATED', tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
+          ];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -87,8 +90,11 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasks({});
 
-          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const { creationTime, updateTime, xstate, startTime, endTime, status, ...rest } = taskEntity;
+          // Status is converted from Prisma value (e.g. 'Created') to API value (e.g. 'CREATED')
+          const expectedTask = [
+            { ...rest, status: 'CREATED', tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
+          ];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -120,8 +126,15 @@ describe('JobManager', () => {
 
           const task = await taskManager.getTaskById(taskId);
 
-          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
-          const expectedTask = { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() };
+          const { creationTime, updateTime, xstate, startTime, endTime, status, ...rest } = taskEntity;
+          // Status is converted from Prisma value (e.g. 'Created') to API value (e.g. 'CREATED')
+          const expectedTask = {
+            ...rest,
+            status: 'CREATED',
+            tracestate: undefined,
+            creationTime: creationTime.toISOString(),
+            updateTime: updateTime.toISOString(),
+          };
 
           expect(task).toMatchObject(expectedTask);
         });
@@ -155,8 +168,11 @@ describe('JobManager', () => {
 
           const tasks = await taskManager.getTasksByStageId(stageEntity.id);
 
-          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
-          const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
+          const { creationTime, updateTime, xstate, startTime, endTime, status, ...rest } = taskEntity;
+          // Status is converted from Prisma value (e.g. 'Created') to API value (e.g. 'CREATED')
+          const expectedTask = [
+            { ...rest, status: 'CREATED', tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
+          ];
 
           expect(tasks).toMatchObject(expectedTask);
         });
@@ -239,10 +255,11 @@ describe('JobManager', () => {
           const tasksResponse = await taskManager.addTasks(stageId, [taskPayload]);
 
           // Extract unnecessary fields from the job object and assemble the expected result
-          const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
+          const { creationTime, updateTime, xstate, startTime, endTime, status, ...rest } = taskEntity;
 
+          // Status is converted from Prisma value (e.g. 'Created') to API value (e.g. 'CREATED')
           expect(tasksResponse).toMatchObject([
-            { ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
+            { ...rest, status: 'CREATED', tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() },
           ]);
         });
       });
@@ -347,7 +364,8 @@ describe('JobManager', () => {
 
           vi.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.COMPLETED)).toResolve();
+          // Use API status value (uppercase)
+          await expect(taskManager.updateStatus(taskId, 'COMPLETED')).toResolve();
         });
 
         it('should update task status to RETRIED', async function () {
@@ -382,7 +400,7 @@ describe('JobManager', () => {
 
           vi.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
+          await expect(taskManager.updateStatus(taskId, 'FAILED')).toResolve();
         });
 
         it('should update task status to IN_PROGRESS and add startTime', async function () {
@@ -417,7 +435,7 @@ describe('JobManager', () => {
 
           vi.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.IN_PROGRESS)).toResolve();
+          await expect(taskManager.updateStatus(taskId, 'IN_PROGRESS')).toResolve();
         });
 
         it('should update task status to FAILED and add endTime', async function () {
@@ -463,7 +481,7 @@ describe('JobManager', () => {
 
           vi.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.FAILED)).toResolve();
+          await expect(taskManager.updateStatus(taskId, 'FAILED')).toResolve();
         });
 
         it('should update task status to IN_PROGRESS', async function () {
@@ -498,7 +516,7 @@ describe('JobManager', () => {
 
           vi.spyOn(stageManager, 'updateStageProgressFromTaskChanges').mockResolvedValue(undefined);
 
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.IN_PROGRESS)).toResolve();
+          await expect(taskManager.updateStatus(taskId, 'IN_PROGRESS')).toResolve();
         });
       });
 
@@ -628,7 +646,7 @@ describe('JobManager', () => {
           vi.spyOn(prisma.task, 'findMany').mockResolvedValue([staleTaskOneHour, staleTaskFortyFiveMinutes]);
           const taskManagerUpdatesStatusMock = vi.spyOn(taskManager, 'updateStatus').mockResolvedValue({
             id: staleTaskOneHour.id,
-            status: TaskOperationStatus.FAILED,
+            status: 'FAILED', // API status value
             attempts: 0,
             data: {},
             maxAttempts: 2,
@@ -642,8 +660,9 @@ describe('JobManager', () => {
           await expect(taskManager.cleanStaleTasks()).toResolve();
 
           expect(taskManagerUpdatesStatusMock).toHaveBeenCalledTimes(2);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTaskOneHour.id, TaskOperationStatus.FAILED);
-          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(2, staleTaskFortyFiveMinutes.id, TaskOperationStatus.FAILED);
+          // updateStatus is now called with API status values
+          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(1, staleTaskOneHour.id, 'FAILED');
+          expect(taskManagerUpdatesStatusMock).toHaveBeenNthCalledWith(2, staleTaskFortyFiveMinutes.id, 'FAILED');
         });
 
         it('should handle empty result when no stale tasks are found', async () => {
