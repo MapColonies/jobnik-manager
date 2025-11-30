@@ -93,7 +93,7 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           set -euo pipefail
-          BRANCH_NAME="${{ github.event.repository.name }}-next"
+          BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
           git fetch origin --prune
           git checkout master
 
@@ -104,7 +104,8 @@ jobs:
 
           # Create branch if it doesn't already exist remotely
           if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
-            echo "Branch $BRANCH_NAME already exists on remote; skipping creation."
+            echo "Branch $BRANCH_NAME already exists on remote; checking it out."
+            git checkout "$BRANCH_NAME"
           else
             git checkout -b "$BRANCH_NAME"
             git push --set-upstream origin "$BRANCH_NAME"
@@ -119,6 +120,10 @@ jobs:
           GH_PAT: ${{ secrets.GH_PAT }}
         run: |
           set -euo pipefail
+
+          # Ensure we are on the created branch before committing
+          BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
+          git checkout "$BRANCH_NAME"
 
           # Use explicit dev values file path and update tag if changed
           TARGET_FILE="${{ env.DOMAIN }}/environments/dev.yaml"
@@ -139,4 +144,4 @@ jobs:
           git commit -m "chore(jobnik-manager): update chart tag to $TAG"
           # Push using authenticated remote with PAT
           git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
-          git push origin "$(git rev-parse --abbrev-ref HEAD)"
+          git push origin "$BRANCH_NAME"
