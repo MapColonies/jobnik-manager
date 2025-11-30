@@ -16,6 +16,12 @@ import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundEr
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { PrismaTransaction } from '@src/db/types';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
+import {
+  convertStageStatusToPrisma,
+  convertStageStatusToApi,
+  convertJobStatusToApi,
+  type ApiStageOperationStatus,
+} from '@common/utils/statusMapping';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateModel,
@@ -130,12 +136,17 @@ export class StageManager {
   public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
     let queryBody = undefined;
     if (params !== undefined) {
+      // Convert API status to Prisma status if provided
+      const prismaStatus = params.stage_operation_status
+        ? convertStageStatusToPrisma(params.stage_operation_status as ApiStageOperationStatus)
+        : undefined;
+
       queryBody = {
         where: {
           AND: {
             jobId: { equals: params.job_id },
             type: { equals: params.stage_type },
-            status: { equals: params.stage_operation_status },
+            status: { equals: prismaStatus },
           },
         },
         include: { task: params.should_return_tasks },
@@ -234,11 +245,11 @@ export class StageManager {
   }
 
   @withSpanAsyncV4
-  public async updateStatus(stageId: string, status: StageOperationStatus, tx?: PrismaTransaction): Promise<void> {
+  public async updateStatus(stageId: string, apiStatus: ApiStageOperationStatus, tx?: PrismaTransaction): Promise<void> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: apiStatus,
     });
 
     const prisma = tx ?? this.prisma;
@@ -248,11 +259,15 @@ export class StageManager {
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
+
+    // Convert API status to Prisma status
+    const prismaStatus = convertStageStatusToPrisma(apiStatus);
+
     //#region validate status transition rules
     const previousStageOrder = stage.order - 1;
 
     // can't move to PENDING if previous stage is not COMPLETED
-    if (status === StageOperationStatus.PENDING && previousStageOrder > 0) {
+    if (prismaStatus === StageOperationStatus.PENDING && previousStageOrder > 0) {
       const previousStage = await prisma.stage.findFirst({
         where: {
           jobId: stage.jobId,
@@ -265,12 +280,12 @@ export class StageManager {
       }
     }
 
-    const nextStatusChange = OperationStatusMapper[status];
+    const nextStatusChange = OperationStatusMapper[prismaStatus];
     const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, status));
+      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(updateActor.getSnapshot().value as string, prismaStatus));
     }
     //#endregion
     updateActor.send({ type: nextStatusChange });
@@ -281,7 +296,7 @@ export class StageManager {
         id: stageId,
       },
       data: {
-        status,
+        status: prismaStatus,
         xstate: newPersistedSnapshot,
       },
     };
@@ -291,7 +306,7 @@ export class StageManager {
     //#region update related entities
     // Update job completion when a stage is completed
     // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
-    if (status === StageOperationStatus.COMPLETED) {
+    if (prismaStatus === StageOperationStatus.COMPLETED) {
       const nextStageOrder = stage.order + 1;
       const nextStage = await prisma.stage.findFirst({
         where: {
@@ -301,13 +316,15 @@ export class StageManager {
       });
 
       if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
-        await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
+        // Convert Prisma status to API status for internal call
+        await this.updateStatus(nextStage.id, convertStageStatusToApi(StageOperationStatus.PENDING), tx);
         trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
       }
 
       const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
       if (completedStages === totalStages) {
-        await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.COMPLETED, tx);
+        // Convert Prisma status to API status for cross-manager call
+        await this.jobManager.updateStatus(stage.jobId, convertJobStatusToApi(JobOperationStatus.COMPLETED), tx);
         this.logger.info({
           msg: 'Job completed as all stages are done',
           jobId: stage.jobId,
@@ -317,13 +334,13 @@ export class StageManager {
       }
     }
 
-    if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
+    if (prismaStatus === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
-      await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+      await this.jobManager.updateStatus(stage.job.id, convertJobStatusToApi(JobOperationStatus.IN_PROGRESS), tx);
       trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
-    } else if (status === StageOperationStatus.FAILED) {
+    } else if (prismaStatus === StageOperationStatus.FAILED) {
       // Update job status to FAILED
-      await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
+      await this.jobManager.updateStatus(stage.jobId, convertJobStatusToApi(JobOperationStatus.FAILED), tx);
       trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
     }
 
@@ -385,7 +402,8 @@ export class StageManager {
     // update stage status if it was initialized by first task
     // and the stage is not already in progress
     if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
-      await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
+      // Convert Prisma status to API status for internal call
+      await this.updateStatus(stageId, convertStageStatusToApi(StageOperationStatus.IN_PROGRESS), tx);
       trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS because first task started', { stageId });
     }
   }
@@ -411,7 +429,8 @@ export class StageManager {
 
     await tx.stage.update({ where: { id: stage.id }, data: stageUpdatedData });
     if (summary.total === summary.completed) {
-      await this.updateStatus(stage.id, StageOperationStatus.COMPLETED, tx);
+      // Convert Prisma status to API status for internal call
+      await this.updateStatus(stage.id, convertStageStatusToApi(StageOperationStatus.COMPLETED), tx);
 
       this.logger.info({
         msg: 'Stage completed, updating job progress',

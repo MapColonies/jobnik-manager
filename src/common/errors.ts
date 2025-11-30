@@ -5,8 +5,20 @@ export const prismaKnownErrors = {
   recordNotFound: 'P2025',
 } as const;
 
+// XState machine state names (uppercase)
+type XStateMachineState =
+  | 'CREATED'
+  | 'PENDING'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'ABORTED'
+  | 'PAUSED'
+  | 'WAITING'
+  | 'RETRIED';
+
 export function illegalStatusTransitionErrorMessage(
-  currentStatus: JobOperationStatus | StageOperationStatus | TaskOperationStatus,
+  currentStatus: XStateMachineState | string,
   requiredStatus: JobOperationStatus | StageOperationStatus | TaskOperationStatus
 ): string {
   return `Illegal status transition from ${currentStatus} to ${requiredStatus}`;

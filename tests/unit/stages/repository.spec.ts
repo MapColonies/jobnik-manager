@@ -5,9 +5,10 @@ import { PrismaClient, TaskOperationStatus } from '@prismaClient';
 import { UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import { createStageEntity } from '../generator';
 
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 let stageRepository: StageRepository;
 
 describe('JobManager', () => {

@@ -8,10 +8,11 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { randomUuid } from '@tests/unit/generator';
 import { SERVICE_NAME } from '@src/common/constants';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';
 
 let jobManager: JobManager;
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 const tracer = trace.getTracer(SERVICE_NAME);
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
@@ -61,12 +62,16 @@ describe('JobManager', () => {
           const mediumPriorityJob = { ...jobEntityWithoutStages, priority: Priority.MEDIUM };
           vi.spyOn(prisma.job, 'findMany').mockResolvedValue([mediumPriorityJob]);
 
-          const jobs = await jobManager.getJobs({ priority: Priority.MEDIUM });
+          // Use API priority value
+          const jobs = await jobManager.getJobs({ priority: 'MEDIUM' });
 
-          const { xstate, stage, ...rest } = mediumPriorityJob;
+          const { xstate, stage, status, priority, ...rest } = mediumPriorityJob;
+          // Status and priority are converted to API values
           const expectedJob = [
             {
               ...rest,
+              status: 'PENDING',
+              priority: 'MEDIUM',
               stages: stage,
               creationTime: rest.creationTime.toISOString(),
               updateTime: rest.updateTime.toISOString(),
@@ -83,8 +88,18 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobs(undefined);
 
-          const { xstate, stage, tracestate, ...rest } = jobEntity;
-          const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
+          const { xstate, stage, tracestate, status, priority, ...rest } = jobEntity;
+          // Status and priority are converted to API values
+          const expectedJob = [
+            {
+              ...rest,
+              status: 'PENDING',
+              priority: 'HIGH',
+              stages: stage,
+              creationTime: rest.creationTime.toISOString(),
+              updateTime: rest.updateTime.toISOString(),
+            },
+          ];
 
           expect(jobs).toMatchObject(expectedJob);
         });
@@ -94,7 +109,8 @@ describe('JobManager', () => {
         it('should fail with a database error when finding jobs', async function () {
           vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.getJobs({ priority: Priority.MEDIUM })).rejects.toThrow('db connection error');
+          // Use API priority value
+          await expect(jobManager.getJobs({ priority: 'MEDIUM' })).rejects.toThrow('db connection error');
         });
       });
     });
@@ -106,9 +122,12 @@ describe('JobManager', () => {
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
-          const { xstate, stage, ...rest } = jobEntityWithoutStages;
+          const { xstate, stage, status, priority, ...rest } = jobEntityWithoutStages;
+          // Status and priority are converted from Prisma values to API values
           const expectedJob = {
             ...rest,
+            status: 'PENDING', // API value
+            priority: 'HIGH', // API value
             stages: stage,
             tracestate: undefined,
             creationTime: rest.creationTime.toISOString(),
@@ -168,13 +187,15 @@ describe('JobManager', () => {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
           vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.MEDIUM)).toResolve();
+          // Use API priority value (uppercase)
+          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, 'MEDIUM')).toResolve();
         });
 
         it('should not perform a job priority update when the provided priority matches the current job priority', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
 
-          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.HIGH)).rejects.toThrow(
+          // Use API priority value - should throw because job already has HIGH priority (Prisma: 'High')
+          await expect(jobManager.updatePriority(jobEntityWithoutStages.id, 'HIGH')).rejects.toThrow(
             jobsErrorMessages.priorityCannotBeUpdatedToSameValue
           );
         });
@@ -184,7 +205,8 @@ describe('JobManager', () => {
         it('should fail when updating priority of a non-existent job', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow(jobsErrorMessages.jobNotFound);
+          // Use API priority value
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
       });
 
@@ -192,7 +214,8 @@ describe('JobManager', () => {
         it('should fail with a database error when updating priority', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow('db connection error');
+          // Use API priority value
+          await expect(jobManager.updatePriority('someId', 'MEDIUM')).rejects.toThrow('db connection error');
         });
       });
     });
@@ -205,7 +228,8 @@ describe('JobManager', () => {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, id: jobId });
           vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.updateStatus(jobId, JobOperationStatus.PENDING)).toResolve();
+          // Use API status value
+          await expect(jobManager.updateStatus(jobId, 'PENDING')).toResolve();
         });
       });
 
@@ -213,14 +237,17 @@ describe('JobManager', () => {
         it('should fail when updating status for a job that does not exist', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
 
-          await expect(jobManager.updateStatus('someId', JobOperationStatus.PENDING)).rejects.toThrow(jobsErrorMessages.jobNotFound);
+          // Use API status value
+          await expect(jobManager.updateStatus('someId', 'PENDING')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
 
         it('should fail on invalid status transition', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
 
-          await expect(jobManager.updateStatus(jobEntityWithoutStages.id, JobOperationStatus.COMPLETED)).rejects.toThrow(
-            illegalStatusTransitionErrorMessage(jobEntityWithoutStages.status, JobOperationStatus.COMPLETED)
+          // XState machine initial state is 'CREATED' (uppercase), Prisma status is 'Completed'
+          // Use API status value
+          await expect(jobManager.updateStatus(jobEntityWithoutStages.id, 'COMPLETED')).rejects.toThrow(
+            illegalStatusTransitionErrorMessage('CREATED', JobOperationStatus.COMPLETED)
           );
         });
       });
@@ -229,7 +256,8 @@ describe('JobManager', () => {
         it('should fail with a database error when updating status', async function () {
           vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.updateStatus('someId', JobOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
+          // Use API status value
+          await expect(jobManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow('db connection error');
         });
       });
     });
