@@ -524,7 +524,7 @@ describe('JobManager', () => {
         it('should reject changing status on a non-existent task', async function () {
           vi.spyOn(prisma.task, 'findUnique').mockResolvedValue(null);
 
-          await expect(taskManager.updateStatus('someId', TaskOperationStatus.COMPLETED)).rejects.toThrow(tasksErrorMessages.taskNotFound);
+          await expect(taskManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow(tasksErrorMessages.taskNotFound);
         });
 
         it("should reject update invalid task's status [from IN_PROGRESS to CREATED]", async function () {
@@ -546,7 +546,7 @@ describe('JobManager', () => {
             const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
             return callback(mockTx);
           });
-          await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(IllegalTaskStatusTransitionError);
+          await expect(taskManager.updateStatus(taskId, 'CREATED')).rejects.toThrow(IllegalTaskStatusTransitionError);
         });
       });
 

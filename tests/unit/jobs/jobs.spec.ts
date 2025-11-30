@@ -109,7 +109,8 @@ describe('JobManager', () => {
         it('should fail with a database error when finding jobs', async function () {
           vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(jobManager.getJobs({ priority: Priority.MEDIUM })).rejects.toThrow('db connection error');
+          // Use API priority value
+          await expect(jobManager.getJobs({ priority: 'MEDIUM' })).rejects.toThrow('db connection error');
         });
       });
     });

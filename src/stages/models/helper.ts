@@ -40,10 +40,18 @@ const prismaStatusToSummaryKey: Record<TaskOperationStatus, keyof typeof summary
  * Converts a Prisma TaskOperationStatus to the corresponding summary count key
  * @param status Prisma TaskOperationStatus
  * @returns The summary count key (camelCase)
+ * @throws Error if the status is not recognized
  */
 function getSummaryKeyForStatus(status: TaskOperationStatus): string {
   const mappedKey = prismaStatusToSummaryKey[status];
-  return summaryCountsMapper[mappedKey];
+  if (mappedKey === undefined) {
+    throw new Error(`Unknown task status: ${status}`);
+  }
+  const summaryKey = summaryCountsMapper[mappedKey];
+  if (summaryKey === undefined) {
+    throw new Error(`No summary key mapping for status: ${status}`);
+  }
+  return summaryKey;
 }
 
 const defaultStatusCounts = Object.fromEntries(Object.values(summaryCountsMapper).map((value) => [value, 0])) as Record<

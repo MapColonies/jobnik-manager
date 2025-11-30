@@ -100,37 +100,69 @@ const priorityApiToPrisma: Record<ApiPriority, PrismaPriority> = {
   VERY_LOW: PrismaPriority.VERY_LOW,
 };
 
-// Conversion functions
+// Conversion functions with runtime validation
 export function convertJobStatusToApi(prismaStatus: PrismaJobOperationStatus): ApiJobOperationStatus {
-  return jobStatusPrismaToApi[prismaStatus];
+  const result = jobStatusPrismaToApi[prismaStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown Prisma job status: ${prismaStatus}`);
+  }
+  return result;
 }
 
 export function convertJobStatusToPrisma(apiStatus: ApiJobOperationStatus): PrismaJobOperationStatus {
-  return jobStatusApiToPrisma[apiStatus];
+  const result = jobStatusApiToPrisma[apiStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown API job status: ${apiStatus}`);
+  }
+  return result;
 }
 
 export function convertStageStatusToApi(prismaStatus: PrismaStageOperationStatus): ApiStageOperationStatus {
-  return stageStatusPrismaToApi[prismaStatus];
+  const result = stageStatusPrismaToApi[prismaStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown Prisma stage status: ${prismaStatus}`);
+  }
+  return result;
 }
 
 export function convertStageStatusToPrisma(apiStatus: ApiStageOperationStatus): PrismaStageOperationStatus {
-  return stageStatusApiToPrisma[apiStatus];
+  const result = stageStatusApiToPrisma[apiStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown API stage status: ${apiStatus}`);
+  }
+  return result;
 }
 
 export function convertTaskStatusToApi(prismaStatus: PrismaTaskOperationStatus): ApiTaskOperationStatus {
-  return taskStatusPrismaToApi[prismaStatus];
+  const result = taskStatusPrismaToApi[prismaStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown Prisma task status: ${prismaStatus}`);
+  }
+  return result;
 }
 
 export function convertTaskStatusToPrisma(apiStatus: ApiTaskOperationStatus): PrismaTaskOperationStatus {
-  return taskStatusApiToPrisma[apiStatus];
+  const result = taskStatusApiToPrisma[apiStatus];
+  if (result === undefined) {
+    throw new Error(`Unknown API task status: ${apiStatus}`);
+  }
+  return result;
 }
 
 export function convertPriorityToApi(prismaPriority: PrismaPriority): ApiPriority {
-  return priorityPrismaToApi[prismaPriority];
+  const result = priorityPrismaToApi[prismaPriority];
+  if (result === undefined) {
+    throw new Error(`Unknown Prisma priority: ${prismaPriority}`);
+  }
+  return result;
 }
 
 export function convertPriorityToPrisma(apiPriority: ApiPriority): PrismaPriority {
-  return priorityApiToPrisma[apiPriority];
+  const result = priorityApiToPrisma[apiPriority];
+  if (result === undefined) {
+    throw new Error(`Unknown API priority: ${apiPriority}`);
+  }
+  return result;
 }
 
 // Export types for use in other modules
