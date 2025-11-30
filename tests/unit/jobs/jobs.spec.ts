@@ -8,10 +8,11 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { randomUuid } from '@tests/unit/generator';
 import { SERVICE_NAME } from '@src/common/constants';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';
 
 let jobManager: JobManager;
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 const tracer = trace.getTracer(SERVICE_NAME);
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 

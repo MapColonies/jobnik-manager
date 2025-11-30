@@ -17,6 +17,7 @@ import { SERVICE_NAME } from '@src/common/constants';
 import { IllegalTaskStatusTransitionError, NotAllowedToAddTasksToInProgressStageError, StageInFiniteStateError } from '@src/common/generated/errors';
 import { getConfig, initConfig } from '@src/common/config';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '../data';
 
@@ -41,7 +42,7 @@ let taskManager: TaskManager;
 let stageRepository: StageRepository;
 
 const tracer = trace.getTracer(SERVICE_NAME);
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 
 let config: ReturnType<typeof getConfig>;
 

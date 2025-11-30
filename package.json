@@ -51,9 +51,9 @@
     "@map-colonies/schemas": "^1.13.0",
     "@map-colonies/telemetry": "^10.1.0",
     "@opentelemetry/api": "^1.9.0",
-    "@prisma/adapter-pg": "^6.19.0",
-    "@prisma/client": "^6.19.0",
-    "@prisma/instrumentation": "^6.19.0",
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "@prisma/instrumentation": "^7.0.1",
     "compression": "^1.8.1",
     "date-fns": "^4.1.0",
     "express": "^4.21.2",
@@ -101,14 +101,14 @@
     "jest-openapi": "^0.14.2",
     "prettier": "^3.3.3",
     "pretty-quick": "^4.1.1",
-    "prisma": "^6.19.0",
-    "prisma-json-types-generator": "^3.6.2",
+    "prisma": "^7.0.1",
+    "prisma-json-types-generator": "^4.0.0-beta.1",
     "rimraf": "^6.1.0",
     "supertest": "^7.1.4",
     "tsc-alias": "^1.8.11",
     "type-fest": "^4.38.0",
     "typescript": "^5.9.3",
-    "zx": "^8.8.5",
-    "vitest": "^3.1.4"
+    "vitest": "^3.1.4",
+    "zx": "^8.8.5"
   }
 }

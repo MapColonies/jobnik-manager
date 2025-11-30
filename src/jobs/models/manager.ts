@@ -5,7 +5,7 @@ import type { Tracer } from '@opentelemetry/api';
 import { trace } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/telemetry';
 import { INFRA_CONVENTIONS } from '@map-colonies/telemetry/conventions';
-import type { PrismaClient, Priority } from '@prismaClient';
+import type { PrismaClient } from '@prismaClient';
 import { Prisma, JobOperationStatus } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
@@ -14,6 +14,14 @@ import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
+import {
+  convertJobStatusToApi,
+  convertJobStatusToPrisma,
+  convertPriorityToApi,
+  convertPriorityToPrisma,
+  type ApiJobOperationStatus,
+  type ApiPriority,
+} from '@common/utils/statusMapping';
 import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -31,11 +39,14 @@ export class JobManager {
     let queryBody = undefined;
 
     if (params !== undefined) {
+      // Convert API priority to Prisma priority if provided
+      const prismaPriority = params.priority ? convertPriorityToPrisma(params.priority) : undefined;
+
       queryBody = {
         where: {
           AND: {
             name: { equals: params.job_name },
-            priority: { equals: params.priority },
+            priority: { equals: prismaPriority },
             creationTime: { gte: params.from_date, lte: params.end_date },
           },
         },
@@ -64,13 +75,19 @@ export class JobManager {
 
       const { traceparent, tracestate } = resolveTraceContext(body);
 
-      const input = {
-        ...body,
+      // Convert API priority to Prisma priority if provided
+      const prismaPriority = body.priority ? convertPriorityToPrisma(body.priority) : undefined;
+
+      const input: Prisma.JobCreateInput = {
+        name: body.name,
+        data: body.data,
+        userMetadata: body.userMetadata,
+        priority: prismaPriority,
         status: JobOperationStatus.PENDING,
         xstate: persistenceSnapshot,
         traceparent,
         tracestate,
-      } satisfies Prisma.JobCreateInput;
+      };
       const createdJob = await this.prisma.job.create({ data: input, include: { stage: false } });
       const res = this.convertPrismaToJobResponse(createdJob);
 
@@ -127,10 +144,10 @@ export class JobManager {
   }
 
   @withSpanAsyncV4
-  public async updatePriority(jobId: string, priority: Priority): Promise<void> {
+  public async updatePriority(jobId: string, apiPriority: ApiPriority): Promise<void> {
     trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
-      [INFRA_CONVENTIONS.infra.jobnik.job.priority]: priority,
+      [INFRA_CONVENTIONS.infra.jobnik.job.priority]: apiPriority,
     });
 
     const job = await this.getJobEntityById(jobId);
@@ -139,7 +156,10 @@ export class JobManager {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
-    if (job.priority === priority) {
+    // Convert API priority to Prisma priority for comparison
+    const prismaPriority = convertPriorityToPrisma(apiPriority);
+
+    if (job.priority === prismaPriority) {
       throw new SamePriorityChangeError(jobsErrorMessages.priorityCannotBeUpdatedToSameValue);
     }
 
@@ -148,7 +168,7 @@ export class JobManager {
         id: jobId,
       },
       data: {
-        priority,
+        priority: prismaPriority,
       },
     };
 
@@ -156,10 +176,10 @@ export class JobManager {
   }
 
   @withSpanAsyncV4
-  public async updateStatus(jobId: string, status: JobOperationStatus, tx?: PrismaTransaction): Promise<void> {
+  public async updateStatus(jobId: string, apiStatus: ApiJobOperationStatus, tx?: PrismaTransaction): Promise<void> {
     trace.getActiveSpan()?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
-      [INFRA_CONVENTIONS.infra.jobnik.job.status]: status,
+      [INFRA_CONVENTIONS.infra.jobnik.job.status]: apiStatus,
     });
 
     const prisma = tx ?? this.prisma;
@@ -170,12 +190,14 @@ export class JobManager {
       throw new JobNotFoundError(jobsErrorMessages.jobNotFound);
     }
 
-    const nextStatusChange = OperationStatusMapper[status];
+    // Convert API status to Prisma status
+    const prismaStatus = convertJobStatusToPrisma(apiStatus);
+    const nextStatusChange = OperationStatusMapper[prismaStatus];
     const updateActor = createActor(jobStateMachine, { snapshot: job.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(job.status, status));
+      throw new IllegalJobStatusTransitionError(illegalStatusTransitionErrorMessage(updateActor.getSnapshot().value as string, prismaStatus));
     }
 
     updateActor.send({ type: nextStatusChange });
@@ -186,7 +208,7 @@ export class JobManager {
         id: jobId,
       },
       data: {
-        status,
+        status: prismaStatus,
         xstate: newPersistedSnapshot,
       },
     };
@@ -258,7 +280,7 @@ export class JobManager {
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<true>): JobModel;
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject<false>): JobModel;
   private convertPrismaToJobResponse(prismaObjects: JobPrismaObject): JobModel {
-    const { data, creationTime, userMetadata, updateTime, tracestate, xstate, stage, ...rest } = prismaObjects;
+    const { data, creationTime, userMetadata, updateTime, tracestate, xstate, stage, status, priority, ...rest } = prismaObjects;
 
     const transformedFields = {
       data: data as Record<string, never>,
@@ -267,6 +289,8 @@ export class JobManager {
       updateTime: updateTime.toISOString(),
       tracestate: tracestate ?? undefined,
       stages: Array.isArray(stage) ? convertArrayPrismaStageToStageResponse(stage) : undefined,
+      status: convertJobStatusToApi(status),
+      priority: convertPriorityToApi(priority),
     };
 
     return Object.assign(rest, transformedFields);

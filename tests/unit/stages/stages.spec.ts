@@ -15,6 +15,7 @@ import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import {
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
@@ -30,7 +31,7 @@ let jobManager: JobManager;
 let stageManager: StageManager;
 let stageRepository: StageRepository;
 const tracer = trace.getTracer(SERVICE_NAME);
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });

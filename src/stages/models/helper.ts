@@ -2,6 +2,7 @@ import { createActor } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
 import { convertArrayPrismaTaskToTaskResponse } from '@src/tasks/models/helper';
 import { createCamelCaseMapper } from '@src/common/utils/formatter';
+import { convertStageStatusToApi, type ApiTaskOperationStatus } from '@common/utils/statusMapping';
 import { StageCreateModel, StageModel, StagePrismaObject, StageSummary } from './models';
 import { stageStateMachine } from './stageStateMachine';
 
@@ -11,14 +12,39 @@ import { stageStateMachine } from './stageStateMachine';
  */
 type StagePersistedSnapshot = ReturnType<ReturnType<typeof createActor<typeof stageStateMachine>>['getPersistedSnapshot']>;
 
-const taskOperationStatusWithTotal = {
-  ...TaskOperationStatus,
-  // eslint-disable-next-line @typescript-eslint/naming-convention
+// API task status values for summary counts (uppercase to match OpenAPI)
+const apiTaskOperationStatusWithTotal = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  FAILED: 'FAILED',
+  CREATED: 'CREATED',
+  RETRIED: 'RETRIED',
   TOTAL: 'TOTAL',
 } as const;
-const summaryCountsMapper = createCamelCaseMapper(taskOperationStatusWithTotal);
+const summaryCountsMapper = createCamelCaseMapper(apiTaskOperationStatusWithTotal);
 // eslint-disable-next-line @typescript-eslint/naming-convention
 type SummaryCountsMapper = typeof summaryCountsMapper & { TOTAL: 'total' };
+
+// Map from Prisma TaskOperationStatus to summary key
+const prismaStatusToSummaryKey: Record<TaskOperationStatus, keyof typeof summaryCountsMapper> = {
+  [TaskOperationStatus.PENDING]: 'PENDING',
+  [TaskOperationStatus.IN_PROGRESS]: 'IN_PROGRESS',
+  [TaskOperationStatus.COMPLETED]: 'COMPLETED',
+  [TaskOperationStatus.FAILED]: 'FAILED',
+  [TaskOperationStatus.CREATED]: 'CREATED',
+  [TaskOperationStatus.RETRIED]: 'RETRIED',
+};
+
+/**
+ * Converts a Prisma TaskOperationStatus to the corresponding summary count key
+ * @param status Prisma TaskOperationStatus
+ * @returns The summary count key (camelCase)
+ */
+function getSummaryKeyForStatus(status: TaskOperationStatus): string {
+  const mappedKey = prismaStatusToSummaryKey[status];
+  return summaryCountsMapper[mappedKey];
+}
 
 const defaultStatusCounts = Object.fromEntries(Object.values(summaryCountsMapper).map((value) => [value, 0])) as Record<
   SummaryCountsMapper[keyof SummaryCountsMapper],
@@ -31,13 +57,14 @@ const defaultStatusCounts = Object.fromEntries(Object.values(summaryCountsMapper
  * @returns StageModel
  */
 function convertPrismaToStageResponse(prismaObjects: StagePrismaObject): StageModel {
-  const { data, userMetadata, task, tracestate, xstate, ...rest } = prismaObjects;
+  const { data, userMetadata, task, tracestate, xstate, status, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
     userMetadata: userMetadata as Record<string, unknown>,
     tasks: Array.isArray(task) ? convertArrayPrismaTaskToTaskResponse(task) : undefined,
     tracestate: tracestate ?? undefined,
+    status: convertStageStatusToApi(status),
   };
   return Object.assign(rest, transformedFields);
 }
@@ -93,7 +120,8 @@ export {
   getInitialXstate,
   summaryCountsMapper,
   defaultStatusCounts,
-  taskOperationStatusWithTotal,
+  apiTaskOperationStatusWithTotal,
+  getSummaryKeyForStatus,
 };
 
 export type { StagePersistedSnapshot };

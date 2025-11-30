@@ -1,4 +1,5 @@
 import { Prisma } from '@prismaClient';
+import { convertTaskStatusToApi } from '@common/utils/statusMapping';
 import { TaskModel } from './models';
 
 /**
@@ -7,7 +8,7 @@ import { TaskModel } from './models';
  * @returns TaskModel
  */
 export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>): TaskModel {
-  const { data, userMetadata, xstate, creationTime, tracestate, startTime, endTime, updateTime, ...rest } = prismaObjects;
+  const { data, userMetadata, xstate, creationTime, tracestate, startTime, endTime, updateTime, status, ...rest } = prismaObjects;
 
   const transformedFields = {
     data: data as Record<string, unknown>,
@@ -17,6 +18,7 @@ export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload
     tracestate: tracestate ?? undefined,
     startTime: startTime ? startTime.toISOString() : undefined,
     endTime: endTime ? endTime.toISOString() : undefined,
+    status: convertTaskStatusToApi(status),
   };
 
   return Object.assign(rest, transformedFields);
