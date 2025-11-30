@@ -86,6 +86,32 @@ jobs:
           sudo curl -L https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -o /usr/local/bin/yq
           sudo chmod +x /usr/local/bin/yq
 
+      # - name: Create and push branch in site-values
+      #   working-directory: site-values
+      #   shell: bash
+      #   env:
+      #     GH_PAT: ${{ secrets.GH_PAT }}
+      #   run: |
+      #     set -euo pipefail
+      #     BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
+      #     git fetch origin --prune
+      #     git checkout master
+
+      #     # Ensure authenticated remote for pushing with PAT
+      #     git config user.name "github-actions"
+      #     git config user.email "github-actions@github.com"
+      #     git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
+
+      #     # Create branch if it doesn't already exist remotely
+      #     if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
+      #       echo "Branch $BRANCH_NAME already exists on remote; checking it out."
+      #       git checkout "$BRANCH_NAME"
+      #     else
+      #       git checkout -b "$BRANCH_NAME"
+      #       git push --set-upstream origin "$BRANCH_NAME"
+      #       echo "Created and pushed branch $BRANCH_NAME"
+      #     fi
+
       - name: Create and push branch in site-values
         working-directory: site-values
         shell: bash
@@ -96,11 +122,6 @@ jobs:
           BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
           git fetch origin --prune
           git checkout master
-
-          # Ensure authenticated remote for pushing with PAT
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
 
           # Create branch if it doesn't already exist remotely
           if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
