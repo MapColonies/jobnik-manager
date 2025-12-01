@@ -36,3 +36,5 @@ git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColoni
 git push origin "${BRANCH_NAME}"
 
 echo "Updated ${TARGET_FILE} with chart tag ${TAG} on branch ${BRANCH_NAME}"
+
+# gh pr create -B master -H ${BRANCH_NAME} --title 'Merge ${BRANCH_NAME} into master' --body 'Created by Github action'
