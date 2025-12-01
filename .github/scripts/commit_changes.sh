@@ -12,11 +12,6 @@ git config user.name "github-actions"
 git config user.email "github-actions@github.com"
 git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
 
-# Create and push branch
-git checkout -b "${BRANCH_NAME}"
-git push --set-upstream origin "${BRANCH_NAME}"
-echo "Created and pushed branch ${BRANCH_NAME}"
-
 # Read current tag
 CURRENT_TAG=$(yq eval ".chartsVersions[\"${REPO_NAME}\"]" "${TARGET_FILE}")
 
@@ -25,16 +20,7 @@ if [ "${CURRENT_TAG}" = "${TAG}" ]; then
   exit 0
 fi
 
-# Update tag
+# Update the file in the working tree only; let the PR action commit/push
 yq eval -i ".chartsVersions[\"${REPO_NAME}\"] = \"${TAG}\"" "${TARGET_FILE}"
-
-git add "${TARGET_FILE}"
-git commit -m "chore(${REPO_NAME}): update chart tag to ${TAG}"
-
-# Push using authenticated remote with PAT
-git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
-git push origin "${BRANCH_NAME}"
-
-echo "Updated ${TARGET_FILE} with chart tag ${TAG} on branch ${BRANCH_NAME}"
-
-# gh pr create -B master -H ${BRANCH_NAME} --title 'Merge ${BRANCH_NAME} into master' --body 'Created by Github action'
+git status --porcelain
+echo "Prepared changes in ${TARGET_FILE}; PR action will commit and open a PR on branch ${BRANCH_NAME} targeting master."
