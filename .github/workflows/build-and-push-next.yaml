@@ -84,16 +84,14 @@ jobs:
           path: site-values
           ref: master
 
-      - name: Commit and push changes
-        working-directory: site-values
-        shell: bash
+      - name: Update tag in site-values (yq)
+        uses: mikefarah/yq@v4
         env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-          DOMAIN: ${{ env.DOMAIN }}
           REPO_NAME: ${{ github.event.repository.name }}
-          GITHUB_SHA: ${{ github.sha }}
           TAG: ${{ needs.push-helm-package.outputs.chart_tag }}
-        run: bash ../.github/scripts/commit_changes.sh
+          DOMAIN: ${{ env.DOMAIN }}
+        with:
+          cmd: yq eval -i ".chartsVersions[\"${{ env.REPO_NAME }}\"] = \"${{ env.TAG }}\"" "site-values/${{ env.DOMAIN }}/environments/dev.yaml"
 
       - name: Create Pull Request
         id: cpr
@@ -105,28 +103,8 @@ jobs:
           title: 'feat: update ${{ env.DOMAIN }}/${{ github.event.repository.name }} to ${{ needs.push-helm-package.outputs.chart_tag }}'
           body: |
             Trigger commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
-          labels: dev
+          labels: |
+            dev
+            auto-merge
           branch: ${{ github.event.repository.name }}-${{ github.sha }}
           base: master
-
-      - name: Install GitHub CLI (act only)
-        if: ${{ env.ACT == 'true' }}
-        shell: bash
-        run: |
-          if command -v gh >/dev/null 2>&1; then
-            echo "gh already installed";
-            exit 0;
-          fi
-          apt-get update
-          apt-get install -y curl ca-certificates gnupg
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list
-          apt-get update
-          apt-get install -y gh
-
-      - name: Merge Pull Request (gh)
-        working-directory: site-values
-        run: gh pr merge "${{ steps.cpr.outputs.pull-request-number }}" --merge --delete-branch --repo MapColonies/site-values
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
