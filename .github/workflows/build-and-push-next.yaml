@@ -71,7 +71,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: push-helm-package
     steps:
-      - name: Checkout helm chart repository
+      - name: Checkout repo
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Checkout site-values repo
         uses: actions/checkout@v5
         with:
           repository: MapColonies/site-values
@@ -79,90 +84,18 @@ jobs:
           path: site-values
           ref: master
 
-      - name: Install yq (YAML CLI)
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo curl -L https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64 -o /usr/local/bin/yq
-          sudo chmod +x /usr/local/bin/yq
-
-      # - name: Create and push branch in site-values
-      #   working-directory: site-values
-      #   shell: bash
-      #   env:
-      #     GH_PAT: ${{ secrets.GH_PAT }}
-      #   run: |
-      #     set -euo pipefail
-      #     BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
-      #     git fetch origin --prune
-      #     git checkout master
-
-      #     # Ensure authenticated remote for pushing with PAT
-      #     git config user.name "github-actions"
-      #     git config user.email "github-actions@github.com"
-      #     git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
-
-      #     # Create branch if it doesn't already exist remotely
-      #     if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
-      #       echo "Branch $BRANCH_NAME already exists on remote; checking it out."
-      #       git checkout "$BRANCH_NAME"
-      #     else
-      #       git checkout -b "$BRANCH_NAME"
-      #       git push --set-upstream origin "$BRANCH_NAME"
-      #       echo "Created and pushed branch $BRANCH_NAME"
-      #     fi
-
-      - name: Create and push branch in site-values
+      - name: Commit and push changes
         working-directory: site-values
         shell: bash
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          set -euo pipefail
-          BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
-          git fetch origin --prune
-          git checkout master
-
-          # Create branch if it doesn't already exist remotely
-          if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
-            echo "Branch $BRANCH_NAME already exists on remote; checking it out."
-            git checkout "$BRANCH_NAME"
-          else
-            git checkout -b "$BRANCH_NAME"
-            git push --set-upstream origin "$BRANCH_NAME"
-            echo "Created and pushed branch $BRANCH_NAME"
-          fi
-
-      - name: Update chart version in dev environment
-        working-directory: site-values
-        shell: bash
-        env:
+          DOMAIN: ${{ env.DOMAIN }}
+          REPO_NAME: ${{ github.event.repository.name }}
+          GITHUB_SHA: ${{ github.sha }}
           TAG: ${{ needs.push-helm-package.outputs.chart_tag }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          set -euo pipefail
+        run: bash ../.github/scripts/commit_changes.sh
 
-          # Ensure we are on the created branch before committing
-          BRANCH_NAME="${{ github.event.repository.name }}-$GITHUB_SHA"
-          git checkout "$BRANCH_NAME"
-
-          # Use explicit dev values file path and update tag if changed
-          TARGET_FILE="${{ env.DOMAIN }}/environments/dev.yaml"
-
-          if [ ! -f "$TARGET_FILE" ]; then
-            echo "Target file not found: $TARGET_FILE" >&2
-            exit 1
-          fi
-
-          CURRENT_TAG=$(yq eval '.chartsVersions["jobnik-manager"]' "$TARGET_FILE")
-          if [ "$CURRENT_TAG" = "$TAG" ]; then
-            echo "Tag unchanged ($TAG); skipping update."
-            exit 0
-          fi
-
-          yq eval -i ".chartsVersions[\"jobnik-manager\"] = \"$TAG\"" "$TARGET_FILE"
-          git add "$TARGET_FILE"
-          git commit -m "chore(jobnik-manager): update chart tag to $TAG"
-          # Push using authenticated remote with PAT
-          git remote set-url origin "https://x-access-token:${GH_PAT}@github.com/MapColonies/site-values"
-          git push origin "$BRANCH_NAME"
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GH_PAT }}
