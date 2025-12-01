@@ -94,7 +94,6 @@ jobs:
           cmd: yq eval -i ".chartsVersions[\"${{ env.REPO_NAME }}\"] = \"${{ env.TAG }}\"" "site-values/${{ env.DOMAIN }}/environments/dev.yaml"
 
       - name: Create Pull Request
-        id: cpr
         uses: peter-evans/create-pull-request@v6
         with:
           path: site-values
