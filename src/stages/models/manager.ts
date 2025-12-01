@@ -468,10 +468,11 @@ export class StageManager {
       prisma.stage.count({ where: { jobId, status: StageOperationStatus.COMPLETED } }),
     ]);
 
-    /* istanbul ignore if */
+    /* v8 ignore start */
     if (totalStages === 0) {
       return { completedStages: 0, totalStages: 0 };
     }
+    /* v8 ignore stop */
 
     const JOB_PERCENTAGE_MULTIPLIER = 100;
     const completionPercentage = Math.floor((completedStages / totalStages) * JOB_PERCENTAGE_MULTIPLIER);

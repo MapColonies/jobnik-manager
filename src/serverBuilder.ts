@@ -68,6 +68,7 @@ export class ServerBuilder {
     this.serverInstance.use(httpLogger({ logger: this.logger, ignorePaths: ['/metrics', '/service-metrics'] }));
 
     // Add service-level metrics endpoint
+    /* v8 ignore start */
     this.serverInstance.use('/service-metrics', (req, res, next) => {
       const registry = this.serviceMetricsRegistry;
       registry
@@ -80,6 +81,7 @@ export class ServerBuilder {
           next(error);
         });
     });
+    /* v8 ignore stop */
 
     if (this.config.get('server.response.compression.enabled')) {
       this.serverInstance.use(compression(this.config.get('server.response.compression.options') as unknown as compression.CompressionFilter));

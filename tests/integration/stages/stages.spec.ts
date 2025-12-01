@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
-import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
@@ -168,7 +168,7 @@ describe('stage', function () {
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as MatcherContext,
+            message: expect.stringMatching(/request\/query\/stage_type must NOT have more than 50 characters/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -178,7 +178,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
 
@@ -191,7 +191,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStages({});
 
@@ -278,7 +278,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -286,7 +286,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
@@ -299,7 +299,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageById({ pathParams: { stageId: dumpUuid } });
 
@@ -432,7 +432,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -450,7 +450,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
@@ -463,7 +463,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobId({ pathParams: { jobId: faker.string.uuid() } });
 
@@ -505,7 +505,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/stageId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -513,7 +513,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
@@ -526,7 +526,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummary({ pathParams: { stageId: dumpUuid } });
 
@@ -580,7 +580,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/is not valid JSON/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/is not valid JSON/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -588,7 +588,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
 
@@ -601,7 +601,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadata({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
 
@@ -1034,7 +1034,7 @@ describe('stage', function () {
         expect(addStageResponse).toSatisfyApiSpec();
         expect(addStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -1061,7 +1061,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
           requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
@@ -1077,7 +1077,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.addStage({
           requestBody: { data: {}, type: 'SOME_STAGE_TYPE', userMetadata: {} },
@@ -1192,7 +1192,7 @@ describe('stage', function () {
         expect(updateStageResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -1240,7 +1240,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },
@@ -1256,7 +1256,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageStatus({
           pathParams: { stageId: testStageId },

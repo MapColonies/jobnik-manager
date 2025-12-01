@@ -1,3 +1,4 @@
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { addMinutes } from 'date-fns';
@@ -33,7 +34,7 @@ describe('TaskSweeper', () => {
 
   afterEach(async () => {
     await prisma.$disconnect();
-    jest.resetModules();
+    vi.resetModules();
   });
 
   describe('#cleanStaleTasks', function () {
@@ -227,7 +228,7 @@ describe('TaskSweeper', () => {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        jest.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('Database error'));
+        vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('Database error'));
 
         await expect(taskManager.cleanStaleTasks()).toReject();
       });

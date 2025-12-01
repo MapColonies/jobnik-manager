@@ -1,3 +1,4 @@
+import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { PrismaClient, TaskOperationStatus } from '@prismaClient';
@@ -15,7 +16,7 @@ describe('JobManager', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('#StageRepository', () => {
@@ -25,7 +26,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
           const mockTx = {
-            $queryRaw: jest.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 2, created: 2 } }]),
+            $queryRaw: vi.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 2, created: 2 } }]),
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           const summaryUpdatePayload = {
@@ -40,7 +41,7 @@ describe('JobManager', () => {
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
 
           const mockTx = {
-            $queryRaw: jest.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 1, created: 0, pending: 1 } }]),
+            $queryRaw: vi.fn().mockResolvedValue([{ summary: { defaultStatusCounts, total: 1, created: 0, pending: 1 } }]),
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           const summaryUpdatePayload = {
@@ -58,7 +59,7 @@ describe('JobManager', () => {
           const stageEntity = createStageEntity({ id: stageId, summary: { ...defaultStatusCounts, total: 1, created: 1 } });
 
           const mockTx = {
-            $queryRaw: jest.fn().mockResolvedValue([]),
+            $queryRaw: vi.fn().mockResolvedValue([]),
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           const summaryUpdatePayload = {
@@ -78,7 +79,7 @@ describe('JobManager', () => {
           } satisfies UpdateSummaryCount;
 
           const mockTx = {
-            $queryRaw: jest.fn().mockRejectedValueOnce(new Error('db connection error')),
+            $queryRaw: vi.fn().mockRejectedValueOnce(new Error('db connection error')),
           } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
           await expect(stageRepository.updateStageSummary('someId', summaryUpdatePayload, mockTx)).rejects.toThrow('db connection error');

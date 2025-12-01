@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/naming-convention */
+import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
-import type { MatcherContext } from '@jest/expect';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
@@ -122,7 +122,7 @@ describe('job', function () {
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/query\/priority must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/query\/priority must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -134,7 +134,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/Unknown query parameter/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/Unknown query parameter/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -142,7 +142,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.findJobs({});
 
@@ -157,7 +157,7 @@ describe('job', function () {
         const error = new Error('Database error');
         // @ts-expect-error using this flag to mark the error as a Prisma error
         error.isPrismaError = false;
-        jest.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(error);
 
         const response = await requestSender.findJobs({});
 
@@ -245,7 +245,7 @@ describe('job', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must have required property/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body must have required property/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -257,7 +257,7 @@ describe('job', function () {
         expect(createJobResponse).toSatisfyApiSpec();
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body\/traceparent must match pattern/) as string, code: 'VALIDATION_ERROR' },
         });
       });
 
@@ -270,7 +270,7 @@ describe('job', function () {
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/name must NOT have fewer than 2 characters/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/name must NOT have fewer than 2 characters/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -284,7 +284,7 @@ describe('job', function () {
         expect(createJobResponse).toSatisfyApiSpec();
         expect(createJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/body must NOT have additional properties/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/body must NOT have additional properties/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -292,7 +292,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
 
         const response = await requestSender.createJob({
           requestBody: createJobRequestBody,
@@ -307,7 +307,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'create').mockRejectedValueOnce(error);
 
         const response = await requestSender.createJob({
           requestBody: createJobRequestBody,
@@ -381,7 +381,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -389,7 +389,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: testJobId } });
 
@@ -402,7 +402,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
         const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: testJobId } });
 
         expect(getJobResponse).toSatisfyApiSpec();
@@ -464,7 +464,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId: testJobId }, requestBody: {} });
 
@@ -477,7 +477,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'update').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateUserMetadata({ pathParams: { jobId: testJobId }, requestBody: {} });
 
@@ -555,7 +555,7 @@ describe('job', function () {
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/priority must be equal to one of the allowed values:/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -565,7 +565,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: Priority.VERY_HIGH } });
 
@@ -578,7 +578,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateJobPriority({ pathParams: { jobId: testJobId }, requestBody: { priority: Priority.VERY_HIGH } });
 
@@ -656,7 +656,7 @@ describe('job', function () {
         expect(setStatusResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
           body: {
-            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as MatcherContext,
+            message: expect.stringMatching(/request\/body\/status must be equal to one of the allowed values/) as string,
             code: 'VALIDATION_ERROR',
           },
         });
@@ -683,7 +683,7 @@ describe('job', function () {
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext, code: 'VALIDATION_ERROR' },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string, code: 'VALIDATION_ERROR' },
         });
       });
     });
@@ -691,7 +691,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
@@ -704,7 +704,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStatus({ pathParams: { jobId: testJobId }, requestBody: { status: JobOperationStatus.PENDING } });
 
@@ -766,7 +766,7 @@ describe('job', function () {
         expect(deleteJobResponse).toSatisfyApiSpec();
         expect(deleteJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
-          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as MatcherContext },
+          body: { message: expect.stringMatching(/request\/params\/jobId must match format "uuid"/) as string },
         });
       });
 
@@ -800,7 +800,7 @@ describe('job', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },
@@ -815,7 +815,7 @@ describe('job', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        jest.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
+        vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(error);
 
         const deleteJobResponse = await requestSender.deleteJob({
           pathParams: { jobId: testJobId },

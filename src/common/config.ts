@@ -19,9 +19,11 @@ async function initConfig(offlineMode?: boolean): Promise<void> {
 }
 
 function getConfig(): ConfigType {
+  /* v8 ignore start */
   if (!configInstance) {
     throw new Error('config not initialized');
   }
+  /* v8 ignore stop */
   return configInstance;
 }
 
