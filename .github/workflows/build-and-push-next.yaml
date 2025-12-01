@@ -60,7 +60,7 @@ jobs:
         with:
           name: ${{ github.event.repository.name }}
           repository: helm/${{ env.DOMAIN }}
-          tag: ${{ steps.chart_tag.outputs.tag }}
+          tag: '0.0.0-next-${{ github.sha }}'
           path: ./helm
           registry: ${{ secrets.ACR_URL }}
           registry_username: ${{ secrets.ACR_PUSH_USER }}
