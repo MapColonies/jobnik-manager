@@ -9,7 +9,6 @@ metadata:
   labels:
     app: {{ $chartName }}
     component: {{ $chartName }}
-    environment: {{ include "jobnik-manager.environment" . }}
     release: {{ $releaseName }}
     {{- include "jobnik-manager.labels" . | nindent 4 }}
   annotations:

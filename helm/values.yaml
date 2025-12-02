@@ -2,7 +2,6 @@ global:
   cloudProvider: {}
   tracing: {}
   metrics: {}
-  environment: ''
 
 mclabels:
   component: backend
@@ -12,7 +11,6 @@ mclabels:
     enabled: true
     
 enabled: true
-environment: development
 replicaCount: 1
 revisionHistoryLimit: 5 # Amount of revisions we keep
 nodePort: 30030 #for minikube deployment only
