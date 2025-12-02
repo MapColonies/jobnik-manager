@@ -14,7 +14,7 @@ metadata:
   annotations:
     prometheus.io/path: /service-metrics
     prometheus.io/port: {{ .Values.env.port | quote }}
-    prometheus.io/scrape: {{ .Values.mclabels.prometheus.enabled }}
+    prometheus.io/scrape: {{ .Values.mclabels.prometheus.enabled | quote }}
 spec:
   {{- if eq $cloudProviderFlavor "minikube" }}
   type: NodePort
