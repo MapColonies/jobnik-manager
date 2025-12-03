@@ -6,6 +6,8 @@ kind: ConfigMap
 metadata:
   name: {{ printf "%s-configmap" (include "jobnik-manager.fullname" .) }}
 data:
+  npm_config_cache: /tmp/
+  {{- if .Values.env.configManager.offlineMode }}
   REQUEST_PAYLOAD_LIMIT: {{ .Values.env.requestPayloadLimit | quote }}
   RESPONSE_COMPRESSION_ENABLED: {{ .Values.env.responseCompressionEnabled | quote }}
   LOG_LEVEL: {{ .Values.env.logLevel | quote }}
@@ -18,8 +20,6 @@ data:
   TELEMETRY_METRICS_ENABLED: 'true'
   TELEMETRY_METRICS_URL: {{ $metricsUrl }}
   {{- end }}
-  npm_config_cache: /tmp/
-  {{- if .Values.env.configManager.offlineMode }}
   {{- with .Values.dbConfig }}
   DB_HOST: {{ .host }}
   DB_NAME: {{ .database }}
