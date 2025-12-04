@@ -241,93 +241,13 @@ export class StageManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
     });
 
-    const prisma = tx ?? this.prisma;
-
-    const stage = await this.getStageEntityById(stageId, { includeJob: true, tx });
-
-    if (!stage) {
-      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
-    }
-    //#region validate status transition rules
-    const previousStageOrder = stage.order - 1;
-
-    // can't move to PENDING if previous stage is not COMPLETED
-    if (status === StageOperationStatus.PENDING && previousStageOrder > 0) {
-      const previousStage = await prisma.stage.findFirst({
-        where: {
-          jobId: stage.jobId,
-          order: previousStageOrder,
-        },
+    if (!tx) {
+      return this.prisma.$transaction(async (newTx) => {
+        await this.executeUpdateStatus(stageId, status, newTx);
       });
-
-      if (previousStage!.status !== StageOperationStatus.COMPLETED) {
-        throw new IllegalStageStatusTransitionError(`Previous stage is not ${StageOperationStatus.COMPLETED}`);
-      }
     }
 
-    const nextStatusChange = OperationStatusMapper[status];
-    const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
-    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
-
-    if (!isValidStatus) {
-      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, status));
-    }
-    //#endregion
-    updateActor.send({ type: nextStatusChange });
-    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
-
-    const updateQueryBody = {
-      where: {
-        id: stageId,
-      },
-      data: {
-        status,
-        xstate: newPersistedSnapshot,
-      },
-    };
-
-    await prisma.stage.update(updateQueryBody);
-
-    //#region update related entities
-    // Update job completion when a stage is completed
-    // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
-    if (status === StageOperationStatus.COMPLETED) {
-      const nextStageOrder = stage.order + 1;
-      const nextStage = await prisma.stage.findFirst({
-        where: {
-          jobId: stage.jobId,
-          order: nextStageOrder,
-        },
-      });
-
-      if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
-        await this.updateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
-        trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
-      }
-
-      const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
-      if (completedStages === totalStages) {
-        await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.COMPLETED, tx);
-        this.logger.info({
-          msg: 'Job completed as all stages are done',
-          jobId: stage.jobId,
-        });
-
-        trace.getActiveSpan()?.addEvent('Job set to COMPLETED', { jobId: stage.jobId });
-      }
-    }
-
-    if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
-      // Update job status to IN_PROGRESS
-      await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
-      trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
-    } else if (status === StageOperationStatus.FAILED) {
-      // Update job status to FAILED
-      await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
-      trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
-    }
-
-    //#endregion
+    await this.executeUpdateStatus(stageId, status, tx);
   }
 
   /**
@@ -388,6 +308,95 @@ export class StageManager {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
       trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS because first task started', { stageId });
     }
+  }
+
+  @withSpanAsyncV4
+  private async executeUpdateStatus(stageId: string, status: StageOperationStatus, tx: PrismaTransaction): Promise<void> {
+    const stage = await this.getStageEntityById(stageId, { includeJob: true, tx });
+
+    if (!stage) {
+      throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
+    }
+    //#region validate status transition rules
+    const previousStageOrder = stage.order - 1;
+
+    // can't move to PENDING if previous stage is not COMPLETED
+    if (status === StageOperationStatus.PENDING && previousStageOrder > 0) {
+      const previousStage = await tx.stage.findFirst({
+        where: {
+          jobId: stage.jobId,
+          order: previousStageOrder,
+        },
+      });
+
+      if (previousStage!.status !== StageOperationStatus.COMPLETED) {
+        throw new IllegalStageStatusTransitionError(`Previous stage is not ${StageOperationStatus.COMPLETED}`);
+      }
+    }
+
+    const nextStatusChange = OperationStatusMapper[status];
+    const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
+    const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
+
+    if (!isValidStatus) {
+      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, status));
+    }
+    //#endregion
+    updateActor.send({ type: nextStatusChange });
+    const newPersistedSnapshot = updateActor.getPersistedSnapshot();
+
+    const updateQueryBody = {
+      where: {
+        id: stageId,
+      },
+      data: {
+        status,
+        xstate: newPersistedSnapshot,
+      },
+    };
+
+    await tx.stage.update(updateQueryBody);
+
+    //#region update related entities
+    // Update job completion when a stage is completed
+    // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
+    if (status === StageOperationStatus.COMPLETED) {
+      const nextStageOrder = stage.order + 1;
+      const nextStage = await tx.stage.findFirst({
+        where: {
+          jobId: stage.jobId,
+          order: nextStageOrder,
+        },
+      });
+
+      if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
+        await this.executeUpdateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
+        trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
+      }
+
+      const { completedStages, totalStages } = await this.updateJobCompletionProgress(stage.jobId, tx);
+      if (completedStages === totalStages) {
+        await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.COMPLETED, tx);
+        this.logger.info({
+          msg: 'Job completed as all stages are done',
+          jobId: stage.jobId,
+        });
+
+        trace.getActiveSpan()?.addEvent('Job set to COMPLETED', { jobId: stage.jobId });
+      }
+    }
+
+    if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
+      // Update job status to IN_PROGRESS
+      await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
+      trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
+    } else if (status === StageOperationStatus.FAILED) {
+      // Update job status to FAILED
+      await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
+      trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
+    }
+
+    //#endregion
   }
 
   /**
@@ -461,6 +470,7 @@ export class StageManager {
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
     });
 
+    /* v8 ignore next - defensive code, tx is always provided in tests */
     const prisma = tx ?? this.prisma;
 
     const [totalStages, completedStages] = await Promise.all([
