@@ -15,6 +15,7 @@ import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
+import { createMockPrismaClient } from '@tests/unit/mocks/prismaClientMock';
 import {
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
@@ -30,7 +31,7 @@ let jobManager: JobManager;
 let stageManager: StageManager;
 let stageRepository: StageRepository;
 const tracer = trace.getTracer(SERVICE_NAME);
-const prisma = new PrismaClient();
+const prisma = createMockPrismaClient();
 type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
@@ -55,9 +56,10 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = [rest];
+          // Status is converted from Prisma value to API value
+          const expectedStage = [{ ...rest, status: 'CREATED' }];
 
           expect(stages).toMatchObject(expectedStage);
           expect(stages[0]?.tasks).toBeUndefined();
@@ -70,9 +72,10 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE', should_return_tasks: true });
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = [rest];
+          // Status is converted from Prisma value to API value
+          const expectedStage = [{ ...rest, status: 'CREATED' }];
 
           expect(stages).toMatchObject(expectedStage);
           expect(stages[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
@@ -83,9 +86,9 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages(undefined);
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = [rest];
+          const expectedStage = [{ ...rest, status: 'CREATED' }];
 
           expect(stages).toMatchObject(expectedStage);
         });
@@ -111,9 +114,9 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStageById(stageId);
 
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = rest;
+          const expectedStage = { ...rest, status: 'CREATED' };
 
           expect(stage).toMatchObject(expectedStage);
           expect(stage.tasks).toBeUndefined();
@@ -128,9 +131,9 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStageById(stageId);
 
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = rest;
+          const expectedStage = { ...rest, status: 'CREATED' };
 
           expect(stage).toMatchObject(expectedStage);
           expect(stage.tasks).toMatchObject([{ id: taskEntity.id }]);
@@ -162,8 +165,8 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
-          const { xstate, task, tracestate, ...rest } = stageEntity;
-          const expectedStage = [rest];
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
+          const expectedStage = [{ ...rest, status: 'CREATED' }];
 
           expect(stage).toMatchObject(expectedStage);
           expect(stage[0]?.tasks).toBeUndefined();
@@ -179,9 +182,9 @@ describe('JobManager', () => {
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
-          const { xstate, task, tracestate, ...rest } = stageEntity;
+          const { xstate, task, tracestate, status, ...rest } = stageEntity;
 
-          const expectedStage = [rest];
+          const expectedStage = [{ ...rest, status: 'CREATED' }];
 
           expect(stage).toMatchObject(expectedStage);
           expect(stage[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
@@ -313,9 +316,9 @@ describe('JobManager', () => {
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
           // Extract unnecessary fields from the stage object and assemble the expected result
-          const { xstate, task, tracestate, ...rest } = anotherStageEntity;
-
-          expect(stagesResponse).toMatchObject(rest);
+          const { xstate, task, tracestate, status, ...rest } = anotherStageEntity;
+          // Status is converted from Prisma value to API value
+          expect(stagesResponse).toMatchObject({ ...rest, status: 'CREATED' });
         });
 
         it('should add stage with WAITING status when startAsWaiting flag is true', async function () {
@@ -346,9 +349,9 @@ describe('JobManager', () => {
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
           // Extract unnecessary fields from the stage object and assemble the expected result
-          const { xstate, task, tracestate, ...rest } = anotherStageEntity;
-
-          expect(stagesResponse).toMatchObject(rest);
+          const { xstate, task, tracestate, status, ...rest } = anotherStageEntity;
+          // Status is converted from Prisma value to API value
+          expect(stagesResponse).toMatchObject({ ...rest, status: 'CREATED' });
         });
 
         it('should assign order 1 to the first stage in a job (internal logic)', async function () {
@@ -507,7 +510,7 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntityResult);
           vi.spyOn(prisma.stage, 'update').mockResolvedValue({ ...stageEntity, id: stageId });
 
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.PENDING)).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, 'PENDING')).toResolve();
         });
 
         it('should successfully update next ordered stage status by id (CREATED -> PENDING)', async function () {
@@ -523,7 +526,7 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'update').mockResolvedValue({ ...stageEntity, id: stageId });
           vi.spyOn(prisma.stage, 'findFirst').mockResolvedValue({ ...stageEntity, status: StageOperationStatus.COMPLETED });
 
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.PENDING)).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, 'PENDING')).toResolve();
         });
 
         it('should successfully update next ordered stage status to pending after completion of current', async function () {
@@ -573,7 +576,7 @@ describe('JobManager', () => {
           });
           vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
 
-          await expect(stageManager.updateStatus(stageId, StageOperationStatus.COMPLETED)).toResolve();
+          await expect(stageManager.updateStatus(stageId, 'COMPLETED')).toResolve();
         });
 
         it('should successfully complete the final stage and also complete the job', async function () {
@@ -602,7 +605,7 @@ describe('JobManager', () => {
             status: JobOperationStatus.IN_PROGRESS,
             xstate: inProgressStageXstatePersistentSnapshot,
           });
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, 'COMPLETED')).toResolve();
         });
 
         it("should successfully complete stage and also update in-progress job's percentage", async function () {
@@ -641,7 +644,7 @@ describe('JobManager', () => {
           updateSpy.mockResolvedValueOnce(stageEntityOrder2);
           vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
 
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, 'COMPLETED')).toResolve();
         });
 
         it('should successfully update stage to IN_PROGRESS and move also the PENDING job to IN_PROGRESS', async function () {
@@ -663,7 +666,7 @@ describe('JobManager', () => {
           });
 
           vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithStages);
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.IN_PROGRESS)).toResolve();
+          await expect(stageManager.updateStatus(stageEntity.id, 'IN_PROGRESS')).toResolve();
         });
       });
 
@@ -671,7 +674,8 @@ describe('JobManager', () => {
         it('should fail when updating status for a state that does not exist', async function () {
           vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
 
-          await expect(stageManager.updateStatus('someId', StageOperationStatus.PENDING)).rejects.toThrow(stagesErrorMessages.stageNotFound);
+          // Use API status value
+          await expect(stageManager.updateStatus('someId', 'PENDING')).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
 
         it('should fail when updating status for a stage before previous completed', async function () {
@@ -688,7 +692,8 @@ describe('JobManager', () => {
           vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntityResult);
           vi.spyOn(prisma.stage, 'findFirst').mockResolvedValue({ ...stageEntity, status: StageOperationStatus.IN_PROGRESS });
 
-          await expect(stageManager.updateStatus(stageId, StageOperationStatus.PENDING)).rejects.toThrow('Previous stage is not COMPLETED');
+          // Use API status value
+          await expect(stageManager.updateStatus(stageId, 'PENDING')).rejects.toThrow(`Previous stage is not ${StageOperationStatus.COMPLETED}`);
         });
 
         it('should fail on invalid status transition', async function () {
@@ -697,8 +702,9 @@ describe('JobManager', () => {
             job: { status: JobOperationStatus.IN_PROGRESS },
           } as unknown as StageWithTasks);
 
-          await expect(stageManager.updateStatus(stageEntity.id, StageOperationStatus.COMPLETED)).rejects.toThrow(
-            illegalStatusTransitionErrorMessage(stageEntity.status, StageOperationStatus.COMPLETED)
+          // XState machine state is 'CREATED' (uppercase), Prisma status is 'Completed'
+          await expect(stageManager.updateStatus(stageEntity.id, 'COMPLETED')).rejects.toThrow(
+            illegalStatusTransitionErrorMessage('CREATED', StageOperationStatus.COMPLETED)
           );
         });
       });
@@ -707,7 +713,7 @@ describe('JobManager', () => {
         it('should fail with a database error when updating status', async function () {
           vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(stageManager.updateStatus('someId', StageOperationStatus.COMPLETED)).rejects.toThrow('db connection error');
+          await expect(stageManager.updateStatus('someId', 'COMPLETED')).rejects.toThrow('db connection error');
         });
       });
     });

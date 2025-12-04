@@ -17,6 +17,12 @@ import { type ConfigType } from '@src/common/config';
 import type { UpdateSummaryCount } from '@src/stages/models/models';
 import type { PrismaTransaction } from '@src/db/types';
 import {
+  convertTaskStatusToPrisma,
+  convertTaskStatusToApi,
+  convertStageStatusToApi,
+  type ApiTaskOperationStatus,
+} from '@common/utils/statusMapping';
+import {
   NotAllowedToAddTasksToInProgressStageError,
   StageInFiniteStateError,
   StageNotFoundError,
@@ -113,7 +119,9 @@ export class TaskManager {
       throw new StageInFiniteStateError(stagesErrorMessages.stageAlreadyFinishedTasksError);
     }
 
-    if (checkStageStatus.getSnapshot().value === StageOperationStatus.IN_PROGRESS) {
+    // XState machine state values are uppercase (e.g., 'IN_PROGRESS')
+    // which match API status values, not Prisma database values
+    if (checkStageStatus.getSnapshot().value === 'IN_PROGRESS') {
       this.logger.error(`Failed adding tasks to stage, not allowed on running stage`);
       throw new NotAllowedToAddTasksToInProgressStageError(tasksErrorMessages.addTaskNotAllowed);
     }
@@ -167,6 +175,9 @@ export class TaskManager {
   public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
     const hasNoParams = params === undefined || Object.keys(params).length === 0;
 
+    // Convert API status to Prisma status if provided
+    const prismaStatus = params?.status ? convertTaskStatusToPrisma(params.status as ApiTaskOperationStatus) : undefined;
+
     const queryBody: Prisma.TaskFindManyArgs = {
       where: hasNoParams
         ? undefined
@@ -174,7 +185,7 @@ export class TaskManager {
             AND: {
               stageId: { equals: params.stage_id },
               stage: { type: { equals: params.stage_type } },
-              status: { equals: params.status },
+              status: { equals: prismaStatus },
               creationTime: { gte: params.from_date, lte: params.end_date },
             },
           },
@@ -246,11 +257,11 @@ export class TaskManager {
   }
 
   @withSpanAsyncV4
-  public async updateStatus(taskId: string, status: TaskOperationStatus): Promise<TaskModel> {
+  public async updateStatus(taskId: string, apiStatus: ApiTaskOperationStatus): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_ID]: taskId,
-      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
+      [INFRA_CONVENTIONS.infra.jobnik.stage.status]: apiStatus,
     });
 
     const task = await this.getTaskEntityById(taskId);
@@ -258,7 +269,10 @@ export class TaskManager {
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
-    const updatedTask = await this.updateAndValidateStatus(task, status);
+
+    // Convert API status to Prisma status
+    const prismaStatus = convertTaskStatusToPrisma(apiStatus);
+    const updatedTask = await this.updateAndValidateStatus(task, prismaStatus);
 
     return convertPrismaToTaskResponse(updatedTask);
   }
@@ -431,7 +445,8 @@ export class TaskManager {
           stageId: task.stageId,
         });
 
-        await this.stageManager.updateStatus(task.stageId, StageOperationStatus.FAILED, tx);
+        // Convert Prisma status to API status for cross-manager call
+        await this.stageManager.updateStatus(task.stageId, convertStageStatusToApi(StageOperationStatus.FAILED), tx);
         trace.getActiveSpan()?.addEvent('Stage set to FAILED', { stageId: task.stageId });
       }
 
@@ -526,7 +541,8 @@ export class TaskManager {
     // Process tasks sequentially to avoid overwhelming the database
     for (const task of staleTasks) {
       try {
-        await this.updateStatus(task.id, TaskOperationStatus.FAILED);
+        // Convert Prisma status to API status for internal call
+        await this.updateStatus(task.id, convertTaskStatusToApi(TaskOperationStatus.FAILED));
         successCount++;
 
         this.logger.debug({
