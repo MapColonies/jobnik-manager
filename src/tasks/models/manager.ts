@@ -373,7 +373,7 @@ export class TaskManager {
 
     const queryBody = generatePrioritizedTaskQuery(stageType);
 
-    const task = (await tx.task.findFirst(queryBody)) as TaskPrismaObject | null;
+    const task = await tx.task.findFirst(queryBody);
 
     if (task === null) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
