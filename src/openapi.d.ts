@@ -4,7 +4,7 @@
 
 import type { TypedRequestHandlers as ImportedTypedRequestHandlers } from '@map-colonies/openapi-helpers/typedRequestHandler';
 export type paths = {
-  '/jobs': {
+  '/v1/jobs': {
     parameters: {
       query?: never;
       header?: never;
@@ -12,23 +12,16 @@ export type paths = {
       cookie?: never;
     };
     /**
-     * Retrieve jobs matching specified criteria
-     * @description Returns a filtered list of jobs based on the provided query parameters.
-     *     Supports filtering by job mode, name, date range, priority.
-     *     Optional inclusion of related stage data via the should_return_stages parameter.
-     *
-     *     Returns an empty array ([]) when no jobs match the specified criteria, rather than an error.
+     * Retrieve jobs matching criteria
+     * @description Filter jobs by name, date range, priority. Optional stage inclusion.
+     *     Returns empty array if no matches.
      *
      */
     get: operations['findJobs'];
     put?: never;
     /**
-     * Create a new job with configuration and metadata
-     * @description Creates a new job in the system with user-defined configuration and metadata.
-     *     Supports customizable priorities and job-specific data payloads.
-     *
-     *     The job will be created with an initial status of PENDING and can be tracked
-     *     throughout its lifecycle using the returned job ID.
+     * Create job
+     * @description Create job with config and metadata. Initial status: PENDING.
      *
      */
     post: operations['createJob'];
@@ -38,7 +31,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/jobs/{jobId}': {
+  '/v1/jobs/{jobId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -78,7 +71,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/jobs/{jobId}/user-metadata': {
+  '/v1/jobs/{jobId}/user-metadata': {
     parameters: {
       query?: never;
       header?: never;
@@ -104,7 +97,7 @@ export type paths = {
     patch: operations['updateUserMetadata'];
     trace?: never;
   };
-  '/jobs/{jobId}/priority': {
+  '/v1/jobs/{jobId}/priority': {
     parameters: {
       query?: never;
       header?: never;
@@ -133,7 +126,7 @@ export type paths = {
     patch: operations['updateJobPriority'];
     trace?: never;
   };
-  '/jobs/{jobId}/status': {
+  '/v1/jobs/{jobId}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -145,17 +138,18 @@ export type paths = {
     };
     get?: never;
     /**
-     * Change job's operational status
-     * @description Updates the operational status of a job, which may cascade changes to all
-     *     related stages and tasks. This endpoint can be used to pause, resume, abort,
-     *     or otherwise control the execution flow of a job.
+     * Update job status for workflow control
+     * @description Updates the operational status of a job to control its workflow execution. This endpoint
+     *     supports user-initiated operations including PENDING (resume), ABORTED (cancel), and
+     *     PAUSED (suspend), which may cascade changes to related stages and tasks.
      *
-     *     Status changes follow a state machine that enforces valid transitions, preventing
-     *     operations like resuming a completed job or completing a failed job without
-     *     proper remediation.
+     *     Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, CREATED) are managed
+     *     automatically by the system based on stage and task completion, and cannot be set through
+     *     this endpoint.
      *
-     *     When a job's status is changed, the system will automatically update timestamps
-     *     and completion percentages as appropriate.
+     *     Status changes follow a state machine that enforces valid transitions. When a job's status
+     *     is changed, the system will automatically update timestamps and completion percentages as
+     *     appropriate.
      *
      */
     put: operations['updateStatus'];
@@ -166,7 +160,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/jobs/{jobId}/stages': {
+  '/v1/jobs/{jobId}/stages': {
     parameters: {
       query?: never;
       header?: never;
@@ -198,7 +192,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/jobs/{jobId}/stage': {
+  '/v1/jobs/{jobId}/stage': {
     parameters: {
       query?: never;
       header?: never;
@@ -227,7 +221,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages': {
+  '/v1/stages': {
     parameters: {
       query?: never;
       header?: never;
@@ -252,7 +246,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageId}': {
+  '/v1/stages/{stageId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -280,7 +274,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageId}/summary': {
+  '/v1/stages/{stageId}/summary': {
     parameters: {
       query?: never;
       header?: never;
@@ -306,7 +300,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageId}/user-metadata': {
+  '/v1/stages/{stageId}/user-metadata': {
     parameters: {
       query?: never;
       header?: never;
@@ -332,7 +326,7 @@ export type paths = {
     patch: operations['updateStageUserMetadata'];
     trace?: never;
   };
-  '/stages/{stageId}/status': {
+  '/v1/stages/{stageId}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -346,7 +340,11 @@ export type paths = {
      *     transitions and cascade changes to related tasks and the parent job. This endpoint
      *     is restricted to manually advancing stages in the workflow sequence.
      *
-     *     Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED,
+     *     Common use cases:
+     *     - Resuming a WAITING stage (e.g., after manual intervention or approval)
+     *     - Unblocking workflow progression when a stage is ready to proceed
+     *
+     *     Internal status transitions (such as IN_PROGRESS, COMPLETED, FAILED, ABORTED,
      *     WAITING, CREATED) are managed automatically by the system based on task completion,
      *     job state, and workflow rules.
      *
@@ -363,7 +361,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageId}/tasks': {
+  '/v1/stages/{stageId}/tasks': {
     parameters: {
       query?: never;
       header?: never;
@@ -399,7 +397,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/stages/{stageType}/tasks/dequeue': {
+  '/v1/stages/{stageType}/tasks/dequeue': {
     parameters: {
       query?: never;
       header?: never;
@@ -430,7 +428,7 @@ export type paths = {
     patch: operations['dequeueTask'];
     trace?: never;
   };
-  '/tasks': {
+  '/v1/tasks': {
     parameters: {
       query?: {
         /** @description Filter results by stage identifier */
@@ -466,7 +464,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/tasks/{taskId}': {
+  '/v1/tasks/{taskId}': {
     parameters: {
       query?: never;
       header?: never;
@@ -491,7 +489,7 @@ export type paths = {
     patch?: never;
     trace?: never;
   };
-  '/tasks/{taskId}/user-metadata': {
+  '/v1/tasks/{taskId}/user-metadata': {
     parameters: {
       query?: never;
       header?: never;
@@ -517,7 +515,7 @@ export type paths = {
     patch: operations['updateTaskUserMetadata'];
     trace?: never;
   };
-  '/tasks/{taskId}/status': {
+  '/v1/tasks/{taskId}/status': {
     parameters: {
       query?: never;
       header?: never;
@@ -599,94 +597,85 @@ export type components = {
       [key: string]: unknown;
     };
     /**
-     * @description Sequential order number of the stage within its job, used for maintaining execution sequence
+     * @description Stage execution order within job
      * @example 1
      */
     order: number;
     /**
-     * @description Priority level that determines the relative importance of the job for processing order.
-     *     Higher priority jobs are processed before lower priority ones when system resources
-     *     are constrained. Priority affects task dequeuing order and scheduling decisions.
-     *
-     *     Priority levels from highest to lowest:
-     *     - VERY_HIGH: Critical jobs requiring immediate processing
-     *     - HIGH: Important jobs with elevated priority
-     *     - MEDIUM: Standard priority for regular operations
-     *     - LOW: Non-urgent jobs that can be delayed
-     *     - VERY_LOW: Background jobs with minimal priority
+     * @description Job priority for processing order. Higher priority processed first.
+     *     VERY_HIGH > HIGH > MEDIUM > LOW > VERY_LOW
      *
      * @example LOW
      * @enum {string}
      */
     priority: 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | 'VERY_LOW';
     /**
-     * @description Traceparent identifier for distributed tracing.
-     *     When creating resources, this field is optional - if not provided, the system will automatically inject
-     *     both traceparent and tracestate from the active OpenTelemetry context using propagation.inject().
-     *     In response objects, this field is always present and required.
-     *     See the [official W3C Trace Context documentation](https://www.w3.org/TR/trace-context/).
+     * @description W3C traceparent for distributed tracing. Auto-injected if not provided.
+     *     See [W3C Trace Context](https://www.w3.org/TR/trace-context/).
      *
      * @example 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
      */
     traceparent: string;
     /**
-     * @description Tracestate identifier for distributed tracing (optional, can be null).
-     *     When creating resources without providing traceparent, the system will attempt to inject
-     *     tracestate from the active OpenTelemetry context, but it may still be null if not available in the context.
-     *
+     * @description W3C tracestate for distributed tracing. Optional, auto-injected if available.
      * @example rojo=00f067aa0ba902b7,congo=t61rcWkgMzE
      */
     tracestate: string;
     /**
-     * @description Standard success message codes used in API responses
+     * @description Success response codes
      * @example JOB_MODIFIED_SUCCESSFULLY
      * @enum {string}
      */
     successMessages: 'JOB_MODIFIED_SUCCESSFULLY' | 'TASK_MODIFIED_SUCCESSFULLY' | 'STAGE_MODIFIED_SUCCESSFULLY' | 'JOB_DELETED_SUCCESSFULLY';
     /**
-     * @description Execution state of a stage within a job's workflow, tracking progress through its lifecycle.
-     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     * @description User-controllable job statuses: PENDING (resume), ABORTED (cancel), PAUSED (suspend).
+     *     System-managed: IN_PROGRESS, COMPLETED, FAILED, CREATED.
      *
      * @example PENDING
      * @enum {string}
      */
-    jobOperationStatus: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED';
+    jobOperationStatus: 'PENDING' | 'ABORTED' | 'PAUSED';
     /**
-     * @description Allowed operational status for user-initiated stage status updates via PUT /stages/{stageId}/status.
-     *     Currently restricted to PENDING to allow users to manually trigger stage transitions in the workflow.
-     *     Other status transitions (IN_PROGRESS, COMPLETED, FAILED, ABORTED, PAUSED, WAITING, CREATED) are managed internally by the system.
+     * @description All job states. User-controllable: PENDING, ABORTED, PAUSED. System-managed: IN_PROGRESS, COMPLETED, FAILED, CREATED.
+     *     Terminal states: COMPLETED, FAILED, ABORTED.
+     *
+     * @example PENDING
+     * @enum {string}
+     */
+    jobOperationStatusResponse: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'PAUSED' | 'CREATED';
+    /**
+     * @description User-controllable stage status: PENDING only.
+     *     System-managed: IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING, CREATED.
      *
      * @enum {string}
      */
     stageOperationStatus: 'PENDING';
     /**
-     * @description Current operational state of a stage in responses, representing all possible states throughout its lifecycle.
-     *     Includes system-managed states like CREATED and user-controllable states via PUT /stages/{stageId}/status.
-     *     Finite states from which no further transitions are possible include: COMPLETED, FAILED, and ABORTED.
+     * @description All stage states. User-controllable: PENDING. System-managed: IN_PROGRESS, COMPLETED, FAILED, ABORTED, WAITING, CREATED.
+     *     Terminal states: COMPLETED, FAILED, ABORTED.
      *
-     * @example CREATED
+     * @example PENDING
      * @enum {string}
      */
     stageOperationStatusResponse: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'ABORTED' | 'WAITING' | 'CREATED';
     /**
-     * @description Allowed operational statuses for user-initiated task status updates via PUT /tasks/{taskId}/status.
-     *     Only COMPLETED and FAILED are permitted, as these represent the final states a worker can report.
-     *     Other status transitions (PENDING, IN_PROGRESS, CREATED, RETRIED) are managed internally by the system.
+     * @description User-controllable task statuses: COMPLETED, FAILED.
+     *     System-managed: PENDING, IN_PROGRESS, CREATED, RETRIED.
      *
      * @example COMPLETED
      * @enum {string}
      */
     taskOperationStatus: 'COMPLETED' | 'FAILED';
     /**
-     * @description Current operational state of a task, including specialized states like RETRIED for task-specific error handling.
-     *     Finite states from which no further transitions are possible include: COMPLETED and FAILED.
+     * @description All task states including RETRIED for retry handling.
+     *     Terminal states: COMPLETED, FAILED.
      *
      * @example PENDING
      * @enum {string}
      */
     taskOperationStatusResponse: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'FAILED' | 'CREATED' | 'RETRIED';
     /**
-     * @description Category or type of job processing being performed, used for filtering and system behaviors
+     * @description Job category/type for filtering and behavior
      * @example DEFAULT
      */
     jobName: string;
@@ -757,7 +746,7 @@ export type components = {
      *      */
     job: {
       id: components['schemas']['jobId'];
-      status: components['schemas']['jobOperationStatus'];
+      status: components['schemas']['jobOperationStatusResponse'];
       percentage: components['schemas']['percentage'];
       creationTime: components['schemas']['creationTime'];
       updateTime: components['schemas']['updateTime'];

@@ -1,13 +1,13 @@
 openapi: 3.0.1
 info:
-  title: Job Manager Service
-  description: Job Manager Service
+  title: Job Manager Service - API v1
+  description: Job Manager Service API version 1
   version: 0.1.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
 paths:
-  /jobs:
+  /v1/jobs:
     get:
       operationId: findJobs
       parameters:
@@ -208,7 +208,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}:
+  /v1/jobs/{jobId}:
     parameters:
       - $ref: '#/components/parameters/jobId'
     get:
@@ -437,7 +437,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}/user-metadata:
+  /v1/jobs/{jobId}/user-metadata:
     patch:
       operationId: updateUserMetadata
       parameters:
@@ -491,7 +491,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}/priority:
+  /v1/jobs/{jobId}/priority:
     parameters:
       - $ref: '#/components/parameters/jobId'
     patch:
@@ -559,7 +559,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}/status:
+  /v1/jobs/{jobId}/status:
     parameters:
       - $ref: '#/components/parameters/jobId'
     put:
@@ -644,7 +644,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}/stages:
+  /v1/jobs/{jobId}/stages:
     parameters:
       - $ref: '#/components/parameters/jobId'
     get:
@@ -703,7 +703,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /jobs/{jobId}/stage:
+  /v1/jobs/{jobId}/stage:
     post:
       operationId: addStage
       summary: Add a new stage as the last stage in the job workflow
@@ -879,7 +879,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages:
+  /v1/stages:
     get:
       operationId: getStages
       parameters:
@@ -923,7 +923,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages/{stageId}:
+  /v1/stages/{stageId}:
     parameters:
       - $ref: '#/components/parameters/stageId'
     get:
@@ -970,7 +970,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages/{stageId}/summary:
+  /v1/stages/{stageId}/summary:
     get:
       operationId: getStageSummary
       parameters:
@@ -1016,7 +1016,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages/{stageId}/user-metadata:
+  /v1/stages/{stageId}/user-metadata:
     patch:
       operationId: updateStageUserMetadata
       parameters:
@@ -1070,7 +1070,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages/{stageId}/status:
+  /v1/stages/{stageId}/status:
     put:
       operationId: updateStageStatus
       parameters:
@@ -1178,7 +1178,7 @@ paths:
                           - UNKNOWN_ERROR
                           - ILLEGAL_JOB_STATUS_TRANSITION
                           - JOB_NOT_FOUND
-  /stages/{stageId}/tasks:
+  /v1/stages/{stageId}/tasks:
     parameters:
       - $ref: '#/components/parameters/stageId'
     get:
@@ -1525,7 +1525,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /stages/{stageType}/tasks/dequeue:
+  /v1/stages/{stageType}/tasks/dequeue:
     parameters:
       - $ref: '#/components/parameters/stageType'
     patch:
@@ -1596,7 +1596,7 @@ paths:
                           - ILLEGAL_JOB_STATUS_TRANSITION
                           - STAGE_NOT_FOUND
                           - JOB_NOT_FOUND
-  /tasks:
+  /v1/tasks:
     parameters:
       - $ref: '#/components/parameters/paramStageId'
       - $ref: '#/components/parameters/paramStageType'
@@ -1641,7 +1641,7 @@ paths:
                 $ref: '#/components/schemas/internalErrorsResponse'
       tags:
         - tasks
-  /tasks/{taskId}:
+  /v1/tasks/{taskId}:
     parameters:
       - $ref: '#/components/parameters/taskId'
     get:
@@ -1679,7 +1679,7 @@ paths:
                 $ref: '#/components/schemas/internalErrorsResponse'
       tags:
         - tasks
-  /tasks/{taskId}/user-metadata:
+  /v1/tasks/{taskId}/user-metadata:
     patch:
       operationId: updateTaskUserMetadata
       parameters:
@@ -1733,7 +1733,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
-  /tasks/{taskId}/status:
+  /v1/tasks/{taskId}/status:
     parameters:
       - $ref: '#/components/parameters/taskId'
     put:

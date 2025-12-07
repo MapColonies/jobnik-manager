@@ -3,9 +3,10 @@ export interface IConfig {
   has: (setting: string) => boolean;
 }
 
-export interface OpenApiConfig {
-  filePath: string;
-  basePath: string;
-  jsonPath: string;
-  uiPath: string;
+export interface ApiVersionConfig {
+  readonly enabled: boolean;
+  readonly filePath: string;
+  readonly basePath: string;
+  readonly rawPath: string;
+  readonly uiPath: string;
 }

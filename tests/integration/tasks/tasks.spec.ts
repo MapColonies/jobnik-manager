@@ -51,7 +51,7 @@ describe('task', function () {
       useChild: true,
     });
 
-    requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
+    requestSender = await createRequestSender<paths, operations>('openapi3-v1.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
   });
 

@@ -12,9 +12,7 @@ import { Registry } from 'prom-client';
 import { getErrorHandlerMiddleware } from '@common/utils/error-express-handler';
 import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
-import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
-import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
-import { TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
+import { V1_ROUTER_SYMBOL } from './api/v1';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -31,9 +29,7 @@ export class ServerBuilder {
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.SERVICE_METRICS) private readonly serviceMetricsRegistry: Registry,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
-    @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
-    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router,
-    @inject(TASK_ROUTER_SYMBOL) private readonly taskRouter: Router
+    @inject(V1_ROUTER_SYMBOL) private readonly v1Router: Router
   ) {
     this.serverInstance = express();
   }
@@ -47,19 +43,18 @@ export class ServerBuilder {
   }
 
   private buildDocsRoutes(): void {
+    // v1 API documentation
     const openapiRouter = new OpenapiViewerRouter({
-      ...this.config.get('openapiConfig'),
-      filePathOrSpec: this.config.get('openapiConfig.filePath'),
+      filePathOrSpec: './openapi3-v1.yaml',
+      rawPath: '/api/v1',
+      uiPath: '/api/v1',
     });
     openapiRouter.setup();
-    this.serverInstance.use(this.config.get('openapiConfig.basePath'), openapiRouter.getRouter());
+    this.serverInstance.use('/docs', openapiRouter.getRouter());
   }
 
   private buildRoutes(): void {
-    this.serverInstance.use('/jobs', this.jobRouter);
-    this.serverInstance.use('/stages', this.stageRouter);
-    this.serverInstance.use('/tasks', this.taskRouter);
-
+    this.serverInstance.use('/v1', this.v1Router);
     this.buildDocsRoutes();
   }
 
@@ -90,11 +85,18 @@ export class ServerBuilder {
     this.serverInstance.use(bodyParser.json(this.config.get('server.request.payload')));
     this.serverInstance.use(getTraceContexHeaderMiddleware());
 
-    const ignorePathRegex = new RegExp(`^${this.config.get('openapiConfig.basePath')}/.*`, 'i');
-    const apiSpecPath = this.config.get('openapiConfig.filePath');
+    // Apply OpenAPI validation for v1
+    const ignoreDocsPathRegex = new RegExp(`^/docs/.*`, 'i');
     this.serverInstance.use(
-      OpenApiMiddleware({ apiSpec: apiSpecPath, validateSecurity: false, validateRequests: true, ignorePaths: ignorePathRegex })
+      '/v1',
+      OpenApiMiddleware({
+        apiSpec: './openapi3-v1.yaml',
+        validateSecurity: false,
+        validateRequests: true,
+        ignorePaths: ignoreDocsPathRegex,
+      })
     );
+
     this.serverInstance.use((req, res, next) => {
       req.passedValidation = true;
       next();

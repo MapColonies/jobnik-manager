@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { FactoryFunction } from 'tsyringe';
-import { JobController } from '../controllers/jobController';
-import { StageController } from '../../stages/controllers/stageController';
+import { StageControllerV1 } from '../stages/controller';
+import { JobControllerV1 } from './controller';
 
-const jobRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
+const jobV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   const router = Router();
-  const controller = dependencyContainer.resolve(JobController);
-  const stageController = dependencyContainer.resolve(StageController);
+  const controller = dependencyContainer.resolve(JobControllerV1);
+  const stageController = dependencyContainer.resolve(StageControllerV1);
 
+  // Job routes
   router.get('/', controller.getJobs);
   router.post('/', controller.createJob);
   router.get('/:jobId', controller.getJobById);
@@ -15,11 +16,13 @@ const jobRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   router.patch('/:jobId/user-metadata', controller.updateUserMetadata);
   router.patch('/:jobId/priority', controller.updateJobPriority);
   router.put('/:jobId/status', controller.updateStatus);
+
+  // Nested stage routes under job
   router.get('/:jobId/stages', stageController.getStagesByJobId);
   router.post('/:jobId/stage', stageController.addStage);
   return router;
 };
 
-export const JOB_ROUTER_SYMBOL = Symbol('jobRouterFactory');
+export const JOB_ROUTER_V1_SYMBOL = Symbol('jobV1RouterFactory');
 
-export { jobRouterFactory };
+export { jobV1RouterFactory };
