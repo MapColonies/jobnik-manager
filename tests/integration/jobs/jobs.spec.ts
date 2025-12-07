@@ -649,6 +649,7 @@ describe('job', function () {
 
         const setStatusResponse = await requestSender.updateStatus({
           pathParams: { jobId },
+          // @ts-expect-error - Testing invalid status value that should be rejected by API
           requestBody: { status: JobOperationStatus.COMPLETED },
         });
 
@@ -678,7 +679,7 @@ describe('job', function () {
       it('should return status code 400 when supplying bad uuid as part of the request', async function () {
         const getJobResponse = await requestSender.updateStatus({
           pathParams: { jobId: 'someBadUuid' },
-          requestBody: { status: JobOperationStatus.COMPLETED },
+          requestBody: { status: JobOperationStatus.PENDING },
         });
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
