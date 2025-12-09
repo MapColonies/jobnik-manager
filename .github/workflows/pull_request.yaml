@@ -45,7 +45,7 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: OpenAPI Lint Checks
-        run: npx @redocly/cli lint --format=github-actions openapi3-v1.yaml
+        run: npx @redocly/cli lint --format=github-actions openapi3.yaml
 
   helm-lint:
     name: Run Helm lint Check
