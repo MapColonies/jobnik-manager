@@ -5,10 +5,10 @@ export class DocsRequestSender {
   public constructor(private readonly app: Application) {}
 
   public async getDocs(): Promise<Response> {
-    return agent(this.app).get('/docs/api/v1/');
+    return agent(this.app).get('/docs/api/');
   }
 
   public async getDocsJson(): Promise<Response> {
-    return agent(this.app).get('/docs/api/v1.json');
+    return agent(this.app).get('/docs/api.json');
   }
 }

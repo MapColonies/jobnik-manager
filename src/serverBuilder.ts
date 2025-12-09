@@ -43,18 +43,17 @@ export class ServerBuilder {
   }
 
   private buildDocsRoutes(): void {
-    // v1 API documentation
     const openapiRouter = new OpenapiViewerRouter({
-      filePathOrSpec: './openapi3-v1.yaml',
-      rawPath: '/api/v1',
-      uiPath: '/api/v1',
+      ...this.config.get('openapiConfig'),
+      filePathOrSpec: this.config.get('openapiConfig.filePath'),
     });
     openapiRouter.setup();
-    this.serverInstance.use('/docs', openapiRouter.getRouter());
+    this.serverInstance.use(this.config.get('openapiConfig.basePath'), openapiRouter.getRouter());
   }
 
   private buildRoutes(): void {
     this.serverInstance.use('/v1', this.v1Router);
+
     this.buildDocsRoutes();
   }
 
@@ -85,18 +84,11 @@ export class ServerBuilder {
     this.serverInstance.use(bodyParser.json(this.config.get('server.request.payload')));
     this.serverInstance.use(getTraceContexHeaderMiddleware());
 
-    // Apply OpenAPI validation for v1
-    const ignoreDocsPathRegex = new RegExp(`^/docs/.*`, 'i');
+    const ignorePathRegex = new RegExp(`^${this.config.get('openapiConfig.basePath')}/.*`, 'i');
+    const apiSpecPath = this.config.get('openapiConfig.filePath');
     this.serverInstance.use(
-      '/v1',
-      OpenApiMiddleware({
-        apiSpec: './openapi3-v1.yaml',
-        validateSecurity: false,
-        validateRequests: true,
-        ignorePaths: ignoreDocsPathRegex,
-      })
+      OpenApiMiddleware({ apiSpec: apiSpecPath, validateSecurity: false, validateRequests: true, ignorePaths: ignorePathRegex })
     );
-
     this.serverInstance.use((req, res, next) => {
       req.passedValidation = true;
       next();

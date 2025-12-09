@@ -1,7 +1,7 @@
 openapi: 3.0.1
 info:
-  title: Job Manager Service - API v1
-  description: Job Manager Service API version 1
+  title: Job Manager Service
+  description: Job Manager Service API
   version: 0.1.0
   license:
     name: MIT
@@ -21,7 +21,7 @@ paths:
         Filter jobs by name, date range, priority. Optional stage inclusion.
         Returns empty array if no matches.
       tags:
-        - jobs
+        - v1_jobs
       responses:
         '200':
           description: Successfully retrieved matching jobs
@@ -49,7 +49,7 @@ paths:
       description: |
         Create job with config and metadata. Initial status: PENDING.
       tags:
-        - jobs
+        - v1_jobs
       requestBody:
         required: true
         content:
@@ -228,7 +228,7 @@ paths:
         which allows clients to retrieve the complete job hierarchy in a single
         request.
       tags:
-        - jobs
+        - v1_jobs
       responses:
         '200':
           description: Job data retrieved successfully
@@ -394,7 +394,7 @@ paths:
         Returns a success message with code JOB_DELETED_SUCCESSFULLY when
         completed.
       tags:
-        - jobs
+        - v1_jobs
       responses:
         '200':
           description: Job deleted successfully
@@ -457,7 +457,7 @@ paths:
 
         or any custom data needed by client applications.
       tags:
-        - jobs
+        - v1_jobs
       requestBody:
         required: true
         content:
@@ -512,7 +512,7 @@ paths:
 
         pending tasks associated with the job.
       tags:
-        - jobs
+        - v1_jobs
       requestBody:
         required: true
         content:
@@ -592,7 +592,7 @@ paths:
 
         appropriate.
       tags:
-        - jobs
+        - v1_jobs
       requestBody:
         required: true
         content:
@@ -675,7 +675,7 @@ paths:
         allowing clients to retrieve the complete job hierarchy in a single
         request.
       tags:
-        - jobs
+        - v1_jobs
       responses:
         '200':
           description: Successfully retrieved stages for the specified job
@@ -730,7 +730,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/jobId'
       tags:
-        - jobs
+        - v1_jobs
       requestBody:
         required: true
         content:
@@ -901,7 +901,7 @@ paths:
         allows clients to retrieve the complete stage hierarchy in a single
         request.
       tags:
-        - stages
+        - v1_stages
       responses:
         '200':
           description: Successfully retrieved matching stages
@@ -944,7 +944,7 @@ paths:
         which allows clients to retrieve the complete stage hierarchy in a
         single request.
       tags:
-        - stages
+        - v1_stages
       responses:
         '200':
           description: Stage data retrieved successfully
@@ -990,7 +990,7 @@ paths:
 
         without needing to retrieve and process all individual task details.
       tags:
-        - stages
+        - v1_stages
       responses:
         '200':
           description: Stage summary retrieved successfully
@@ -1036,7 +1036,7 @@ paths:
 
         or any custom data needed by client applications.
       tags:
-        - stages
+        - v1_stages
       requestBody:
         required: true
         content:
@@ -1111,7 +1111,7 @@ paths:
         transitions in subsequent stages (e.g., activating the next stage in the
         sequence).
       tags:
-        - stages
+        - v1_stages
       requestBody:
         required: true
         content:
@@ -1217,7 +1217,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
       tags:
-        - stages
+        - v1_stages
     post:
       operationId: addTasks
       summary: Add new tasks to an existing stage
@@ -1239,7 +1239,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/stageId'
       tags:
-        - stages
+        - v1_stages
       requestBody:
         required: true
         content:
@@ -1551,7 +1551,7 @@ paths:
         If successful, returns the complete task details with status updated to
         IN_PROGRESS.
       tags:
-        - stages
+        - v1_stages
       responses:
         '200':
           description: Task successfully dequeued and status updated to IN_PROGRESS
@@ -1640,7 +1640,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
       tags:
-        - tasks
+        - v1_tasks
   /v1/tasks/{taskId}:
     parameters:
       - $ref: '#/components/parameters/taskId'
@@ -1678,7 +1678,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/internalErrorsResponse'
       tags:
-        - tasks
+        - v1_tasks
   /v1/tasks/{taskId}/user-metadata:
     patch:
       operationId: updateTaskUserMetadata
@@ -1699,7 +1699,7 @@ paths:
 
         or any custom data needed by client applications.
       tags:
-        - tasks
+        - v1_tasks
       requestBody:
         required: true
         content:
@@ -1764,7 +1764,7 @@ paths:
 
         may affect the stage's overall status.
       tags:
-        - tasks
+        - v1_tasks
       requestBody:
         required: true
         content:
