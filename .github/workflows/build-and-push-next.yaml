@@ -25,7 +25,7 @@ jobs:
           registry: ${{ secrets.ACR_URL }}
           username: ${{ secrets.ACR_PUSH_USER }}
           password: ${{ secrets.ACR_PUSH_TOKEN }}
-
+ 
       - name: Build and Push Docker image
         id: build_and_push
         uses: docker/build-push-action@v6
@@ -76,34 +76,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Checkout site-values repo
-        uses: actions/checkout@v5
+      - name: Update site-values and open PR
+        uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
-          repository: MapColonies/site-values
-          token: ${{ secrets.GH_PAT }}
-          path: site-values
-          ref: master
-
-      - name: Update tag in site-values (yq)
-        uses: mikefarah/yq@v4
-        env:
-          REPO_NAME: ${{ github.event.repository.name }}
-          TAG: ${{ needs.push-helm-package.outputs.chart_tag }}
-          DOMAIN: ${{ env.DOMAIN }}
-        with:
-          cmd: yq eval -i ".chartsVersions[\"${{ env.REPO_NAME }}\"] = \"${{ env.TAG }}\"" "site-values/${{ env.DOMAIN }}/environments/dev.yaml"
-
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v6
-        with:
-          path: site-values
-          token: ${{ secrets.GH_PAT }}
-          commit-message: 'feat: update ${{ env.DOMAIN }}/${{ github.event.repository.name }} to ${{ needs.push-helm-package.outputs.chart_tag }}'
-          title: 'feat: update ${{ env.DOMAIN }}/${{ github.event.repository.name }} to ${{ needs.push-helm-package.outputs.chart_tag }}'
-          body: |
-            Trigger commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}
-          labels: |
-            dev
-            auto-merge
-          branch: ${{ github.event.repository.name }}-${{ github.sha }}
-          base: master
+          tag: '0.0.0-next-${{ github.sha }}'
+          repository: test-site
+          github_token: ${{ secrets.GH_PAT }}
+          chart: ${{ github.event.repository.name }}
+          environment: dev
+          paths: |
+            infra/environments/dev.yaml
