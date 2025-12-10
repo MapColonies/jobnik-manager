@@ -25,7 +25,7 @@ jobs:
           registry: ${{ secrets.ACR_URL }}
           username: ${{ secrets.ACR_PUSH_USER }}
           password: ${{ secrets.ACR_PUSH_TOKEN }}
- 
+
       - name: Build and Push Docker image
         id: build_and_push
         uses: docker/build-push-action@v6
@@ -79,7 +79,7 @@ jobs:
       - name: Update site-values and open PR
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
-          tag: "0.0.0-next-${{ github.sha }}"
+          tag: '0.0.0-next-${{ github.sha }}'
           repository: site-values
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
