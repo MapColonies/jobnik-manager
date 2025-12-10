@@ -16,7 +16,7 @@ export const v1RouterFactory: FactoryFunction<Router> = (dependencyContainer) =>
   const stageRouter = dependencyContainer.resolve<Router>(STAGE_ROUTER_V1_SYMBOL);
   const taskRouter = dependencyContainer.resolve<Router>(TASK_ROUTER_V1_SYMBOL);
 
-  // Mount under v1 namespace
+  // Mount resource routers
   router.use('/jobs', jobRouter);
   router.use('/stages', stageRouter);
   router.use('/tasks', taskRouter);
