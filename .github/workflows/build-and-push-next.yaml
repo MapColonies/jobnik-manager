@@ -80,7 +80,7 @@ jobs:
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: '0.0.0-next-${{ github.sha }}'
-          repository: test-site
+          repository: site-values
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
           environment: dev
