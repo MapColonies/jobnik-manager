@@ -17,14 +17,14 @@ export type paths = {
      *     Returns empty array if no matches.
      *
      */
-    get: operations['findJobs'];
+    get: operations['findJobsV1'];
     put?: never;
     /**
      * Create job
      * @description Create job with config and metadata. Initial status: PENDING.
      *
      */
-    post: operations['createJob'];
+    post: operations['createJobV1'];
     delete?: never;
     options?: never;
     head?: never;
@@ -50,7 +50,7 @@ export type paths = {
      *     which allows clients to retrieve the complete job hierarchy in a single request.
      *
      */
-    get: operations['getJobById'];
+    get: operations['getJobByIdV1'];
     put?: never;
     post?: never;
     /**
@@ -65,7 +65,7 @@ export type paths = {
      *     Returns a success message with code JOB_DELETED_SUCCESSFULLY when completed.
      *
      */
-    delete: operations['deleteJob'];
+    delete: operations['deleteJobV1'];
     options?: never;
     head?: never;
     patch?: never;
@@ -94,7 +94,7 @@ export type paths = {
      *     or any custom data needed by client applications.
      *
      */
-    patch: operations['updateUserMetadata'];
+    patch: operations['updateUserMetadataV1'];
     trace?: never;
   };
   '/v1/jobs/{jobId}/priority': {
@@ -123,7 +123,7 @@ export type paths = {
      *     pending tasks associated with the job.
      *
      */
-    patch: operations['updateJobPriority'];
+    patch: operations['updateJobPriorityV1'];
     trace?: never;
   };
   '/v1/jobs/{jobId}/status': {
@@ -152,7 +152,7 @@ export type paths = {
      *     appropriate.
      *
      */
-    put: operations['updateStatus'];
+    put: operations['updateStatusV1'];
     post?: never;
     delete?: never;
     options?: never;
@@ -183,7 +183,7 @@ export type paths = {
      *     allowing clients to retrieve the complete job hierarchy in a single request.
      *
      */
-    get: operations['getStagesByJobId'];
+    get: operations['getStagesByJobIdV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -214,7 +214,7 @@ export type paths = {
      *     The job must exist and be in a valid state to accept new stages.
      *
      */
-    post: operations['addStage'];
+    post: operations['addStageV1'];
     delete?: never;
     options?: never;
     head?: never;
@@ -237,7 +237,7 @@ export type paths = {
      *     allows clients to retrieve the complete stage hierarchy in a single request.
      *
      */
-    get: operations['getStages'];
+    get: operations['getStagesV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -265,7 +265,7 @@ export type paths = {
      *     which allows clients to retrieve the complete stage hierarchy in a single request.
      *
      */
-    get: operations['getStageById'];
+    get: operations['getStageByIdV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -291,7 +291,7 @@ export type paths = {
      *     without needing to retrieve and process all individual task details.
      *
      */
-    get: operations['getStageSummary'];
+    get: operations['getStageSummaryV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -323,7 +323,7 @@ export type paths = {
      *     or any custom data needed by client applications.
      *
      */
-    patch: operations['updateStageUserMetadata'];
+    patch: operations['updateStageUserMetadataV1'];
     trace?: never;
   };
   '/v1/stages/{stageId}/status': {
@@ -353,7 +353,7 @@ export type paths = {
      *     transitions in subsequent stages (e.g., activating the next stage in the sequence).
      *
      */
-    put: operations['updateStageStatus'];
+    put: operations['updateStageStatusV1'];
     post?: never;
     delete?: never;
     options?: never;
@@ -377,7 +377,7 @@ export type paths = {
      *     Provides complete information about each task including type, status, and attempt count.
      *
      */
-    get: operations['getTasksByStageId'];
+    get: operations['getTasksByStageIdV1'];
     put?: never;
     /**
      * Add new tasks to an existing stage
@@ -390,7 +390,7 @@ export type paths = {
      *     The stage must exist and be in a valid state to accept new tasks.
      *
      */
-    post: operations['addTasks'];
+    post: operations['addTasksV1'];
     delete?: never;
     options?: never;
     head?: never;
@@ -425,7 +425,7 @@ export type paths = {
      *     If successful, returns the complete task details with status updated to IN_PROGRESS.
      *
      */
-    patch: operations['dequeueTask'];
+    patch: operations['dequeueTaskV1'];
     trace?: never;
   };
   '/v1/tasks': {
@@ -455,7 +455,7 @@ export type paths = {
      *     enabling clients to build custom dashboards or track specific task types.
      *
      */
-    get: operations['getTasksByCriteria'];
+    get: operations['getTasksByCriteriaV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -480,7 +480,7 @@ export type paths = {
      *     Returns complete task data including type, status, payload, and attempt information.
      *
      */
-    get: operations['getTaskById'];
+    get: operations['getTaskByIdV1'];
     put?: never;
     post?: never;
     delete?: never;
@@ -512,7 +512,7 @@ export type paths = {
      *     or any custom data needed by client applications.
      *
      */
-    patch: operations['updateTaskUserMetadata'];
+    patch: operations['updateTaskUserMetadataV1'];
     trace?: never;
   };
   '/v1/tasks/{taskId}/status': {
@@ -540,7 +540,7 @@ export type paths = {
      *     may affect the stage's overall status.
      *
      */
-    put: operations['updateTaskStatus'];
+    put: operations['updateTaskStatusV1'];
     post?: never;
     delete?: never;
     options?: never;
@@ -922,7 +922,7 @@ export type components = {
 };
 export type $defs = Record<string, never>;
 export interface operations {
-  findJobs: {
+  findJobsV1: {
     parameters: {
       query?: {
         /** @description Filter jobs by their name/type */
@@ -971,7 +971,7 @@ export interface operations {
       };
     };
   };
-  createJob: {
+  createJobV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1013,7 +1013,7 @@ export interface operations {
       };
     };
   };
-  getJobById: {
+  getJobByIdV1: {
     parameters: {
       query?: {
         /** @description When true, includes stage data in the response */
@@ -1066,7 +1066,7 @@ export interface operations {
       };
     };
   };
-  deleteJob: {
+  deleteJobV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1122,7 +1122,7 @@ export interface operations {
       };
     };
   };
-  updateUserMetadata: {
+  updateUserMetadataV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1179,7 +1179,7 @@ export interface operations {
       };
     };
   };
-  updateJobPriority: {
+  updateJobPriorityV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1247,7 +1247,7 @@ export interface operations {
       };
     };
   };
-  updateStatus: {
+  updateStatusV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1309,7 +1309,7 @@ export interface operations {
       };
     };
   };
-  getStagesByJobId: {
+  getStagesByJobIdV1: {
     parameters: {
       query?: {
         /** @description When true, includes task data in the response */
@@ -1362,7 +1362,7 @@ export interface operations {
       };
     };
   };
-  addStage: {
+  addStageV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1419,7 +1419,7 @@ export interface operations {
       };
     };
   };
-  getStages: {
+  getStagesV1: {
     parameters: {
       query?: {
         /** @description Filter results by job identifier */
@@ -1468,7 +1468,7 @@ export interface operations {
       };
     };
   };
-  getStageById: {
+  getStageByIdV1: {
     parameters: {
       query?: {
         /** @description When true, includes task data in the response */
@@ -1521,7 +1521,7 @@ export interface operations {
       };
     };
   };
-  getStageSummary: {
+  getStageSummaryV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1571,7 +1571,7 @@ export interface operations {
       };
     };
   };
-  updateStageUserMetadata: {
+  updateStageUserMetadataV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1628,7 +1628,7 @@ export interface operations {
       };
     };
   };
-  updateStageStatus: {
+  updateStageStatusV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1693,7 +1693,7 @@ export interface operations {
       };
     };
   };
-  getTasksByStageId: {
+  getTasksByStageIdV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1743,7 +1743,7 @@ export interface operations {
       };
     };
   };
-  addTasks: {
+  addTasksV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1800,7 +1800,7 @@ export interface operations {
       };
     };
   };
-  dequeueTask: {
+  dequeueTaskV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1861,7 +1861,7 @@ export interface operations {
       };
     };
   };
-  getTasksByCriteria: {
+  getTasksByCriteriaV1: {
     parameters: {
       query?: {
         /** @description Filter results by stage identifier */
@@ -1910,7 +1910,7 @@ export interface operations {
       };
     };
   };
-  getTaskById: {
+  getTaskByIdV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -1960,7 +1960,7 @@ export interface operations {
       };
     };
   };
-  updateTaskUserMetadata: {
+  updateTaskUserMetadataV1: {
     parameters: {
       query?: never;
       header?: never;
@@ -2017,7 +2017,7 @@ export interface operations {
       };
     };
   };
-  updateTaskStatus: {
+  updateTaskStatusV1: {
     parameters: {
       query?: never;
       header?: never;

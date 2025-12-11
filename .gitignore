@@ -114,6 +114,7 @@ reports
 
 # generated files
 src/db/prisma/generated
+scripts/generateVersionedOpenApi.mjs
 
 # local values
 local-*.json
