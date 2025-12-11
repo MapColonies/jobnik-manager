@@ -4,7 +4,7 @@ import type { components, operations } from '@src/openapi';
 type JobModel = components['schemas']['job'];
 type JobCreateModel = components['schemas']['createJobPayload'];
 type JobGetParams = components['parameters'];
-type JobFindCriteriaArg = operations['findJobs']['parameters']['query'];
+type JobFindCriteriaArg = operations['findJobsV1']['parameters']['query'];
 
 /**
  * Generic type for Job Prisma objects with configurable stage inclusion

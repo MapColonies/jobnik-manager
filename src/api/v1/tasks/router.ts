@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { FactoryFunction } from 'tsyringe';
-import { TaskController } from '../controllers/taskController';
+import { TaskControllerV1 } from '../tasks/controller';
 
-const taskRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
+const taskV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   const router = Router();
-  const controller = dependencyContainer.resolve(TaskController);
+  const controller = dependencyContainer.resolve(TaskControllerV1);
 
   router.get('/', controller.getTasks);
   router.get('/:taskId', controller.getTaskById);
@@ -13,6 +13,6 @@ const taskRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   return router;
 };
 
-export const TASK_ROUTER_SYMBOL = Symbol('taskRouterFactory');
+export const TASK_ROUTER_V1_SYMBOL = Symbol('taskV1RouterFactory');
 
-export { taskRouterFactory };
+export { taskV1RouterFactory };

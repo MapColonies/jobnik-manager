@@ -1,18 +1,21 @@
 import { Router } from 'express';
 import { FactoryFunction } from 'tsyringe';
-import { StageController } from '../controllers/stageController';
-import { TaskController } from '../../tasks/controllers/taskController';
+import { TaskControllerV1 } from '../tasks/controller';
+import { StageControllerV1 } from './controller';
 
-const stageRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
+const stageV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   const router = Router();
-  const controller = dependencyContainer.resolve(StageController);
-  const taskController = dependencyContainer.resolve(TaskController);
+  const controller = dependencyContainer.resolve(StageControllerV1);
+  const taskController = dependencyContainer.resolve(TaskControllerV1);
 
+  // Stage routes
   router.get('/', controller.getStages);
   router.get('/:stageId', controller.getStageById);
   router.get('/:stageId/summary', controller.getSummaryByStageId);
   router.patch('/:stageId/user-metadata', controller.updateUserMetadata);
   router.put('/:stageId/status', controller.updateStatus);
+
+  // Nested task routes under stage
   router.get('/:stageId/tasks', taskController.getTaskByStageId);
   router.post('/:stageId/tasks', taskController.addTasks);
   router.patch('/:stageType/tasks/dequeue', taskController.dequeue);
@@ -20,6 +23,6 @@ const stageRouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   return router;
 };
 
-export const STAGE_ROUTER_SYMBOL = Symbol('stageRouterFactory');
+export const STAGE_ROUTER_V1_SYMBOL = Symbol('stageV1RouterFactory');
 
-export { stageRouterFactory };
+export { stageV1RouterFactory };
