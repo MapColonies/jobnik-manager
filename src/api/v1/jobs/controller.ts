@@ -6,8 +6,8 @@ import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
 import { SamePriorityChangeError } from '@src/jobs/models/errors';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
-import { JobManager } from '../../../jobs/models/manager';
-import { type JobFindCriteriaArg } from '../../../jobs/models/models';
+import { type JobFindCriteriaArg } from '@src/jobs/models/models';
+import { JobManager } from '@src/jobs/models/manager';
 
 @injectable()
 export class JobControllerV1 {
@@ -16,7 +16,7 @@ export class JobControllerV1 {
     @inject(JobManager) private readonly manager: JobManager
   ) {}
 
-  public getJobs: TypedRequestHandlers['GET /v1/jobs'] = async (req, res, next) => {
+  public getJobs: TypedRequestHandlers['findJobsV1'] = async (req, res, next) => {
     const params: JobFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getJobs(params);
@@ -28,7 +28,7 @@ export class JobControllerV1 {
     }
   };
 
-  public createJob: TypedRequestHandlers['POST /v1/jobs'] = async (req, res, next) => {
+  public createJob: TypedRequestHandlers['createJobV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.createJob(req.body);
 
@@ -40,7 +40,7 @@ export class JobControllerV1 {
     }
   };
 
-  public getJobById: TypedRequestHandlers['GET /v1/jobs/{jobId}'] = async (req, res, next) => {
+  public getJobById: TypedRequestHandlers['getJobByIdV1'] = async (req, res, next) => {
     try {
       const includeStages: boolean | undefined = req.query?.should_return_stages ?? false;
 
@@ -57,7 +57,7 @@ export class JobControllerV1 {
     }
   };
 
-  public updateUserMetadata: TypedRequestHandlers['PATCH /v1/jobs/{jobId}/user-metadata'] = async (req, res, next) => {
+  public updateUserMetadata: TypedRequestHandlers['updateUserMetadataV1'] = async (req, res, next) => {
     try {
       await this.manager.updateUserMetadata(req.params.jobId, req.body);
 
@@ -72,7 +72,7 @@ export class JobControllerV1 {
     }
   };
 
-  public updateJobPriority: TypedRequestHandlers['PATCH /v1/jobs/{jobId}/priority'] = async (req, res, next) => {
+  public updateJobPriority: TypedRequestHandlers['updateJobPriorityV1'] = async (req, res, next) => {
     try {
       await this.manager.updatePriority(req.params.jobId, req.body.priority);
       return res.status(httpStatus.OK).json({ code: successMessages.jobModifiedSuccessfully });
@@ -92,7 +92,7 @@ export class JobControllerV1 {
     }
   };
 
-  public updateStatus: TypedRequestHandlers['PUT /v1/jobs/{jobId}/status'] = async (req, res, next) => {
+  public updateStatus: TypedRequestHandlers['updateStatusV1'] = async (req, res, next) => {
     try {
       await this.manager.updateStatus(req.params.jobId, req.body.status);
 
@@ -109,7 +109,7 @@ export class JobControllerV1 {
     }
   };
 
-  public deleteJob: TypedRequestHandlers['DELETE /v1/jobs/{jobId}'] = async (req, res, next) => {
+  public deleteJob: TypedRequestHandlers['deleteJobV1'] = async (req, res, next) => {
     try {
       await this.manager.deleteJob(req.params.jobId);
 

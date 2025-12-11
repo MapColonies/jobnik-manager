@@ -15,8 +15,8 @@ import {
   TaskStatusUpdateFailedError,
   TaskNotFoundError,
 } from '@src/common/generated/errors';
-import { TaskManager } from '../../../tasks/models/manager';
-import { type TasksFindCriteriaArg } from '../../../tasks/models/models';
+import { TaskManager } from '@src/tasks/models/manager';
+import { type TasksFindCriteriaArg } from '@src/tasks/models/models';
 
 const badRequestErrors = [
   TaskStatusUpdateFailedError,
@@ -43,7 +43,7 @@ export class TaskControllerV1 {
     @inject(TaskManager) private readonly manager: TaskManager
   ) {}
 
-  public addTasks: TypedRequestHandlers['POST /v1/stages/{stageId}/tasks'] = async (req, res, next) => {
+  public addTasks: TypedRequestHandlers['addTasksV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.addTasks(req.params.stageId, req.body);
 
@@ -61,7 +61,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public getTasks: TypedRequestHandlers['GET /v1/tasks'] = async (req, res, next) => {
+  public getTasks: TypedRequestHandlers['getTasksByCriteriaV1'] = async (req, res, next) => {
     const params: TasksFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getTasks(params);
@@ -72,7 +72,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public getTaskById: TypedRequestHandlers['GET /v1/tasks/{taskId}'] = async (req, res, next) => {
+  public getTaskById: TypedRequestHandlers['getTaskByIdV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.getTaskById(req.params.taskId);
       return res.status(httpStatus.OK).json(response);
@@ -85,7 +85,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public getTaskByStageId: TypedRequestHandlers['GET /v1/stages/{stageId}/tasks'] = async (req, res, next) => {
+  public getTaskByStageId: TypedRequestHandlers['getTasksByStageIdV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.getTasksByStageId(req.params.stageId);
       return res.status(httpStatus.OK).json(response);
@@ -97,7 +97,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public updateUserMetadata: TypedRequestHandlers['PATCH /v1/tasks/{taskId}/user-metadata'] = async (req, res, next) => {
+  public updateUserMetadata: TypedRequestHandlers['updateTaskUserMetadataV1'] = async (req, res, next) => {
     try {
       await this.manager.updateUserMetadata(req.params.taskId, req.body);
       return res.status(httpStatus.OK).json({ code: successMessages.taskModifiedSuccessfully });
@@ -110,7 +110,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public updateStatus: TypedRequestHandlers['PUT /v1/tasks/{taskId}/status'] = async (req, res, next) => {
+  public updateStatus: TypedRequestHandlers['updateTaskStatusV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.updateStatus(req.params.taskId, req.body.status);
 
@@ -127,7 +127,7 @@ export class TaskControllerV1 {
     }
   };
 
-  public dequeue: TypedRequestHandlers['PATCH /v1/stages/{stageType}/tasks/dequeue'] = async (req, res, next) => {
+  public dequeue: TypedRequestHandlers['dequeueTaskV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.dequeue(req.params.stageType);
 
