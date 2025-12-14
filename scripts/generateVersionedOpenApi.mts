@@ -1,7 +1,9 @@
+/* eslint-disable no-console */
 import { readFile, writeFile, readdir, unlink } from 'fs/promises';
 import { parse, stringify } from 'yaml';
 import { execSync } from 'child_process';
 import type { OpenAPIV3 } from 'openapi-types';
+import { format } from 'prettier';
 
 /**
  * Dynamically generates a unified OpenAPI specification from multiple versioned files.
@@ -16,9 +18,9 @@ type Version = string;
 /**
  * Discovers all versioned OpenAPI files matching the pattern openapi_v{number}.yaml
  */
-const discoverVersionFiles = async (): Promise<Array<{ version: string; file: string }>> => {
+const discoverVersionFiles = async (): Promise<{ version: string; file: string }[]> => {
   const files = await readdir('.');
-  const versionFiles: Array<{ version: string; file: string }> = [];
+  const versionFiles: { version: string; file: string }[] = [];
 
   for (const file of files) {
     const match = file.match(VERSION_FILE_PATTERN);
@@ -45,7 +47,7 @@ const discoverVersionFiles = async (): Promise<Array<{ version: string; file: st
  * Adds version prefix to paths and suffix to operationIds
  */
 const addVersionToSpec = (spec: OpenAPIV3.Document, version: Version): OpenAPIV3.Document => {
-  const versionedSpec = JSON.parse(JSON.stringify(spec)) as OpenAPIV3.Document;
+  const versionedSpec = structuredClone(spec);
 
   // Update paths to include version prefix
   const versionedPaths: OpenAPIV3.PathsObject = {};
@@ -54,11 +56,10 @@ const addVersionToSpec = (spec: OpenAPIV3.Document, version: Version): OpenAPIV3
     versionedPaths[versionedPath] = pathItem;
 
     if (pathItem) {
-      for (const [method, operation] of Object.entries(pathItem)) {
-        if (operation && typeof operation === 'object' && 'operationId' in operation) {
-          const op = operation as OpenAPIV3.OperationObject;
-          if (op.operationId) {
-            op.operationId = `${op.operationId}${version.toUpperCase()}`;
+      for (const [, operation] of Object.entries(pathItem)) {
+        if (typeof operation === 'object' && 'operationId' in operation) {
+          if (operation.operationId !== undefined) {
+            operation.operationId = `${operation.operationId}${version.toUpperCase()}`;
           }
         }
       }
@@ -69,79 +70,74 @@ const addVersionToSpec = (spec: OpenAPIV3.Document, version: Version): OpenAPIV3
   return versionedSpec;
 };
 
-/**
- * Main execution function
- */
-const main = async (): Promise<void> => {
-  try {
-    console.log('🚀 Starting versioned OpenAPI generation...\n');
+try {
+  console.log('🚀 Starting versioned OpenAPI generation...\n');
 
-    // Discover all versioned OpenAPI files
-    console.log('🔍 Discovering versioned OpenAPI files...');
-    const versionFiles = await discoverVersionFiles();
+  // Discover all versioned OpenAPI files
+  console.log('🔍 Discovering versioned OpenAPI files...');
+  const versionFiles = await discoverVersionFiles();
 
-    if (versionFiles.length === 0) {
-      console.error('❌ No versioned OpenAPI files found matching pattern openapi_v{number}.yaml');
-      process.exit(1);
-    }
-
-    console.log(`📋 Found ${versionFiles.length} version(s): ${versionFiles.map((v) => v.version).join(', ')}\n`);
-
-    // Read and process each version file
-    const processedFiles: string[] = [];
-    for (const { version, file } of versionFiles) {
-      console.log(`📖 Reading ${file}...`);
-      const content = await readFile(file, 'utf-8');
-      const spec = parse(content) as OpenAPIV3.Document;
-
-      console.log(`🔧 Adding version prefix to ${version}...`);
-      const versionedSpec = addVersionToSpec(spec, version);
-      const outputFile = `${version}.yaml`;
-      await writeFile(outputFile, stringify(versionedSpec), 'utf-8');
-      processedFiles.push(outputFile);
-      console.log(`✅ Successfully created ${outputFile}\n`);
-    }
-
-    // Create merge configuration dynamically
-    console.log('📄 Creating merge configuration...');
-    const mergeConfig = {
-      inputs: processedFiles.map((file, index) => ({
-        inputFile: file,
-        dispute: {
-          prefix: versionFiles[index]?.version,
-        },
-      })),
-      output: OUTPUT_FILE,
-    };
-    await writeFile('openapi-merge.json', JSON.stringify(mergeConfig, null, 2));
-    console.log('✅ Created openapi-merge.json');
-
-    // Run merge directly to final output
-    console.log('\n🔧 Merging versioned files...');
-    execSync('npx openapi-merge-cli', { stdio: 'inherit' });
-    console.log(`✅ Successfully created ${OUTPUT_FILE}`);
-
-    // Clean up temporary files
-    console.log('\n🧹 Cleaning up temporary files...');
-    const tempFiles = [
-      ...processedFiles, // v1.yaml, v2.yaml, etc.
-      'openapi-merge.json', // Temporary merge config
-    ];
-
-    for (const file of tempFiles) {
-      try {
-        await unlink(file);
-        console.log(`   Removed ${file}`);
-      } catch (error) {
-        // Ignore errors if file doesn't exist
-      }
-    }
-
-    console.log('\n🎉 All files generated and merged successfully!');
-  } catch (error) {
-    console.error('❌ Error generating versioned files:', error instanceof Error ? error.message : String(error));
+  if (versionFiles.length === 0) {
+    console.error('❌ No versioned OpenAPI files found matching pattern openapi_v{number}.yaml');
     process.exit(1);
   }
-};
 
-main();
+  console.log(`📋 Found ${versionFiles.length} version(s): ${versionFiles.map((v) => v.version).join(', ')}\n`);
+
+  // Read and process each version file
+  const processedFiles: string[] = [];
+  for (const { version, file } of versionFiles) {
+    console.log(`📖 Reading ${file}...`);
+    const content = await readFile(file, 'utf-8');
+    const spec = parse(content) as OpenAPIV3.Document;
+
+    console.log(`🔧 Adding version prefix to ${version}...`);
+    const versionedSpec = addVersionToSpec(spec, version);
+    const outputFile = `${version}.yaml`;
+    const yamlContent = stringify(versionedSpec);
+    const formattedYaml = await format(yamlContent, { parser: 'yaml' });
+    await writeFile(outputFile, formattedYaml, 'utf-8');
+    processedFiles.push(outputFile);
+    console.log(`✅ Successfully created ${outputFile}\n`);
+  }
+
+  // Create merge configuration dynamically
+  console.log('📄 Creating merge configuration...');
+  const mergeConfig = {
+    inputs: processedFiles.map((file, index) => ({
+      inputFile: file,
+      dispute: {
+        prefix: versionFiles[index]?.version,
+      },
+    })),
+    output: OUTPUT_FILE,
+  };
+  await writeFile('openapi-merge.json', JSON.stringify(mergeConfig, null));
+  console.log('✅ Created openapi-merge.json');
+
+  // Run merge directly to final output
+  console.log('\n🔧 Merging versioned files...');
+  execSync('npx openapi-merge-cli', { stdio: 'inherit' });
+  console.log(`✅ Successfully created ${OUTPUT_FILE}`);
+
+  // Clean up temporary files
+  console.log('\n🧹 Cleaning up temporary files...');
+  const tempFiles = [
+    ...processedFiles, // v1.yaml, v2.yaml, etc.
+    'openapi-merge.json', // Temporary merge config
+  ];
+
+  for (const file of tempFiles) {
+    try {
+      await unlink(file);
+      console.log(`   Removed ${file}`);
+    } catch {
+      // Ignore errors if file doesn't exist
+    }
+  }
+
+  console.log('\n🎉 All files generated and merged successfully!');
+} catch (error) {
+  console.error('❌ Error generating versioned files:', error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}

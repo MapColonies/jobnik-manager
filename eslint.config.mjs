@@ -26,5 +26,5 @@ const customConfig = {
 };
 
 export default config(tsBaseConfig, customConfig, {
-  ignores: ['src/db/prisma/generated', 'src/common/generated', 'vitest.config.mts', 'scripts/**/*'],
+  ignores: ['src/db/prisma/generated', 'src/common/generated', 'vitest.config.mts'],
 });
