@@ -13,6 +13,4 @@ const taskV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   return router;
 };
 
-export const TASK_ROUTER_V1_SYMBOL = Symbol('taskV1RouterFactory');
-
 export { taskV1RouterFactory };

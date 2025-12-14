@@ -25,6 +25,12 @@ export const SERVICES = {
   PRISMA: Symbol('Prisma'),
   HEALTHCHECK: Symbol('Healthcheck'),
 } satisfies Record<string, symbol>;
+
+export const ROUTERS = {
+  JOBS_V1: Symbol('jobV1RouterFactory'),
+  STAGES_V1: Symbol('stageV1RouterFactory'),
+  TASKS_V1: Symbol('taskV1RouterFactory'),
+} satisfies Record<string, symbol>;
 /* eslint-enable @typescript-eslint/naming-convention */
 
 export const successMessages: SuccessMessagesObj = {

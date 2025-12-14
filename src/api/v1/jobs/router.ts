@@ -23,6 +23,4 @@ const jobV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   return router;
 };
 
-export const JOB_ROUTER_V1_SYMBOL = Symbol('jobV1RouterFactory');
-
 export { jobV1RouterFactory };

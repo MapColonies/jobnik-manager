@@ -23,6 +23,4 @@ const stageV1RouterFactory: FactoryFunction<Router> = (dependencyContainer) => {
   return router;
 };
 
-export const STAGE_ROUTER_V1_SYMBOL = Symbol('stageV1RouterFactory');
-
 export { stageV1RouterFactory };

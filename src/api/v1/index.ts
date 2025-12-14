@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import { FactoryFunction } from 'tsyringe';
-import { JOB_ROUTER_V1_SYMBOL } from './jobs/router';
-import { STAGE_ROUTER_V1_SYMBOL } from './stages/router';
-import { TASK_ROUTER_V1_SYMBOL } from './tasks/router';
+import { ROUTERS } from '@common/constants';
 
 /**
  * V1 API Router Aggregator
@@ -12,9 +10,9 @@ export const v1RouterFactory: FactoryFunction<Router> = (dependencyContainer) =>
   const router = Router();
 
   // Resolve v1 routers from DI container with explicit type
-  const jobRouter = dependencyContainer.resolve<Router>(JOB_ROUTER_V1_SYMBOL);
-  const stageRouter = dependencyContainer.resolve<Router>(STAGE_ROUTER_V1_SYMBOL);
-  const taskRouter = dependencyContainer.resolve<Router>(TASK_ROUTER_V1_SYMBOL);
+  const jobRouter = dependencyContainer.resolve<Router>(ROUTERS.JOBS_V1);
+  const stageRouter = dependencyContainer.resolve<Router>(ROUTERS.STAGES_V1);
+  const taskRouter = dependencyContainer.resolve<Router>(ROUTERS.TASKS_V1);
 
   // Mount resource routers
   router.use('/jobs', jobRouter);
