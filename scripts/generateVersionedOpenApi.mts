@@ -108,7 +108,7 @@ const main = async (): Promise<void> => {
       inputs: processedFiles.map((file, index) => ({
         inputFile: file,
         dispute: {
-          prefix: versionFiles[index].version,
+          prefix: versionFiles[index]?.version,
         },
       })),
       output: OUTPUT_FILE,

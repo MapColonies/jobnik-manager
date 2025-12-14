@@ -33,7 +33,7 @@
     "migration:generate": "npx prisma migrate dev --schema ./src/db/prisma/schema.prisma --name ",
     "migration:generate-types": "npx prisma generate --schema ./src/db/prisma/schema.prisma",
     "migration:deploy": "npx prisma migrate deploy --schema ./src/db/prisma/schema.prisma",
-    "openapi:build": "tsc --esModuleInterop --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 scripts/generateVersionedOpenApi.mts --outDir scripts && node scripts/generateVersionedOpenApi.mjs"
+    "openapi:build": "node scripts/generateVersionedOpenApi.mts"
   },
   "directories": {
     "test": "tests"
