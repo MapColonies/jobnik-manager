@@ -13,8 +13,6 @@ import { format } from 'prettier';
 const VERSION_FILE_PATTERN = /^openapi_v(\d+)\.yaml$/;
 const OUTPUT_FILE = 'openapi3.yaml';
 
-type Version = string;
-
 /**
  * Discovers all versioned OpenAPI files matching the pattern openapi_v{number}.yaml
  */
@@ -46,7 +44,7 @@ const discoverVersionFiles = async (): Promise<{ version: string; file: string }
 /**
  * Adds version prefix to paths and suffix to operationIds
  */
-const addVersionToSpec = (spec: OpenAPIV3.Document, version: Version): OpenAPIV3.Document => {
+const addVersionToSpec = (spec: OpenAPIV3.Document, version: string): OpenAPIV3.Document => {
   const versionedSpec = structuredClone(spec);
 
   // Update paths to include version prefix
