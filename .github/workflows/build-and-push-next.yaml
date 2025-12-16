@@ -84,5 +84,6 @@ jobs:
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
           environment: dev
+          pr_labels: dev, auto-merge
           paths: |
             infra/environments/dev.yaml
