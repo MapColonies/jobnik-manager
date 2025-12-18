@@ -12,9 +12,7 @@ import { Registry } from 'prom-client';
 import { getErrorHandlerMiddleware } from '@common/utils/error-express-handler';
 import type { ConfigType } from '@common/config';
 import { SERVICES } from '@common/constants';
-import { JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
-import { STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
-import { TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
+import { V1_ROUTER_SYMBOL } from './api/v1';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -31,9 +29,7 @@ export class ServerBuilder {
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(SERVICES.SERVICE_METRICS) private readonly serviceMetricsRegistry: Registry,
     @inject(SERVICES.METRICS) private readonly metricsRegistry: Registry,
-    @inject(JOB_ROUTER_SYMBOL) private readonly jobRouter: Router,
-    @inject(STAGE_ROUTER_SYMBOL) private readonly stageRouter: Router,
-    @inject(TASK_ROUTER_SYMBOL) private readonly taskRouter: Router
+    @inject(V1_ROUTER_SYMBOL) private readonly v1Router: Router
   ) {
     this.serverInstance = express();
   }
@@ -56,9 +52,7 @@ export class ServerBuilder {
   }
 
   private buildRoutes(): void {
-    this.serverInstance.use('/jobs', this.jobRouter);
-    this.serverInstance.use('/stages', this.stageRouter);
-    this.serverInstance.use('/tasks', this.taskRouter);
+    this.serverInstance.use('/v1', this.v1Router);
 
     this.buildDocsRoutes();
   }

@@ -5,17 +5,17 @@ import { HttpError } from '@map-colonies/error-express-handler';
 import type { TypedRequestHandlers } from '@openapi';
 import { SERVICES, successMessages } from '@common/constants';
 import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundError, StageNotFoundError } from '@src/common/generated/errors';
-import { StageManager } from '../models/manager';
-import type { StageFindCriteriaArg } from '../models/models';
+import { StageManager } from '@src/stages/models/manager';
+import type { StageFindCriteriaArg } from '@src/stages/models/models';
 
 @injectable()
-export class StageController {
+export class StageControllerV1 {
   public constructor(
     @inject(SERVICES.LOGGER) private readonly logger: Logger,
     @inject(StageManager) private readonly manager: StageManager
   ) {}
 
-  public getStages: TypedRequestHandlers['GET /stages'] = async (req, res, next) => {
+  public getStages: TypedRequestHandlers['getStagesV1'] = async (req, res, next) => {
     const params: StageFindCriteriaArg = req.query;
     try {
       const response = await this.manager.getStages(params);
@@ -26,7 +26,7 @@ export class StageController {
     }
   };
 
-  public getStageById: TypedRequestHandlers['GET /stages/{stageId}'] = async (req, res, next) => {
+  public getStageById: TypedRequestHandlers['getStageByIdV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.getStageById(req.params.stageId, req.query?.should_return_tasks);
       return res.status(httpStatus.OK).json(response);
@@ -39,7 +39,7 @@ export class StageController {
     }
   };
 
-  public getStagesByJobId: TypedRequestHandlers['GET /jobs/{jobId}/stages'] = async (req, res, next) => {
+  public getStagesByJobId: TypedRequestHandlers['getStagesByJobIdV1'] = async (req, res, next) => {
     try {
       const includeTasks: boolean | undefined = req.query?.should_return_tasks ?? false;
 
@@ -53,7 +53,7 @@ export class StageController {
     }
   };
 
-  public addStage: TypedRequestHandlers['POST /jobs/{jobId}/stage'] = async (req, res, next) => {
+  public addStage: TypedRequestHandlers['addStageV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.addStage(req.params.jobId, req.body);
 
@@ -71,7 +71,7 @@ export class StageController {
     }
   };
 
-  public getSummaryByStageId: TypedRequestHandlers['GET /stages/{stageId}/summary'] = async (req, res, next) => {
+  public getSummaryByStageId: TypedRequestHandlers['getStageSummaryV1'] = async (req, res, next) => {
     try {
       const response = await this.manager.getSummaryByStageId(req.params.stageId);
       return res.status(httpStatus.OK).json(response);
@@ -84,7 +84,7 @@ export class StageController {
     }
   };
 
-  public updateUserMetadata: TypedRequestHandlers['PATCH /stages/{stageId}/user-metadata'] = async (req, res, next) => {
+  public updateUserMetadata: TypedRequestHandlers['updateStageUserMetadataV1'] = async (req, res, next) => {
     try {
       await this.manager.updateUserMetadata(req.params.stageId, req.body);
       return res.status(httpStatus.OK).json({ code: successMessages.stageModifiedSuccessfully });
@@ -97,7 +97,7 @@ export class StageController {
     }
   };
 
-  public updateStatus: TypedRequestHandlers['PUT /stages/{stageId}/status'] = async (req, res, next) => {
+  public updateStatus: TypedRequestHandlers['updateStageStatusV1'] = async (req, res, next) => {
     try {
       await this.manager.updateStatus(req.params.stageId, req.body.status);
 

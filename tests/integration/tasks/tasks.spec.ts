@@ -68,7 +68,7 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: stageId } });
+        const response = await requestSender.getTasksByCriteriaV1({ queryParams: { stage_id: stageId } });
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
@@ -78,7 +78,7 @@ describe('task', function () {
 
       it('should return 200 with empty array', async function () {
         const someRandomUuid = faker.string.uuid();
-        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_id: someRandomUuid } });
+        const response = await requestSender.getTasksByCriteriaV1({ queryParams: { stage_id: someRandomUuid } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -90,7 +90,7 @@ describe('task', function () {
       it('should return 200 with all tasks when no query params defined', async function () {
         await createJobnikTree(prisma, {}, {}, [{}, {}]);
 
-        const response = await requestSender.getTasksByCriteria();
+        const response = await requestSender.getTasksByCriteriaV1();
 
         if (response.status !== StatusCodes.OK) {
           throw new Error();
@@ -106,7 +106,7 @@ describe('task', function () {
     describe('Bad Path', function () {
       it('should return 400 when stage type exceeds 50 characters', async function () {
         const longStageType = faker.string.alpha(51);
-        const response = await requestSender.getTasksByCriteria({ queryParams: { stage_type: longStageType } });
+        const response = await requestSender.getTasksByCriteriaV1({ queryParams: { stage_type: longStageType } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -119,7 +119,7 @@ describe('task', function () {
       });
 
       it('should return 400 when adding unknown query parameters', async function () {
-        const response = await requestSender.getTasksByCriteria({ queryParams: { someExtraParam: 'FOO' } as unknown as Record<string, unknown> });
+        const response = await requestSender.getTasksByCriteriaV1({ queryParams: { someExtraParam: 'FOO' } as unknown as Record<string, unknown> });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -129,7 +129,7 @@ describe('task', function () {
       });
 
       it('should return 400 when status param is incorrect', async function () {
-        const response = await requestSender.getTasksByCriteria({ queryParams: { status: 'BAD_STATUS' as TaskOperationStatus } });
+        const response = await requestSender.getTasksByCriteriaV1({ queryParams: { status: 'BAD_STATUS' as TaskOperationStatus } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -147,7 +147,7 @@ describe('task', function () {
         const error = createMockPrismaError();
         vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTasksByCriteria({});
+        const response = await requestSender.getTasksByCriteriaV1({});
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -160,7 +160,7 @@ describe('task', function () {
         const error = createMockUnknownDbError();
         vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTasksByCriteria({});
+        const response = await requestSender.getTasksByCriteriaV1({});
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -177,7 +177,7 @@ describe('task', function () {
         const { tasks } = await createJobnikTree(prisma);
         const taskId = tasks[0]!.id;
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({ status: StatusCodes.OK, body: { status: TaskOperationStatus.CREATED } });
@@ -186,7 +186,7 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 404 when task does not exist', async function () {
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId: faker.string.uuid() } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -196,7 +196,7 @@ describe('task', function () {
       });
 
       it('should return 400 when supplying bad uuid', async function () {
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: 'badUuid' } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId: 'badUuid' } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -211,7 +211,7 @@ describe('task', function () {
         const error = createMockPrismaError();
         vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
+        const response = await requestSender.getTaskByIdV1({ pathParams: { taskId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -224,7 +224,7 @@ describe('task', function () {
         const error = createMockUnknownDbError();
         vi.spyOn(prisma.task, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTaskById({ pathParams: { taskId: faker.string.uuid() } });
+        const response = await requestSender.getTaskByIdV1({ pathParams: { taskId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -241,7 +241,7 @@ describe('task', function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [{}, {}]);
         const stageId = stage.id;
 
-        const getTasksResponse = await requestSender.getTasksByStageId({ pathParams: { stageId } });
+        const getTasksResponse = await requestSender.getTasksByStageIdV1({ pathParams: { stageId } });
 
         expect(getTasksResponse).toSatisfyApiSpec();
         expect(getTasksResponse.body).toHaveLength(2);
@@ -258,7 +258,7 @@ describe('task', function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
-        const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId } });
+        const getTaskResponse = await requestSender.getTasksByStageIdV1({ pathParams: { stageId } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -270,7 +270,7 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 400 when supplying bad uuid', async function () {
-        const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: 'someInvalidStageId' } });
+        const getTaskResponse = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: 'someInvalidStageId' } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -280,7 +280,7 @@ describe('task', function () {
       });
 
       it('should return 404 when stage does not exist', async function () {
-        const getTaskResponse = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
+        const getTaskResponse = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: faker.string.uuid() } });
 
         expect(getTaskResponse).toSatisfyApiSpec();
         expect(getTaskResponse).toMatchObject({
@@ -295,7 +295,7 @@ describe('task', function () {
         const error = createMockPrismaError();
         vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
+        const response = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -308,7 +308,7 @@ describe('task', function () {
         const error = createMockUnknownDbError();
         vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.getTasksByStageId({ pathParams: { stageId: faker.string.uuid() } });
+        const response = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: faker.string.uuid() } });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -326,12 +326,12 @@ describe('task', function () {
         const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
         const taskId = tasks[0]!.id;
 
-        const updateUserMetadataResponse = await requestSender.updateTaskUserMetadata({
+        const updateUserMetadataResponse = await requestSender.updateTaskUserMetadataV1({
           pathParams: { taskId },
           requestBody: userMetadataInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId: tasks[0]!.id } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId: tasks[0]!.id } });
 
         expect(updateUserMetadataResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject({ userMetadata: userMetadataInput });
@@ -340,7 +340,7 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 404 when task not found', async function () {
-        const getTaskResponse = await requestSender.updateTaskUserMetadata({
+        const getTaskResponse = await requestSender.updateTaskUserMetadataV1({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { avi: 'avi' },
         });
@@ -356,7 +356,7 @@ describe('task', function () {
         const { tasks } = await createJobnikTree(prisma, {}, {}, [{}]);
         const taskId = tasks[0]!.id;
 
-        const response = await requestSender.updateTaskUserMetadata({
+        const response = await requestSender.updateTaskUserMetadataV1({
           pathParams: { taskId },
           requestBody: 'badInputString' as unknown as { [key: string]: string },
         });
@@ -374,7 +374,7 @@ describe('task', function () {
         const error = createMockPrismaError();
         vi.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
-        const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
+        const response = await requestSender.updateTaskUserMetadataV1({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -387,7 +387,7 @@ describe('task', function () {
         const error = createMockUnknownDbError();
         vi.spyOn(prisma.task, 'update').mockRejectedValueOnce(error);
 
-        const response = await requestSender.updateTaskUserMetadata({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
+        const response = await requestSender.updateTaskUserMetadataV1({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -409,7 +409,7 @@ describe('task', function () {
           userMetadata: {},
         } satisfies TaskCreateModel;
 
-        const response = await requestSender.addTasks({
+        const response = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -433,7 +433,7 @@ describe('task', function () {
           userMetadata: {},
         } satisfies TaskCreateModel;
 
-        const response = await requestSender.addTasks({
+        const response = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -454,7 +454,7 @@ describe('task', function () {
           userMetadata: {},
         } satisfies TaskCreateModel;
 
-        const createTaskResponse = await requestSender.addTasks({
+        const createTaskResponse = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -480,7 +480,7 @@ describe('task', function () {
           tracestate: 'foo=bar',
         } satisfies TaskCreateModel;
 
-        const createTaskResponse = await requestSender.addTasks({
+        const createTaskResponse = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -506,7 +506,7 @@ describe('task', function () {
           traceparent: '00-1234567890abcdef1234567890abcdef-1234567890abcdef-01',
         } satisfies TaskCreateModel;
 
-        const createTaskResponse = await requestSender.addTasks({
+        const createTaskResponse = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -531,7 +531,7 @@ describe('task', function () {
 
     describe('Bad Path', function () {
       it('should return 400 when supplying bad uuid', async function () {
-        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId: 'someInvalidStageId' } });
+        const addTasksResponse = await requestSender.addTasksV1({ requestBody: [], pathParams: { stageId: 'someInvalidStageId' } });
 
         expect(addTasksResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,
@@ -543,7 +543,7 @@ describe('task', function () {
         const { stage } = await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
         const stageId = stage.id;
 
-        const addTasksResponse = await requestSender.addTasks({
+        const addTasksResponse = await requestSender.addTasksV1({
           pathParams: { stageId },
           requestBody: {} as unknown as [],
         });
@@ -564,7 +564,7 @@ describe('task', function () {
         );
         const stageId = stage.id;
 
-        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
+        const addTasksResponse = await requestSender.addTasksV1({ requestBody: [], pathParams: { stageId } });
 
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
@@ -583,7 +583,7 @@ describe('task', function () {
         );
         const stageId = stage.id;
 
-        const addTasksResponse = await requestSender.addTasks({ requestBody: [], pathParams: { stageId } });
+        const addTasksResponse = await requestSender.addTasksV1({ requestBody: [], pathParams: { stageId } });
 
         expect(addTasksResponse).toSatisfyApiSpec();
         expect(addTasksResponse).toMatchObject({
@@ -602,7 +602,7 @@ describe('task', function () {
           traceparent: 'INVALID_TRACEPARENT',
         } satisfies TaskCreateModel;
 
-        const createTaskResponse = await requestSender.addTasks({
+        const createTaskResponse = await requestSender.addTasksV1({
           requestBody: [createTasksPayload],
           pathParams: { stageId },
         });
@@ -619,7 +619,7 @@ describe('task', function () {
           userMetadata: {},
         } satisfies TaskCreateModel;
 
-        const response = await requestSender.addTasks({
+        const response = await requestSender.addTasksV1({
           requestBody: [createTaskPayload],
           pathParams: { stageId: faker.string.uuid() },
         });
@@ -637,7 +637,7 @@ describe('task', function () {
         const error = createMockPrismaError();
         vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.addTasks({
+        const response = await requestSender.addTasksV1({
           requestBody: [],
           pathParams: { stageId: faker.string.uuid() },
         });
@@ -653,7 +653,7 @@ describe('task', function () {
         const error = createMockUnknownDbError();
         vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(error);
 
-        const response = await requestSender.addTasks({
+        const response = await requestSender.addTasksV1({
           requestBody: [],
           pathParams: { stageId: faker.string.uuid() },
         });
@@ -683,13 +683,13 @@ describe('task', function () {
 
         const taskId = tasks[0]!.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId: stage.id } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId: stage.id } });
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
@@ -706,14 +706,14 @@ describe('task', function () {
         );
 
         const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
         expect(getTaskResponse.body).toHaveProperty('endTime');
@@ -734,14 +734,14 @@ describe('task', function () {
         );
 
         const taskId = tasks[0]!.id;
-        const getTaskResponseBeforeUpdate = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseBeforeUpdate = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
@@ -763,13 +763,13 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
@@ -791,13 +791,13 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedStatus);
@@ -820,12 +820,12 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedStatus);
@@ -852,13 +852,13 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
@@ -879,7 +879,7 @@ describe('task', function () {
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
 
-        const secondStage = await requestSender.addStage({
+        const secondStage = await requestSender.addStageV1({
           pathParams: { jobId: stage.jobId },
           requestBody: {
             type: 'Second Stage',
@@ -895,15 +895,15 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-        const getSecondStageResponse = await requestSender.getStageById({ pathParams: { stageId: secondStage.body.id } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+        const getSecondStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId: secondStage.body.id } });
+        const getJobResponse = await requestSender.getJobByIdV1({ pathParams: { jobId: stage.jobId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
@@ -929,14 +929,14 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: updateStatusInput,
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId: stage.jobId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobByIdV1({ pathParams: { jobId: stage.jobId } });
 
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(expectedTaskStatus);
@@ -956,7 +956,7 @@ describe('task', function () {
 
         const taskId = tasks[0]!.id;
 
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
@@ -972,7 +972,7 @@ describe('task', function () {
       });
 
       it('should return 400 when supplying bad uuid', async function () {
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId: 'badUuid' },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
@@ -985,7 +985,7 @@ describe('task', function () {
       });
 
       it('should return 404 when task not found', async function () {
-        const updateStatusResponse = await requestSender.updateTaskStatus({
+        const updateStatusResponse = await requestSender.updateTaskStatusV1({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
@@ -1012,7 +1012,7 @@ describe('task', function () {
           return callback(mockTx);
         });
 
-        const response = await requestSender.updateTaskStatus({
+        const response = await requestSender.updateTaskStatusV1({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
@@ -1037,7 +1037,7 @@ describe('task', function () {
           return callback(mockTx);
         });
 
-        const response = await requestSender.updateTaskStatus({
+        const response = await requestSender.updateTaskStatusV1({
           pathParams: { taskId: faker.string.uuid() },
           requestBody: { status: TaskOperationStatus.COMPLETED },
         });
@@ -1071,12 +1071,11 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_1' },
         });
 
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -1108,12 +1107,11 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_2' },
         });
 
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -1145,12 +1143,12 @@ describe('task', function () {
         const stageId = stage.id;
         const taskId = tasks[0]!.id;
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_3' },
         });
 
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobByIdV1({ pathParams: { jobId } });
 
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
@@ -1253,15 +1251,15 @@ describe('task', function () {
           prisma
         );
         // Dequeue tasks, should return the task with high priority first
-        const dequeueResponseHigh = await requestSender.dequeueTask({
+        const dequeueResponseHigh = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with medium and low priority, should return the next available task
-        const dequeueResponseMedium = await requestSender.dequeueTask({
+        const dequeueResponseMedium = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         // Dequeue tasks with low priority, should return the next available task
-        const dequeueResponseLow = await requestSender.dequeueTask({
+        const dequeueResponseLow = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
         expect(dequeueResponseHigh).toSatisfyApiSpec();
@@ -1309,14 +1307,14 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
 
         // Get task before dequeue to verify it doesn't have startTime
-        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_STARTIME_CHECK' },
         });
 
         // Get task after dequeue to verify it has startTime
-        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseAfterDequeue = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
 
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
@@ -1349,16 +1347,16 @@ describe('task', function () {
         const taskId = tasks[0]!.id;
 
         // Get task before dequeue to capture previous startTime
-        const getTaskResponseBeforeDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseBeforeDequeue = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
         const taskBeforeDequeue = getTaskResponseBeforeDequeue.body as TaskModel;
         const previousStartTime = taskBeforeDequeue.startTime;
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_RETRIED_STARTIME' },
         });
 
         // Get task after dequeue to verify startTime was updated
-        const getTaskResponseAfterDequeue = await requestSender.getTaskById({ pathParams: { taskId } });
+        const getTaskResponseAfterDequeue = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
         const taskAfterDequeue = getTaskResponseAfterDequeue.body as TaskModel;
 
         expect(dequeueResponse).toSatisfyApiSpec();
@@ -1379,7 +1377,7 @@ describe('task', function () {
         const longStageType = faker.string.alpha(51);
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
 
-        const taskResponse = await requestSender.dequeueTask({
+        const taskResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: longStageType },
         });
 
@@ -1395,7 +1393,7 @@ describe('task', function () {
 
       it('should return 404 when no available task exists', async function () {
         await prisma.$queryRaw(Prisma.sql`TRUNCATE TABLE "job_manager"."task" CASCADE;`);
-        const taskResponse = await requestSender.dequeueTask({
+        const taskResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_NON_EXIST_STAGE_TYPE' },
         });
 
@@ -1422,7 +1420,7 @@ describe('task', function () {
           [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
         );
 
-        const taskResponse = await requestSender.dequeueTask({
+        const taskResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_NO_PENDING_TASK' },
         });
 
@@ -1448,7 +1446,7 @@ describe('task', function () {
           return callback(mockTx);
         });
 
-        const response = await requestSender.dequeueTask({
+        const response = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_NAME' },
         });
 
@@ -1472,7 +1470,7 @@ describe('task', function () {
           return callback(mockTx);
         });
 
-        const response = await requestSender.dequeueTask({
+        const response = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_NAME' },
         });
 
@@ -1502,13 +1500,13 @@ describe('task', function () {
         const stageId = stage.id;
         const taskId = tasks[0]!.id;
 
-        const dequeueResponse = await requestSender.dequeueTask({
+        const dequeueResponse = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_FAILED_TRANSACTION' },
         });
 
-        const getTaskResponse = await requestSender.getTaskById({ pathParams: { taskId } });
-        const getStageResponse = await requestSender.getStageById({ pathParams: { stageId } });
-        const getJobResponse = await requestSender.getJobById({ pathParams: { jobId } });
+        const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+        const getJobResponse = await requestSender.getJobByIdV1({ pathParams: { jobId } });
 
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
@@ -1564,10 +1562,10 @@ describe('task', function () {
           // Call the original implementation with the same arguments
           return res;
         });
-        const dequeueFirstPromise = requestSender.dequeueTask({
+        const dequeueFirstPromise = requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
-        const dequeueSecondPromise = requestSender.dequeueTask({
+        const dequeueSecondPromise = requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const firstResponse = await dequeueFirstPromise;

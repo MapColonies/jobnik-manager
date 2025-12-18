@@ -8,7 +8,7 @@ type StageModel = components['schemas']['getStageResponse'];
 type StageCreateModel = components['schemas']['createStagePayloadRequest'];
 type StageCreateBody = StageCreateModel & { jobId: string; xstate: Snapshot<unknown> };
 type StageSummary = components['schemas']['summary'];
-type StageFindCriteriaArg = operations['getStages']['parameters']['query'];
+type StageFindCriteriaArg = operations['getStagesV1']['parameters']['query'];
 type StageIncludingJob = StagePrismaObject & { job: JobPrismaObject };
 interface UpdateSummaryCount {
   add: { status: TaskOperationStatus; count: number };

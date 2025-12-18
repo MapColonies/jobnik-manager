@@ -7,15 +7,16 @@ import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyr
 import { HealthCheck } from '@godaddy/terminus';
 import { PrismaClient } from '@prismaClient';
 import { InjectionObject, registerDependencies } from '@common/dependencyRegistration';
-import { DB_CONNECTION_TIMEOUT, SERVICES, SERVICE_NAME } from '@common/constants';
+import { DB_CONNECTION_TIMEOUT, ROUTERS, SERVICES, SERVICE_NAME } from '@common/constants';
 import { getTracing } from '@common/tracing';
-import { jobRouterFactory, JOB_ROUTER_SYMBOL } from './jobs/routes/jobRouter';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient } from './db/createConnection';
 import { promiseTimeout } from './common/utils/promiseTimeout';
-import { stageRouterFactory, STAGE_ROUTER_SYMBOL } from './stages/routes/stageRouter';
-import { taskRouterFactory, TASK_ROUTER_SYMBOL } from './tasks/routes/taskRouter';
 import { SERVICE_METRICS_SYMBOL, serviceMetricsFactory } from './common/serviceMetrics';
+import { jobV1RouterFactory } from './api/v1/jobs/router';
+import { stageV1RouterFactory } from './api/v1/stages/router';
+import { taskV1RouterFactory } from './api/v1/tasks/router';
+import { v1RouterFactory, V1_ROUTER_SYMBOL } from './api/v1';
 
 export interface RegisterOptions {
   override?: InjectionObject<unknown>[];
@@ -76,9 +77,10 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
       },
     },
 
-    { token: JOB_ROUTER_SYMBOL, provider: { useFactory: jobRouterFactory } },
-    { token: STAGE_ROUTER_SYMBOL, provider: { useFactory: stageRouterFactory } },
-    { token: TASK_ROUTER_SYMBOL, provider: { useFactory: taskRouterFactory } },
+    { token: ROUTERS.JOBS_V1, provider: { useFactory: jobV1RouterFactory } },
+    { token: ROUTERS.STAGES_V1, provider: { useFactory: stageV1RouterFactory } },
+    { token: ROUTERS.TASKS_V1, provider: { useFactory: taskV1RouterFactory } },
+    { token: V1_ROUTER_SYMBOL, provider: { useFactory: v1RouterFactory } },
 
     {
       token: 'onSignal',
