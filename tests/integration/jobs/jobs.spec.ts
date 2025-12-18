@@ -648,7 +648,7 @@ describe('job', function () {
 
         const setStatusResponse = await requestSender.updateStatusV1({
           pathParams: { jobId },
-          // @ts-expect-error - Testing invalid status value that should be rejected by API
+          // @ts-expect-error - COMPLETED is a system-managed status and cannot be set via the user-controllable status update endpoint; this test ensures such values are rejected by the API
           requestBody: { status: JobOperationStatus.COMPLETED },
         });
 
