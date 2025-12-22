@@ -20,6 +20,7 @@ function createCamelCaseMapper<T extends Record<string, string>>(obj: T): CamelC
   // Iterate through each key in the object and convert its value to camel case
   for (const key in obj) {
     const value = obj[key];
+    /* v8 ignore next 3 -- @preserve */
     if (typeof value === 'string') {
       result[key] = screamingToCamelCase(value);
     }

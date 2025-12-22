@@ -9,17 +9,18 @@ import { initConfig } from '@src/common/config';
 import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { TaskManager } from '@src/tasks/models/manager';
+import { createPrismaSpy } from '@tests/configurations/mockPrisma';
 import { createJobnikTree } from '../common/utils';
 
 describe('TaskSweeper', () => {
   let prisma: PrismaClient;
   let taskManager: TaskManager;
 
-  beforeAll(async () => {
+  beforeAll(async function () {
     await initConfig(true);
   });
 
-  beforeEach(async () => {
+  beforeEach(async function () {
     const [, container] = await getApp({
       override: [
         { token: SERVICES.LOGGER, provider: { useValue: jsLogger({ enabled: false }) } },
@@ -30,16 +31,18 @@ describe('TaskSweeper', () => {
 
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
     taskManager = container.resolve(TaskManager);
+
+    // Ensure Prisma methods exist before they can be spied on (Vitest 4.0 requirement)
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
     await prisma.$disconnect();
     vi.resetModules();
   });
 
   describe('#cleanStaleTasks', function () {
     describe('Happy Path', function () {
-      it('should clean stale tasks and update stage summaries correctly', async () => {
+      it('should clean stale tasks and update stage summaries correctly', async function () {
         // Create job tree with stale tasks that have maxAttempts: 1 so they go directly to FAILED
         const { stage } = await createJobnikTree(
           prisma,
@@ -104,7 +107,7 @@ describe('TaskSweeper', () => {
         });
       });
 
-      it('should not clean stale tasks when startTime less than period threshold', async () => {
+      it('should not clean stale tasks when startTime less than period threshold', async function () {
         // Create job tree with stale tasks that have maxAttempts: 1 so they go directly to FAILED
         const { stage } = await createJobnikTree(
           prisma,
@@ -158,11 +161,11 @@ describe('TaskSweeper', () => {
         });
       });
 
-      it('should handle empty database gracefully', async () => {
+      it('should handle empty database gracefully', async function () {
         await expect(taskManager.cleanStaleTasks()).toResolve();
       });
 
-      it('should move tasks to RETRIED status when they have remaining attempts', async () => {
+      it('should move tasks to RETRIED status when they have remaining attempts', async function () {
         // Create job tree with stale tasks that have maxAttempts > 1 so they go to RETRIED
         const { stage } = await createJobnikTree(
           prisma,
@@ -200,7 +203,7 @@ describe('TaskSweeper', () => {
         });
       });
 
-      it('should log debug messages when successfully updating stale task status', async () => {
+      it('should log debug messages when successfully updating stale task status', async function () {
         // Create job tree with stale tasks that have maxAttempts: 1 so they go directly to FAILED
         await createJobnikTree(
           prisma,
@@ -228,7 +231,8 @@ describe('TaskSweeper', () => {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        vi.spyOn(prisma.task, 'findMany').mockRejectedValueOnce(new Error('Database error'));
+        const findManySpy = createPrismaSpy(prisma.task, 'findMany');
+        findManySpy.mockRejectedValueOnce(new Error('Database error'));
 
         await expect(taskManager.cleanStaleTasks()).toReject();
       });

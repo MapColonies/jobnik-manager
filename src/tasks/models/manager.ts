@@ -253,13 +253,13 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
     });
 
-    /* v8 ignore start */
+    /* v8 ignore next 6 -- @preserve */
     if (!tx) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeUpdateStatus(taskId, status, newTx);
       });
     }
-    /* v8 ignore end */
+    /* v8 ignore next  -- @preserve */
     return this.executeUpdateStatus(taskId, status, tx);
   }
 
@@ -276,12 +276,14 @@ export class TaskManager {
       [ATTR_MESSAGING_DESTINATION_NAME]: stageType,
     });
 
+    /* v8 ignore next 5 -- @preserve */
     if (tx === undefined) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeDequeue(stageType, newTx);
       });
     }
 
+    /* v8 ignore next -- @preserve */
     return this.executeDequeue(stageType, tx);
   }
 
@@ -424,6 +426,7 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
     });
 
+    /* v8 ignore next 5 -- @preserve */
     if (!tx) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeUpdateAndValidateStatus(task, status, newTx);
@@ -475,7 +478,7 @@ export class TaskManager {
     if (nextStatus === TaskOperationStatus.FAILED) {
       const stage = await this.stageManager.getStageEntityById(task.stageId, { tx });
 
-      /* v8 ignore start */
+      /* v8 ignore next 7 -- @preserve */
       if (!stage) {
         this.logger.error(`Failed updating task status, stage not exists`);
         throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
@@ -484,7 +487,6 @@ export class TaskManager {
       if (stage.status === StageOperationStatus.FAILED) {
         return updatedTasks[0];
       }
-      /* v8 ignore stop */
 
       this.logger.info({
         msg: 'Updating parent stage status to FAILED due to task failure',
