@@ -24,7 +24,7 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
   const app = container.resolve(ServerBuilder).build();
 
   // Schedule cron job to clean stale tasks
-  /* v8 ignore start */
+  /* v8 ignore next 7 -- @preserve */
   if (cronConfig.enabled) {
     const taskManager = container.resolve(TaskManager);
     if (!validate(cronConfig.schedule)) {
@@ -35,7 +35,6 @@ async function getApp(registerOptions?: RegisterOptions): Promise<[Application, 
       await taskManager.cleanStaleTasks();
     });
   }
-  /* v8 ignore stop */
 
   return [app, container];
 }

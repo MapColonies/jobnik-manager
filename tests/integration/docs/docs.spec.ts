@@ -29,7 +29,7 @@ describe('docs', function () {
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
   });
 
-  afterEach(async () => {
+  afterEach(async function () {
     await prisma.$disconnect();
   });
 

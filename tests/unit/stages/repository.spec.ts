@@ -1,21 +1,24 @@
 import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
-import { PrismaClient, TaskOperationStatus } from '@prismaClient';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
+import type { PrismaClient } from '@prismaClient';
+import { TaskOperationStatus } from '@prismaClient';
 import { UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { createStageEntity } from '../generator';
 
-const prisma = new PrismaClient();
+let prisma: DeepMockProxy<PrismaClient>;
 let stageRepository: StageRepository;
 
 describe('JobManager', () => {
   beforeEach(function () {
+    prisma = mockDeep<PrismaClient>();
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
   });
 
-  afterEach(() => {
+  afterEach(function () {
     vi.clearAllMocks();
   });
 

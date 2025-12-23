@@ -51,11 +51,11 @@ export class StageRepository {
     this.logger.debug(`Executing query to update stage summary: ${updateQuery.text}`);
     const updatedSummary = await tx.$queryRaw<{ summary: StageSummary }[]>(updateQuery);
 
-    /* v8 ignore start */
+    /* v8 ignore start -- @preserve */
     if (!updatedSummary[0]) {
       throw new Error('Failed to update stage summary: No summary returned from database.');
     }
-    /* v8 ignore stop */
+    /* v8 ignore stop -- @preserve */
 
     return updatedSummary[0].summary;
   }

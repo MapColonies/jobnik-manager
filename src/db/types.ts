@@ -1,6 +1,6 @@
 import type { Snapshot } from 'xstate';
 import type { components } from '@openapi';
-import type { PrismaClient } from '@prismaClient';
+import type { Prisma } from '@prismaClient';
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/no-namespace
@@ -14,4 +14,4 @@ declare global {
   }
 }
 
-export type PrismaTransaction = Parameters<Parameters<PrismaClient['$transaction']>[0]>[0];
+export type PrismaTransaction = Prisma.TransactionClient;

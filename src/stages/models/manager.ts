@@ -470,7 +470,7 @@ export class StageManager {
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
     });
 
-    /* v8 ignore next - defensive code, tx is always provided in tests */
+    /* v8 ignore next -- @preserve - defensive code, tx is always provided in tests */
     const prisma = tx ?? this.prisma;
 
     const [totalStages, completedStages] = await Promise.all([
@@ -478,11 +478,10 @@ export class StageManager {
       prisma.stage.count({ where: { jobId, status: StageOperationStatus.COMPLETED } }),
     ]);
 
-    /* v8 ignore start */
+    /* v8 ignore next 3 -- @preserve */
     if (totalStages === 0) {
       return { completedStages: 0, totalStages: 0 };
     }
-    /* v8 ignore stop */
 
     const JOB_PERCENTAGE_MULTIPLIER = 100;
     const completionPercentage = Math.floor((completedStages / totalStages) * JOB_PERCENTAGE_MULTIPLIER);
