@@ -3,7 +3,7 @@ import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
 import { Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
@@ -17,7 +17,6 @@ import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
-import { createMockPrisma } from '@tests/configurations/mockPrisma';
 import {
   completedStageXstatePersistentSnapshot,
   inProgressStageXstatePersistentSnapshot,
@@ -40,7 +39,7 @@ const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND
 
 describe('JobManager', () => {
   beforeEach(function () {
-    prisma = createMockPrisma();
+    prisma = mockDeep<PrismaClient>();
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);

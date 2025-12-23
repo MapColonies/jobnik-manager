@@ -26,7 +26,7 @@ import {
 } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
-import { createPrismaSpy } from '@tests/configurations/mockPrisma';
+import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 
@@ -182,7 +182,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findManySpy = createPrismaSpy(prisma.stage, 'findMany');
+        const findManySpy = createProxyMock(prisma.stage, 'findMany');
         findManySpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesV1({});
@@ -196,7 +196,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findManySpy = createPrismaSpy(prisma.stage, 'findMany');
+        const findManySpy = createProxyMock(prisma.stage, 'findMany');
         findManySpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesV1({});
@@ -292,7 +292,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageByIdV1({ pathParams: { stageId: dumpUuid } });
@@ -306,7 +306,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageByIdV1({ pathParams: { stageId: dumpUuid } });
@@ -458,7 +458,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.job, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.job, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: faker.string.uuid() } });
@@ -472,7 +472,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.job, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.job, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: faker.string.uuid() } });
@@ -523,7 +523,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummaryV1({ pathParams: { stageId: dumpUuid } });
@@ -537,7 +537,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getStageSummaryV1({ pathParams: { stageId: dumpUuid } });
@@ -600,7 +600,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const updateSpy = createPrismaSpy(prisma.stage, 'update');
+        const updateSpy = createProxyMock(prisma.stage, 'update');
         updateSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadataV1({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
@@ -614,7 +614,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const updateSpy = createPrismaSpy(prisma.stage, 'update');
+        const updateSpy = createProxyMock(prisma.stage, 'update');
         updateSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.updateStageUserMetadataV1({ pathParams: { stageId: faker.string.uuid() }, requestBody: {} });
@@ -1075,7 +1075,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.job, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.job, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.addStageV1({
@@ -1092,7 +1092,7 @@ describe('stage', function () {
 
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.job, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.job, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.addStageV1({
@@ -1256,7 +1256,7 @@ describe('stage', function () {
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(<T>(callback: (tx: PrismaTransaction) => T): T => {
           const mockTx = {
             stage: {
@@ -1281,7 +1281,7 @@ describe('stage', function () {
       it('should return 500 status code when the database driver throws an unexpected error', async function () {
         const error = createMockUnknownDbError();
 
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
 
         transactionSpy.mockImplementation(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {

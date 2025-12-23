@@ -4,7 +4,7 @@ import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { subHours, subMinutes } from 'date-fns';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
 import { Prisma, StageOperationStatus, TaskOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
@@ -19,7 +19,6 @@ import { SERVICE_NAME } from '@src/common/constants';
 import { IllegalTaskStatusTransitionError, NotAllowedToAddTasksToInProgressStageError, StageInFiniteStateError } from '@src/common/generated/errors';
 import { getConfig, initConfig } from '@src/common/config';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
-import { createMockPrisma } from '@tests/configurations/mockPrisma';
 import { createJobEntity, createStageEntity, createTaskEntity } from '../generator';
 import { abortedStageXstatePersistentSnapshot, inProgressStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '../data';
 
@@ -57,7 +56,7 @@ describe('JobManager', () => {
 
   beforeEach(function () {
     config = getConfig();
-    prisma = createMockPrisma();
+    prisma = mockDeep<PrismaClient>();
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);

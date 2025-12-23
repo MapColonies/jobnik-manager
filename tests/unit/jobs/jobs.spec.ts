@@ -1,7 +1,7 @@
 import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
-import type { DeepMockProxy } from 'vitest-mock-extended';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
 import { Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
@@ -10,7 +10,6 @@ import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { randomUuid } from '@tests/unit/generator';
 import { SERVICE_NAME } from '@src/common/constants';
-import { createMockPrisma } from '@tests/configurations/mockPrisma';
 import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';
 
 let jobManager: JobManager;
@@ -20,7 +19,7 @@ const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FO
 
 describe('JobManager', () => {
   beforeEach(function () {
-    prisma = createMockPrisma();
+    prisma = mockDeep<PrismaClient>();
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
   });
 

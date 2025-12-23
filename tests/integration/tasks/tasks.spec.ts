@@ -25,7 +25,7 @@ import {
 } from '@tests/unit/data';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
-import { createPrismaSpy } from '@tests/configurations/mockPrisma';
+import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
@@ -149,7 +149,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findManySpy = createPrismaSpy(prisma.task, 'findMany');
+        const findManySpy = createProxyMock(prisma.task, 'findMany');
         findManySpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByCriteriaV1({});
@@ -163,7 +163,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findManySpy = createPrismaSpy(prisma.task, 'findMany');
+        const findManySpy = createProxyMock(prisma.task, 'findMany');
         findManySpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByCriteriaV1({});
@@ -215,7 +215,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.task, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.task, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTaskByIdV1({ pathParams: { taskId: faker.string.uuid() } });
@@ -229,7 +229,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.task, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.task, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTaskByIdV1({ pathParams: { taskId: faker.string.uuid() } });
@@ -301,7 +301,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: faker.string.uuid() } });
@@ -315,7 +315,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.getTasksByStageIdV1({ pathParams: { stageId: faker.string.uuid() } });
@@ -382,7 +382,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const updateSpy = createPrismaSpy(prisma.task, 'update');
+        const updateSpy = createProxyMock(prisma.task, 'update');
         updateSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskUserMetadataV1({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
@@ -396,7 +396,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const updateSpy = createPrismaSpy(prisma.task, 'update');
+        const updateSpy = createProxyMock(prisma.task, 'update');
         updateSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.updateTaskUserMetadataV1({ pathParams: { taskId: faker.string.uuid() }, requestBody: {} });
@@ -647,7 +647,7 @@ describe('task', function () {
     describe('Sad Path', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.addTasksV1({
@@ -664,7 +664,7 @@ describe('task', function () {
 
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
-        const findUniqueSpy = createPrismaSpy(prisma.stage, 'findUnique');
+        const findUniqueSpy = createProxyMock(prisma.stage, 'findUnique');
         findUniqueSpy.mockRejectedValueOnce(error);
 
         const response = await requestSender.addTasksV1({
@@ -1016,7 +1016,7 @@ describe('task', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
 
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
             task: {
@@ -1042,7 +1042,7 @@ describe('task', function () {
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
 
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
             task: {
@@ -1452,7 +1452,7 @@ describe('task', function () {
       it('should return 500 when database driver throws an error', async function () {
         const error = createMockPrismaError();
 
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
             task: {
@@ -1477,7 +1477,7 @@ describe('task', function () {
       it('should return 500 when database driver throws unexpected error', async function () {
         const error = createMockUnknownDbError();
 
-        const transactionSpy = createPrismaSpy(prisma, '$transaction');
+        const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
             task: {
@@ -1564,7 +1564,7 @@ describe('task', function () {
           continueUpdateSecondTask = resolve;
         });
         const original = prisma.task.findFirst.bind(prisma.task);
-        const spy = createPrismaSpy(prisma.task, 'findFirst');
+        const spy = createProxyMock(prisma.task, 'findFirst');
         spy.mockImplementationOnce(async (...args: Parameters<typeof original>) => {
           const res = await original(...args);
           await updateTaskHolderFirst; // prevent updating the task until the second dequeue is called

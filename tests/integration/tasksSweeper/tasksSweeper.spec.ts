@@ -9,7 +9,7 @@ import { initConfig } from '@src/common/config';
 import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { TaskManager } from '@src/tasks/models/manager';
-import { createPrismaSpy } from '@tests/configurations/mockPrisma';
+import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobnikTree } from '../common/utils';
 
 describe('TaskSweeper', () => {
@@ -231,7 +231,7 @@ describe('TaskSweeper', () => {
 
     describe('Sad Path', function () {
       it('should return 500 status code when the database driver throws an error', async function () {
-        const findManySpy = createPrismaSpy(prisma.task, 'findMany');
+        const findManySpy = createProxyMock(prisma.task, 'findMany');
         findManySpy.mockRejectedValueOnce(new Error('Database error'));
 
         await expect(taskManager.cleanStaleTasks()).toReject();
