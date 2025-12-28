@@ -3,7 +3,9 @@ import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
-import { PrismaClient, Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
+import type { PrismaClient } from '@prismaClient';
+import { Prisma, StageOperationStatus, JobOperationStatus } from '@prismaClient';
 import { StageManager } from '@src/stages/models/manager';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -29,20 +31,21 @@ import { createStageEntity, createJobEntity, createTaskEntity, StageWithTasks } 
 let jobManager: JobManager;
 let stageManager: StageManager;
 let stageRepository: StageRepository;
+let prisma: DeepMockProxy<PrismaClient>;
 const tracer = trace.getTracer(SERVICE_NAME);
-const prisma = new PrismaClient();
 type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateArgs>;
 
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
+    prisma = mockDeep<PrismaClient>();
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
     stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
     stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
   });
 
-  afterEach(() => {
+  afterEach(function () {
     vi.clearAllMocks();
     vi.restoreAllMocks();
   });
@@ -52,7 +55,7 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return array with single stage formatted object by criteria without tasks', async function () {
           const stageEntity = createStageEntity({ type: 'SOME_STAGE_TYPE' });
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+          prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
           const { xstate, task, tracestate, ...rest } = stageEntity;
@@ -67,7 +70,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const taskEntity = createTaskEntity({ stageId });
           const stageEntity = createStageEntity({ id: stageId, task: [taskEntity], type: 'SOME_STAGE_TYPE' });
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+          prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE', should_return_tasks: true });
           const { xstate, task, tracestate, ...rest } = stageEntity;
@@ -80,7 +83,7 @@ describe('JobManager', () => {
 
         it('should return array with all stages when no criteria is provided', async function () {
           const stageEntity = createStageEntity({});
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+          prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
           const stages = await stageManager.getStages(undefined);
           const { xstate, task, tracestate, ...rest } = stageEntity;
@@ -93,7 +96,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should failed on db error when find stages', async function () {
-          const prismaCreateJobMock = vi.spyOn(prisma.stage, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
+          const prismaCreateJobMock = prisma.stage.findMany.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' })).rejects.toThrow('db connection error');
 
@@ -107,7 +110,7 @@ describe('JobManager', () => {
         it('should return stage object by provided id', async function () {
           const stageEntity = createStageEntity({});
           const stageId = stageEntity.id;
-          vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+          prisma.stage.findUnique.mockResolvedValue(stageEntity);
 
           const stage = await stageManager.getStageById(stageId);
 
@@ -124,7 +127,7 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({ stageId });
           const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
 
-          vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+          prisma.stage.findUnique.mockResolvedValue(stageEntity);
 
           const stage = await stageManager.getStageById(stageId);
 
@@ -139,7 +142,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should result in failure when attempting to retrieve a job with a non-existent stage', async function () {
-          vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
+          prisma.stage.findUnique.mockResolvedValue(null);
 
           await expect(stageManager.getStageById('some_id')).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
@@ -147,7 +150,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail and throw an error if prisma throws an error', async function () {
-          vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.stage.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.getStageById('some_id')).rejects.toThrow('db connection error');
         });
@@ -157,8 +160,8 @@ describe('JobManager', () => {
     describe('#getStagesByJobId', () => {
       describe('#HappyPath', () => {
         it('should return stage object by provided job id', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithStages);
+          prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
@@ -174,8 +177,8 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({ stageId });
           const stageEntity = createStageEntity({ id: stageId, task: [taskEntity] });
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue([stageEntity]);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithStages);
+          prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
           const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
 
@@ -196,8 +199,8 @@ describe('JobManager', () => {
           // Mock database to return stages in correct order (simulating orderBy)
           const orderedStages = [stage1, stage2, stage3];
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithStages);
-          vi.spyOn(prisma.stage, 'findMany').mockResolvedValue(orderedStages);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithStages);
+          prisma.stage.findMany.mockResolvedValue(orderedStages);
 
           const stages = await stageManager.getStagesByJobId(jobId);
 
@@ -211,7 +214,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should failed on not founded stage when getting by non exists job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          prisma.job.findUnique.mockResolvedValue(null);
 
           await expect(stageManager.getStagesByJobId('some_id')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
@@ -219,7 +222,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should failed on db error when getting desired stage', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.getStagesByJobId('some_id')).rejects.toThrow('db connection error');
         });
@@ -229,7 +232,7 @@ describe('JobManager', () => {
     describe('#getSummaryByStageId', () => {
       describe('#HappyPath', () => {
         it("should return stage's summary object by provided stage id", async function () {
-          vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(stageEntity);
+          prisma.stage.findUnique.mockResolvedValue(stageEntity);
 
           const stage = await stageManager.getSummaryByStageId(stageEntity.id);
 
@@ -239,7 +242,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should failed on not founded stage when getting by non exists job', async function () {
-          vi.spyOn(prisma.stage, 'findUnique').mockResolvedValue(null);
+          prisma.stage.findUnique.mockResolvedValue(null);
 
           await expect(stageManager.getSummaryByStageId('some_id')).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
@@ -247,7 +250,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should failed on db error when getting desired stage', async function () {
-          vi.spyOn(prisma.stage, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.stage.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.getSummaryByStageId('some_id')).rejects.toThrow('db connection error');
         });
@@ -259,7 +262,7 @@ describe('JobManager', () => {
         it("should update successfully stage's metadata object by provided id", async function () {
           const stageEntity = createStageEntity({});
           const stageId = stageEntity.id;
-          const prismaUpdateStageMock = vi.spyOn(prisma.stage, 'update').mockResolvedValue(stageEntity);
+          const prismaUpdateStageMock = prisma.stage.update.mockResolvedValue(stageEntity);
 
           await stageManager.updateUserMetadata(stageId, { newData: 'test' });
 
@@ -269,7 +272,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should failed on for not exists stage when update user metadata of desired stage', async function () {
-          vi.spyOn(prisma.stage, 'update').mockRejectedValue(notFoundError);
+          prisma.stage.update.mockRejectedValue(notFoundError);
 
           await expect(stageManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
@@ -277,7 +280,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should failed on db error when update user metadata of desired stage', async function () {
-          vi.spyOn(prisma.stage, 'update').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.stage.update.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('db connection error');
         });
@@ -291,8 +294,8 @@ describe('JobManager', () => {
           const uniqueStageId = faker.string.uuid();
           const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
-          vi.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: 1 } } as StageAggregateResult);
+          prisma.job.findUnique.mockResolvedValue(jobWithOneStageEntity);
+          prisma.stage.aggregate.mockResolvedValue({ _max: { order: 1 } } as StageAggregateResult);
 
           const anotherStagePayload = {
             data: {},
@@ -308,7 +311,7 @@ describe('JobManager', () => {
             order: 2,
           });
 
-          vi.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
+          prisma.stage.create.mockResolvedValue(anotherStageEntity);
 
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
@@ -323,8 +326,8 @@ describe('JobManager', () => {
           const uniqueStageId = faker.string.uuid();
           const jobWithOneStageEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobWithOneStageEntity);
-          vi.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
+          prisma.job.findUnique.mockResolvedValue(jobWithOneStageEntity);
+          prisma.stage.aggregate.mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
 
           const anotherStagePayload = {
             data: {},
@@ -341,7 +344,7 @@ describe('JobManager', () => {
             order: 1,
           });
 
-          vi.spyOn(prisma.stage, 'create').mockResolvedValue(anotherStageEntity);
+          prisma.stage.create.mockResolvedValue(anotherStageEntity);
 
           const stagesResponse = await stageManager.addStage(uniqueJobId, anotherStagePayload);
 
@@ -356,8 +359,8 @@ describe('JobManager', () => {
           const uniqueStageId = faker.string.uuid();
           const jobEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          vi.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
+          prisma.job.findUnique.mockResolvedValue(jobEntity);
+          prisma.stage.aggregate.mockResolvedValue({ _max: { order: null } } as StageAggregateResult);
 
           const stagePayload = {
             data: {},
@@ -373,7 +376,7 @@ describe('JobManager', () => {
             order: 1,
           });
 
-          vi.spyOn(prisma.stage, 'create').mockResolvedValue(expectedStageEntity);
+          prisma.stage.create.mockResolvedValue(expectedStageEntity);
 
           const result = await stageManager.addStage(uniqueJobId, stagePayload);
 
@@ -388,8 +391,8 @@ describe('JobManager', () => {
           const uniqueStageId = faker.string.uuid();
           const jobEntity = createJobEntity({ id: uniqueJobId, data: {} });
 
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntity);
-          vi.spyOn(prisma.stage, 'aggregate').mockResolvedValue({ _max: { order: 3 } } as StageAggregateResult);
+          prisma.job.findUnique.mockResolvedValue(jobEntity);
+          prisma.stage.aggregate.mockResolvedValue({ _max: { order: 3 } } as StageAggregateResult);
 
           const stagePayload = {
             data: {},
@@ -405,7 +408,7 @@ describe('JobManager', () => {
             order: 4,
           });
 
-          vi.spyOn(prisma.stage, 'create').mockResolvedValue(expectedStageEntity);
+          prisma.stage.create.mockResolvedValue(expectedStageEntity);
 
           const result = await stageManager.addStage(uniqueJobId, stagePayload);
 
@@ -425,8 +428,8 @@ describe('JobManager', () => {
           const jobEntity2 = createJobEntity({ id: jobId2, data: {} });
 
           // For job1: already has 2 stages
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity1).mockResolvedValueOnce(jobEntity2);
-          vi.spyOn(prisma.stage, 'aggregate')
+          prisma.job.findUnique.mockResolvedValueOnce(jobEntity1).mockResolvedValueOnce(jobEntity2);
+          prisma.stage.aggregate
             .mockResolvedValueOnce({ _max: { order: 2 } } as StageAggregateResult)
             .mockResolvedValueOnce({ _max: { order: null } } as StageAggregateResult);
 
@@ -454,7 +457,7 @@ describe('JobManager', () => {
             order: 1, // Should be 1 for job2
           });
 
-          vi.spyOn(prisma.stage, 'create').mockResolvedValueOnce(expectedStageEntity1).mockResolvedValueOnce(expectedStageEntity2);
+          prisma.stage.create.mockResolvedValueOnce(expectedStageEntity1).mockResolvedValueOnce(expectedStageEntity2);
 
           const result1 = await stageManager.addStage(jobId1, stagePayload1);
           const result2 = await stageManager.addStage(jobId2, stagePayload2);
@@ -472,13 +475,13 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should reject adding stage to a non-existent job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          prisma.job.findUnique.mockResolvedValue(null);
 
           await expect(stageManager.addStage('someId', {} as unknown as StageCreateModel)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
 
         it('should reject adding stage to a finite job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithAbortStatus });
+          prisma.job.findUnique.mockResolvedValue({ ...jobEntityWithAbortStatus });
 
           await expect(stageManager.addStage('someId', {} as unknown as StageCreateModel)).rejects.toThrow(
             new JobInFiniteStateError(jobsErrorMessages.jobAlreadyFinishedStagesError)
@@ -489,9 +492,9 @@ describe('JobManager', () => {
       describe('#SadPath', () => {
         it('should fail with a database error when adding stage', async function () {
           const jobEntity = createJobEntity({});
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValueOnce(jobEntity);
-          vi.spyOn(prisma.stage, 'aggregate').mockResolvedValueOnce({ _max: { order: null } } as StageAggregateResult); // No existing stages
-          vi.spyOn(prisma.stage, 'create').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findUnique.mockResolvedValueOnce(jobEntity);
+          prisma.stage.aggregate.mockResolvedValueOnce({ _max: { order: null } } as StageAggregateResult); // No existing stages
+          prisma.stage.create.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(stageManager.addStage(jobEntity.id, {} as unknown as StageCreateModel)).rejects.toThrow('db connection error');
         });
@@ -504,7 +507,7 @@ describe('JobManager', () => {
           const stageId = faker.string.uuid();
           const stageEntityResult = { ...stageEntity, id: stageId, job: { status: JobOperationStatus.CREATED } } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValue(stageEntityResult),
@@ -527,7 +530,7 @@ describe('JobManager', () => {
             order: 2,
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValue(stageEntityResult),
@@ -562,7 +565,7 @@ describe('JobManager', () => {
             order: 2,
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValueOnce(stageEntityOrder1).mockResolvedValueOnce(stageEntityOrder2),
@@ -603,7 +606,7 @@ describe('JobManager', () => {
             order: 1,
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValueOnce(stageEntityObject),
@@ -650,7 +653,7 @@ describe('JobManager', () => {
             order: 2,
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValueOnce(stageEntityOrder1).mockResolvedValueOnce(stageEntityOrder2),
@@ -687,7 +690,7 @@ describe('JobManager', () => {
             job: { status: JobOperationStatus.PENDING, id: jobId },
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValue(stageEntityResult),
@@ -710,7 +713,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should fail when updating status for a state that does not exist', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValue(null),
@@ -734,7 +737,7 @@ describe('JobManager', () => {
             order: 2,
           } as unknown as StageWithTasks;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockResolvedValue(stageEntityResult),
@@ -749,7 +752,7 @@ describe('JobManager', () => {
         });
 
         it('should fail on invalid status transition', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi
@@ -769,7 +772,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when updating status', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
                 findUnique: vi.fn().mockRejectedValueOnce(new Error('db connection error')),

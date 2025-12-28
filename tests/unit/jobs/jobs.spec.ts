@@ -1,7 +1,9 @@
 import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
 import jsLogger from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
-import { PrismaClient, Prisma, JobOperationStatus, Priority } from '@prismaClient';
+import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
+import type { PrismaClient } from '@prismaClient';
+import { Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
@@ -11,16 +13,17 @@ import { SERVICE_NAME } from '@src/common/constants';
 import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';
 
 let jobManager: JobManager;
-const prisma = new PrismaClient();
+let prisma: DeepMockProxy<PrismaClient>;
 const tracer = trace.getTracer(SERVICE_NAME);
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
   beforeEach(function () {
+    prisma = mockDeep<PrismaClient>();
     jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
   });
 
-  afterEach(() => {
+  afterEach(function () {
     vi.clearAllMocks();
   });
 
@@ -28,7 +31,7 @@ describe('JobManager', () => {
     describe('#createJob', () => {
       describe('#HappyPath', () => {
         it('should return a formatted job after creation', async function () {
-          vi.spyOn(prisma.job, 'create').mockResolvedValue(jobEntityWithStages);
+          prisma.job.create.mockResolvedValue(jobEntityWithStages);
           const createJobParams = {
             name: jobEntityWithStages.name,
             data: jobEntityWithStages.data,
@@ -42,7 +45,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when creating job', async function () {
-          vi.spyOn(prisma.job, 'create').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.create.mockRejectedValueOnce(new Error('db connection error'));
 
           const createJobParams = {
             name: jobEntityWithStages.name,
@@ -59,7 +62,7 @@ describe('JobManager', () => {
       describe('#HappyPath', () => {
         it('should return formatted jobs matching the search criteria', async function () {
           const mediumPriorityJob = { ...jobEntityWithoutStages, priority: Priority.MEDIUM };
-          vi.spyOn(prisma.job, 'findMany').mockResolvedValue([mediumPriorityJob]);
+          prisma.job.findMany.mockResolvedValue([mediumPriorityJob]);
 
           const jobs = await jobManager.getJobs({ priority: Priority.MEDIUM });
 
@@ -79,7 +82,7 @@ describe('JobManager', () => {
 
         it('should return all formatted jobs when no criteria is provided', async function () {
           const jobEntity = { ...jobEntityWithoutStages };
-          vi.spyOn(prisma.job, 'findMany').mockResolvedValue([jobEntity]);
+          prisma.job.findMany.mockResolvedValue([jobEntity]);
 
           const jobs = await jobManager.getJobs(undefined);
 
@@ -92,7 +95,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when finding jobs', async function () {
-          vi.spyOn(prisma.job, 'findMany').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findMany.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.getJobs({ priority: Priority.MEDIUM })).rejects.toThrow('db connection error');
         });
@@ -102,7 +105,7 @@ describe('JobManager', () => {
     describe('#getJobById', () => {
       describe('#HappyPath', () => {
         it('should return a job matching the provided id', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithoutStages);
 
           const jobs = await jobManager.getJobById(jobEntityWithoutStages.id);
 
@@ -121,7 +124,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it("should fail with a 'job not found' error when retrieving the job", async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          prisma.job.findUnique.mockResolvedValue(null);
 
           await expect(jobManager.getJobById('some_id')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
@@ -129,7 +132,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when retrieving a job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.getJobById('some_id')).rejects.toThrow('db connection error');
         });
@@ -139,7 +142,7 @@ describe('JobManager', () => {
     describe('#updateUserMetadata', () => {
       describe('#HappyPath', () => {
         it("should successfully update job's user metadata by id", async function () {
-          vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
+          prisma.job.update.mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.updateUserMetadata(jobEntityWithoutStages.id, { newData: 'test' })).toResolve();
         });
@@ -147,7 +150,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should fail when updating user metadata of a non-existent job', async function () {
-          vi.spyOn(prisma.job, 'update').mockRejectedValue(jobNotFoundError);
+          prisma.job.update.mockRejectedValue(jobNotFoundError);
 
           await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
@@ -155,7 +158,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when updating user metadata', async function () {
-          vi.spyOn(prisma.job, 'update').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.update.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.updateUserMetadata('someId', { testData: 'some new data' })).rejects.toThrow('db connection error');
         });
@@ -165,14 +168,14 @@ describe('JobManager', () => {
     describe('#updatePriority', () => {
       describe('#HappyPath', () => {
         it("should successfully update job's priority by id", async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
-          vi.spyOn(prisma.job, 'update').mockResolvedValue(jobEntityWithoutStages);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithoutStages);
+          prisma.job.update.mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.MEDIUM)).toResolve();
         });
 
         it('should not perform a job priority update when the provided priority matches the current job priority', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
+          prisma.job.findUnique.mockResolvedValue({ ...jobEntityWithoutStages, priority: Priority.HIGH });
 
           await expect(jobManager.updatePriority(jobEntityWithoutStages.id, Priority.HIGH)).rejects.toThrow(
             jobsErrorMessages.priorityCannotBeUpdatedToSameValue
@@ -182,7 +185,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should fail when updating priority of a non-existent job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          prisma.job.findUnique.mockResolvedValue(null);
 
           await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
@@ -190,7 +193,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when updating priority', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.updatePriority('someId', Priority.MEDIUM)).rejects.toThrow('db connection error');
         });
@@ -202,7 +205,7 @@ describe('JobManager', () => {
         it('should successfully update job status by id', async function () {
           const jobId = randomUuid;
 
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               job: {
                 findUnique: vi.fn().mockResolvedValue({ ...jobEntityWithoutStages, id: jobId }),
@@ -219,7 +222,7 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should fail when updating status for a job that does not exist', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               job: {
                 findUnique: vi.fn().mockResolvedValue(null),
@@ -233,7 +236,7 @@ describe('JobManager', () => {
         });
 
         it('should fail on invalid status transition', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               job: {
                 findUnique: vi.fn().mockResolvedValue(jobEntityWithoutStages),
@@ -251,7 +254,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when updating status', async function () {
-          vi.spyOn(prisma, '$transaction').mockImplementationOnce(async (callback) => {
+          prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               job: {
                 findUnique: vi.fn().mockRejectedValueOnce(new Error('db connection error')),
@@ -269,8 +272,8 @@ describe('JobManager', () => {
     describe('#deleteJob', () => {
       describe('#HappyPath', () => {
         it('should successfully delete a job and its associated stages', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithAbortStatus);
-          vi.spyOn(prisma.job, 'delete').mockResolvedValue(jobEntityWithAbortStatus);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithAbortStatus);
+          prisma.job.delete.mockResolvedValue(jobEntityWithAbortStatus);
 
           await expect(jobManager.deleteJob(jobEntityWithAbortStatus.id)).toResolve();
         });
@@ -278,13 +281,13 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should return an error for a request to delete non finalized-status job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(jobEntityWithoutStages);
+          prisma.job.findUnique.mockResolvedValue(jobEntityWithoutStages);
 
           await expect(jobManager.deleteJob(jobEntityWithoutStages.id)).rejects.toThrow(jobsErrorMessages.jobNotInFiniteState);
         });
 
         it('should return an error for a request to delete a non-existent job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockResolvedValue(null);
+          prisma.job.findUnique.mockResolvedValue(null);
 
           await expect(jobManager.deleteJob('someId')).rejects.toThrow(jobsErrorMessages.jobNotFound);
         });
@@ -292,7 +295,7 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when deleting a job', async function () {
-          vi.spyOn(prisma.job, 'findUnique').mockRejectedValueOnce(new Error('db connection error'));
+          prisma.job.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
           await expect(jobManager.deleteJob('someId')).rejects.toThrow('db connection error');
         });
