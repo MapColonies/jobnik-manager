@@ -1,0 +1,18 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "initial-version": "0.1.0",
+  "packages": {
+    ".": {
+      "release-type": "node",
+      "prerelease": true,
+      "prerelease-type": "rc",
+      "include-component-in-tag": false,
+      "include-v-in-tag": true,
+      "extra-files": [
+        { "type": "yaml", "path": "helm/Chart.yaml", "jsonpath": "$.version" },
+        { "type": "yaml", "path": "helm/Chart.yaml", "jsonpath": "$.appVersion" },
+        { "type": "yaml", "path": "openapi3.yaml", "jsonpath": "$.info.version" }
+      ]
+    }
+  }
+}
