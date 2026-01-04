@@ -48,6 +48,7 @@ jobs:
         with:
           version: v3.15.4
 
+      # For future QA versioning purposes.
       - name: Compute chart tag (semver-compatible)
         id: chart_tag
         shell: bash
