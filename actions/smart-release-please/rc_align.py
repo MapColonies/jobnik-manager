@@ -12,14 +12,14 @@ def git(args, fail_on_error=True):
 
 def main():
     try:
-        # 1. Find the latest RC tag (The Baseline)
+        # 1. Baseline Tag
         tag = git(["describe", "--tags", "--match", "v*-rc*", "--abbrev=0"], fail_on_error=False)
 
         if not tag:
             print("No existing RC tags found. Handing control to release-please.")
             return
 
-        # 2. Get all commit subjects since the tag for counting
+        # 2. Count Commits (Depth)
         raw_commits = git(["log", f"{tag}..HEAD", "--pretty=format:%s"])
         if not raw_commits:
             print("No commits found.")
@@ -27,7 +27,7 @@ def main():
             
         commit_list = raw_commits.split('\n')
         
-        # FILTER: Ignore bot commits to prevent infinite loops
+        # FILTER: Ignore bot commits
         real_commits = [
             c for c in commit_list 
             if "Release-As:" not in c and "chore: enforce correct rc version" not in c
@@ -39,7 +39,7 @@ def main():
             print("No user commits found (only bot commits). Exiting.")
             return
 
-        # 3. Get Logs for SemVer Analysis (Features/Breaking)
+        # 3. Get Logs
         logs = git(["log", f"{tag}..HEAD", "--pretty=format:%B"])
 
         # 4. Parse Current Version
@@ -55,33 +55,27 @@ def main():
 
         next_ver = ""
         
-        # --- FIXED LOGIC ---
-        # Instead of hardcoding 'rc.1', we use 'commit_count' for everything.
+        # --- LOGIC UPDATE: FORCE MAJOR BUMP ---
 
         if is_breaking:
-            # Major Jump -> Reset Base RC to 0, then add count
-            if major == 0:
-                next_ver = f"{major}.{minor + 1}.0-rc.{commit_count}"
-            else:
-                next_ver = f"{major + 1}.0.0-rc.{commit_count}"
+            # FORCE MAJOR BUMP (Even for v0.x)
+            # 0.1.1 -> 1.0.0-rc.X
+            next_ver = f"{major + 1}.0.0-rc.{commit_count}"
 
         elif is_feat:
             if patch > 0:
                 # Patch exists (0.1.1) so Feat triggers Minor Jump (0.2.0)
-                # Reset Base RC to 0, then add count
                 next_ver = f"{major}.{minor + 1}.0-rc.{commit_count}"
             else:
-                # Already on Minor (0.2.0) -> Keep Version
-                # Add count to existing RC
+                # Already on Minor (0.2.0) -> Accumulate RC
                 next_ver = f"{major}.{minor}.{patch}-rc.{rc + commit_count}"
         
         else:
-            # Fixes/Chores -> Keep Version
-            # Add count to existing RC
+            # Fixes/Chores -> Accumulate RC
             next_ver = f"{major}.{minor}.{patch}-rc.{rc + commit_count}"
 
         print(f"Base Tag: {tag}")
-        print(f"Real Commits (Filtered): {commit_count}")
+        print(f"Real Commits: {commit_count}")
         print(f"Next Version: {next_ver}")
         
         with open(os.environ["GITHUB_OUTPUT"], "a") as f:
