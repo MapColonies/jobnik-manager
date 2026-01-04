@@ -19,8 +19,7 @@ def main():
             print("No existing RC tags found. Handing control to release-please.")
             return
 
-        # 2. Get all commit subjects since the tag
-        # We fetch the subjects so we can filter them in Python
+        # 2. Get all commit subjects since the tag for counting
         raw_commits = git(["log", f"{tag}..HEAD", "--pretty=format:%s"])
         if not raw_commits:
             print("No commits found.")
@@ -28,9 +27,7 @@ def main():
             
         commit_list = raw_commits.split('\n')
         
-        # --- CRITICAL FIX: FILTER OUT BOT COMMITS ---
-        # We only count commits that are NOT created by this action.
-        # This prevents the infinite loop of rc.1 -> rc.2 -> rc.3
+        # FILTER: Ignore bot commits to prevent infinite loops
         real_commits = [
             c for c in commit_list 
             if "Release-As:" not in c and "chore: enforce correct rc version" not in c
@@ -58,25 +55,29 @@ def main():
 
         next_ver = ""
         
-        # --- LOGIC ---
+        # --- FIXED LOGIC ---
+        # Instead of hardcoding 'rc.1', we use 'commit_count' for everything.
 
         if is_breaking:
-            # Major/Minor Jump -> RESET to rc.1
+            # Major Jump -> Reset Base RC to 0, then add count
             if major == 0:
-                next_ver = f"{major}.{minor + 1}.0-rc.1"
+                next_ver = f"{major}.{minor + 1}.0-rc.{commit_count}"
             else:
-                next_ver = f"{major + 1}.0.0-rc.1"
+                next_ver = f"{major + 1}.0.0-rc.{commit_count}"
 
         elif is_feat:
             if patch > 0:
-                # Patch exists (0.1.1) + Feat = Minor Jump (0.2.0) -> RESET to rc.1
-                next_ver = f"{major}.{minor + 1}.0-rc.1"
+                # Patch exists (0.1.1) so Feat triggers Minor Jump (0.2.0)
+                # Reset Base RC to 0, then add count
+                next_ver = f"{major}.{minor + 1}.0-rc.{commit_count}"
             else:
-                # Already on Minor (0.2.0) -> Accumulate RC
+                # Already on Minor (0.2.0) -> Keep Version
+                # Add count to existing RC
                 next_ver = f"{major}.{minor}.{patch}-rc.{rc + commit_count}"
         
         else:
-            # Fixes/Chores -> Accumulate RC
+            # Fixes/Chores -> Keep Version
+            # Add count to existing RC
             next_ver = f"{major}.{minor}.{patch}-rc.{rc + commit_count}"
 
         print(f"Base Tag: {tag}")
