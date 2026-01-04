@@ -14,9 +14,6 @@ def run_git_command(args, fail_on_error=True):
         return None
 
 def find_baseline_tag():
-    """
-    Finds the starting point for version calculation.
-    """
     # Try to find an existing RC tag
     rc_tag = run_git_command(["describe", "--tags", "--match", "v*-rc*", "--abbrev=0"], fail_on_error=False)
     if rc_tag:
@@ -50,9 +47,6 @@ def get_commit_depth(baseline_tag):
     return len(real_commits)
 
 def parse_semver(tag):
-    """
-    Parses a tag into (major, minor, patch, rc).
-    """
     if not tag:
         return 0, 0, 0, 0
 
