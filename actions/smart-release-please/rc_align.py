@@ -27,7 +27,7 @@ def find_baseline_tag():
     if stable_tag:
         return stable_tag, True
 
-    # No tags found (Fresh repo)
+    # No tags found (First tag scenario)
     print("INFO: No tags found. Assuming 0.0.0 baseline.")
     return None, True
 
