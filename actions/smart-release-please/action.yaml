@@ -16,6 +16,11 @@ runs:
         fetch-depth: 0
         token: ${{ inputs.token }} # Essential for subsequent workflows to trigger
 
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: '3.14'
+
     - name: Calculate Correct RC Version
       id: calc
       if: ${{ github.ref_name }} == 'next'
