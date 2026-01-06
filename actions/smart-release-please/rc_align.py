@@ -35,7 +35,7 @@ def get_commit_depth(baseline_tag):
     """
     rev_range = f"{baseline_tag}..HEAD" if baseline_tag else "HEAD"
     
-    raw_subjects = run_git_command(["log", rev_range, "--pretty=format:%s"], fail_on_error=False)
+    raw_subjects = run_git_command(["log", rev_range, "--first-parent", "--pretty=format:%s"], fail_on_error=False)
     if not raw_subjects:
         return 0
 
