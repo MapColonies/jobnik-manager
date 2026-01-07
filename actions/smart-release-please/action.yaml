@@ -23,7 +23,8 @@ runs:
 
     - name: Calculate Correct RC Version
       id: calc
-      if: ${{ github.ref_name }} == 'next'
+      if: ${{ github.ref_name == 'next' }}
+      # if: ${{ github.ref_name }} == 'next'
       shell: bash
       run: python3 "${{ github.action_path }}/rc_align.py"
 
