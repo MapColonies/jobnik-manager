@@ -2,8 +2,6 @@ name: Test smart release-please action
 
 on:
   pull_request:
-    paths:
-      - 'actions/smart-release-please/**'
       
 jobs:
   test-action:
