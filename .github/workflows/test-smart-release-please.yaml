@@ -1,7 +1,7 @@
 name: Test smart release-please action
 
 on:
-  pull_request:
+  push:
       
 jobs:
   test-action:
