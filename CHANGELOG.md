@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2-rc.11](https://github.com/MapColonies/jobnik-manager-test/compare/v0.1.2-rc.10...v0.1.2-rc.11) (2026-02-01)
+
+
+### Miscellaneous Chores
+
+* enforce correct rc version ([efc30c9](https://github.com/MapColonies/jobnik-manager-test/commit/efc30c93ded0d4f5c4c955964edaf4319c15876a))
+
 ## [0.1.2-rc.10](https://github.com/MapColonies/jobnik-manager-test/compare/v0.1.2-rc.7...v0.1.2-rc.10) (2026-02-01)
 
 
