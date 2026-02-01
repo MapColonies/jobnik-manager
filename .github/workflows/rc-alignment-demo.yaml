@@ -23,6 +23,6 @@ jobs:
           fetch-depth: 0
 
       - name: Run Smart Release Please
-        uses: ./actions/smart-release-please
+        uses: MapColonies/shared-workflows/actions/smart-release-please@smart-release-please-v1
         with:
           token: ${{ secrets.GH_PAT }}
