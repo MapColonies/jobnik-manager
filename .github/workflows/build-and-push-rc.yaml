@@ -1,10 +1,9 @@
 name: Push RC Artifacts to Azure Registry
 
 on:
-  workflow_dispatch:
-  # push:
-  #   tags:
-  #     - 'v*-rc*'
+  push:
+    tags:
+      - 'v*-rc*'
 
 permissions:
   contents: write
@@ -80,10 +79,10 @@ jobs:
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: ${{ github.ref_name }}
-          repository: site-values
+          repository: test-site
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
-          environment: dev
-          pr_labels: dev, auto-merge
+          environment: qa
+          pr_labels: qa, auto-merge
           paths: |
             infra/environments/dev.yaml
