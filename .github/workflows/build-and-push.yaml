@@ -1,10 +1,12 @@
-name: Push RC Artifacts to Azure Registry
+name: Build and Push Artifacts to Azure Registry
 
 on:
   workflow_dispatch:
-  # push:
-  #   tags:
-  #     - 'v*-rc*'
+  push:
+    tags:
+      - 'v*-rc*'
+    branches:
+      - next
 
 permissions:
   contents: write
@@ -33,7 +35,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.ACR_URL }}/${{ env.DOMAIN }}/${{ github.event.repository.name }}:${{ github.ref_name }}
+          tags: ${{ secrets.ACR_URL }}/${{ env.DOMAIN }}/${{ github.event.repository.name }}:${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('next-{0}', github.sha) }}
 
   push-helm-package:
     runs-on: ubuntu-latest
@@ -53,14 +55,19 @@ jobs:
         id: chart_tag
         shell: bash
         run: |
-          echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
+          else
+            BASE_VERSION=$(awk -F ': ' '/^version:/ {print $2}' helm/Chart.yaml)
+            echo "tag=${BASE_VERSION}-next-${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Push Chart to ACR
         uses: appany/helm-oci-chart-releaser@v0.5.0
         with:
           name: ${{ github.event.repository.name }}
           repository: helm/${{ env.DOMAIN }}
-          tag: ${{ github.ref_name }}
+          tag: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.0.0-next-{0}', github.sha) }}
           path: ./helm
           registry: ${{ secrets.ACR_URL }}
           registry_username: ${{ secrets.ACR_PUSH_USER }}
@@ -79,11 +86,11 @@ jobs:
       - name: Update site-values and open PR
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
-          tag: ${{ github.ref_name }}
+          tag: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.0.0-next-{0}', github.sha) }}
           repository: test-site
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
-          environment: qa
-          pr_labels: qa, auto-merge
+          environment: ${{ startsWith(github.ref, 'refs/tags/') && 'qa' || 'dev' }}
+          pr_labels: ${{ startsWith(github.ref, 'refs/tags/') && 'qa, auto-merge' || 'dev, auto-merge' }}
           paths: |
             infra/environments/dev.yaml
