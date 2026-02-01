@@ -3,7 +3,7 @@ name: Push RC Artifacts to Azure Registry
 on:
   push:
     tags:
-      - 'v*-rc.*'
+      - 'v*-rc*'
 
 permissions:
   contents: write
