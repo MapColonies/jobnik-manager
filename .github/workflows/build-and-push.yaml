@@ -22,24 +22,43 @@ env:
 jobs:
   determine-config:
     runs-on: ubuntu-latest
-    # Skip branch pushes from bots (release-please) and when it's a tag push
-    if: |
-      github.ref_type == 'tag' || 
-      (github.ref_type == 'branch' && 
-       github.actor != 'mapcolonies[bot]' && 
-       github.actor != 'release-please[bot]')
     outputs:
       image_tag: ${{ steps.config.outputs.image_tag }}
       chart_tag: ${{ steps.config.outputs.chart_tag }}
       environment: ${{ steps.config.outputs.environment }}
       pr_labels: ${{ steps.config.outputs.pr_labels }}
+      site_values_repo: ${{ steps.config.outputs.site_values_repo }}
       update_paths: ${{ steps.config.outputs.update_paths }}
+      should_run: ${{ steps.check.outputs.should_run }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check if should run
+        id: check
+        run: |
+          # Skip branch pushes from bots
+          if [[ "${{ github.ref_type }}" == "branch" ]] && \
+             [[ "${{ github.actor }}" == "mapcolonies[bot]" || "${{ github.actor }}" == "release-please[bot]" ]]; then
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # Skip branch pushes if this commit has an RC tag (prevents duplicate when tag is also pushed)
+          if [[ "${{ github.ref_type }}" == "branch" ]]; then
+            if git tag --points-at HEAD | grep -qE '^v.*-rc'; then
+              echo "should_run=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+          
+          echo "should_run=true" >> "$GITHUB_OUTPUT"
 
       - name: Determine configuration based on trigger
         id: config
+        if: steps.check.outputs.should_run == 'true'
         shell: bash
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
@@ -62,6 +81,7 @@ jobs:
   push-docker-image:
     runs-on: ubuntu-latest
     needs: determine-config
+    if: needs.determine-config.outputs.should_run == 'true'
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v6
@@ -118,7 +138,7 @@ jobs:
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: ${{ needs.determine-config.outputs.chart_tag }}
-          repository: test-site
+          repository: ${{ needs.determine-config.outputs.site_values_repo }}
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
           environment: ${{ needs.determine-config.outputs.environment }}
