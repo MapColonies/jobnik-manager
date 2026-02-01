@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0-rc.1](https://github.com/MapColonies/jobnik-manager-test/compare/jobnik-manager-v0.1.1-rc.38...jobnik-manager-v0.2.0-rc.1) (2026-02-01)
+
+
+### Features
+
+* **next:** add workflow for pushing next artifacts to Azure Registry ([a61298d](https://github.com/MapColonies/jobnik-manager-test/commit/a61298dbab7e1348990b9afc18a9a21232ab1641))
+
+
+### Miscellaneous Chores
+
+* enforce correct rc version ([3a2bb8b](https://github.com/MapColonies/jobnik-manager-test/commit/3a2bb8b7a128cad627bd6e6e2ac6934fecaae4d5))
+
 ## [0.1.1-rc.38](https://github.com/MapColonies/jobnik-manager-test/compare/jobnik-manager-v1.0.0-rc.33...jobnik-manager-v0.1.1-rc.38) (2026-02-01)
 
 
