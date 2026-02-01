@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - next
-			- master
+      - master
 
 concurrency:
   group: smart-release-please-${{ github.ref }}
