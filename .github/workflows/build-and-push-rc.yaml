@@ -1,9 +1,10 @@
 name: Push RC Artifacts to Azure Registry
 
 on:
-  push:
-    tags:
-      - 'v*-rc*'
+  workflow_dispatch:
+  # push:
+  #   tags:
+  #     - 'v*-rc*'
 
 permissions:
   contents: write
