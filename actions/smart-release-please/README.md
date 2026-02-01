@@ -1,70 +1,113 @@
-# RC Alignment Composite Action
+# Smart Release Please
 
-Ensures RC patch increments when only fix commits are present by adding a `Release-As` footer to the history, guiding release-please to produce `vX.Y.Z-rc.N+1` over the same base version.
+A GitHub Action that intelligently manages semantic versioning for both release candidates (RC) and stable releases. It wraps [googleapis/release-please-action](https://github.com/googleapis/release-please-action) and enforces consistent version calculation based on conventional commits.
 
-## Inputs
+## ✨ How It Works
 
-- `target-ref` (string, default: `refs/heads/next`)
-  - Full Git ref that this action should run on. Steps are skipped when the current ref doesn't match.
+### Next Branch (RC Releases)
+1. Finds baseline tag (latest RC or stable tag, defaults to `0.0.0`)
+2. Counts real commits since baseline (filters bot commits)
+3. Analyzes latest commit impact (breaking, feat, fix)
+4. Calculates next RC version
+5. Injects `Release-As:` footer if needed
+6. Closes stale PRs and runs release-please
 
-## Outputs
+### Main/Master Branch (Stable Releases)
+1. Finds latest tag and strips RC suffix (`v1.2.3-rc.5` → `1.2.3`)
+2. Updates `.release-please-manifest.json`
+3. Runs release-please to create stable release
 
-- `next_version`
-  - The calculated RC version (e.g., `1.2.3-rc.5`) when only fix commits exist since the last RC tag. Empty when not applicable.
+## 🔄 Version Examples
 
-## Requirements
+| Baseline | Commit Type | Result |
+|----------|-------------|--------|
+| `v1.2.3` | `feat:` | `v1.3.0-rc.1` |
+| `v1.2.3` | `fix:` | `v1.2.4-rc.1` |
+| `v1.2.3` | `feat!:` | `v2.0.0-rc.1` |
+| `v1.2.3` | `chore:` | `v1.2.4-rc.1` |
+| `v1.3.0-rc.2` (+ 1 fix) | `fix:` | `v1.3.0-rc.3` |
+| `v1.3.0-rc.2` (+ 3 fixes) | `fix:` | `v1.3.0-rc.5` |
 
-- Workflow must grant write permissions to contents to allow pushing the commit:
-
-```yaml
-permissions:
-  contents: write
-```
-
-- Python 3.x on the runner (the action sets this up via `actions/setup-python`).
-
-### Using `act` locally
-
-When running locally with `act`, pass a `GITHUB_TOKEN` secret and ensure the runner can push:
-
-```bash
-act --workflows .github/workflows/rc-alignment-demo.yaml \
-  -s GITHUB_TOKEN=ghp_your_token_here
-```
-
-The action will automatically reconfigure the `origin` remote to use `https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git` before pushing. If no token is provided, the push step will fail or be skipped depending on remote configuration.
-
-## Example Usage
+##  Usage
 
 ```yaml
-name: RC Alignment
+name: Smart Release Please
+
 on:
   push:
-    branches: [ next ]
+    branches: [next, main]
+
 permissions:
   contents: write
+  pull-requests: write
+
 jobs:
-  enforce-rc:e
+  release-please:
     runs-on: ubuntu-latest
     steps:
-      - name: Align RC version for fixes-only
-        uses: ./actions/rc-alignment
+      - uses: actions/checkout@v6
         with:
-          target-ref: refs/heads/next
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      - uses: MapColonies/shared-workflows/actions/smart-release-please@smart-release-please-v0.1.0
+        with:
+          token: ${{ secrets.GH_PAT }}
 ```
 
-## What it does
+### Required Config Files
 
-1. Checks out the repository.
-2. Locates the latest tag matching `v*-rc*`.
-3. Scans commits since that tag:
-  - If any `BREAKING CHANGE` is found, it exits and lets release-please handle Major bumps.
-  - If any `feat` is found, it performs a Minor bump while keeping PATCH and resets RC to 0 (e.g., `0.1.1-rc.1` → `0.2.1-rc.0`).
-  - Otherwise (fixes-only or chores/docs), it keeps the base version and increments RC (e.g., `0.1.1-rc.1` → `0.1.1-rc.2`).
-4. Commits an empty change with a `Release-As: <next_version>` footer to enforce the calculated version.
-5. Pushes to the current branch.
+- `release-please-config.next.json` - RC releases config
+- `release-please-config.main.json` - Stable releases config  
+- `.release-please-manifest.json` - Version manifest
 
-## Notes
+## 📝 Conventional Commits
 
-- This action performs a push; ensure your workflow runner has a valid `GITHUB_TOKEN` and correct permissions.
-- If the last commit already contains the same `Release-As` footer, it will skip to avoid loops.
+### Supported Semver Types
+
+- `feat:` - Bumps minor version (new feature)
+- `fix:` - Bumps patch version (bug fix)
+- `feat!:`, `fix!:`, `refactor!:` or `BREAKING CHANGE:` footer - Bumps major version
+- `chore:`, `docs:`, `style:`, `test:`, `ci:`, `build:`, `perf:`, `refactor:` (without `!`) - **Still increment RC number** but don't trigger version bumps on stable
+
+### Chore Commits Behavior
+
+**Important:** Non-semver commits (like `chore:`, `docs:`, etc.) **still increment the RC counter**:
+
+```
+v1.3.0-rc.1 + chore: update deps  →  v1.3.0-rc.2
+v1.3.0-rc.2 + docs: fix typo      →  v1.3.0-rc.3
+v1.3.0-rc.3 + fix: bug            →  v1.3.0-rc.4
+```
+
+### When to Use `chore:` vs `fix:`
+
+- **Use `fix:`** when fixing bugs or issues that affect users
+  - Bug fixes, error handling, functionality corrections
+  - Will create changelog entries
+  - Bumps patch version on stable releases
+
+- **Use `chore:`** for maintenance work that doesn't affect functionality
+  - Dependency updates, configuration changes
+  - Refactoring without behavior changes
+  - Build scripts, CI/CD updates
+  - Won't appear in changelogs or affect stable version bumps
+
+## 🧪 Testing
+
+```bash
+python3 test_rc_align.py  # Run 65 comprehensive tests
+```
+
+See `SRP-tests-coverage.md` for detailed coverage.
+
+## 🔗 Related
+
+- [Release Please](https://github.com/googleapis/release-please)
+- [Conventional Commits](https://www.conventionalcommits.org/)
+
+## 📐 Architecture
+
+For a visual overview of the workflow logic, see the architecture diagram:
+
+![Architecture](images/architecture.png)

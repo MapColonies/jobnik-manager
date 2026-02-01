@@ -11,6 +11,9 @@ import os
 from unittest.mock import patch, MagicMock, mock_open
 from io import StringIO
 
+# Add parent directory to path to import rc_align
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'actions', 'smart-release-please'))
+
 # Import the module to test
 import rc_align
 
@@ -58,7 +61,7 @@ class TestFindBaselineTag(unittest.TestCase):
     @patch('rc_align.run_git_command')
     def test_stable_tag_found(self, mock_git):
         """Test when only stable tag exists"""
-        mock_git.side_effect = [None, "v1.2.3"]
+        mock_git.return_value = "v1.2.3"
         tag, from_stable = rc_align.find_baseline_tag()
         self.assertEqual(tag, "v1.2.3")
         self.assertTrue(from_stable)
@@ -186,8 +189,8 @@ class TestParseSemver(unittest.TestCase):
         self.assertEqual((major, minor, patch, rc), (2, 5, 10, 99))
 
 
-class TestAnalyzeImpact(unittest.TestCase):
-    """Test the analyze_impact function"""
+class TestAnalyzeImpactFromLatest(unittest.TestCase):
+    """Test the analyze_impact_from_latest function"""
 
     @patch('rc_align.run_git_command')
     def test_breaking_change_with_exclamation(self, mock_git):
@@ -196,12 +199,14 @@ class TestAnalyzeImpact(unittest.TestCase):
         Example: "feat!: breaking change" → breaking=True, feat=False
         Note: feat! is detected as breaking but not as feat (regex is strict)
         """
-        mock_git.return_value = "feat!: breaking change\nSome details"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        # Mock two calls: one for log subjects, one for latest body
+        mock_git.side_effect = [
+            "feat!: breaking change",  # log subjects
+            "feat!: breaking change\nSome details"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertTrue(is_breaking)
-        # The regex `^feat(\(.*\))?:` will match "feat" but not "feat!"
-        # However, "feat!" still contains "feat" semantically, but our regex is strict
-        # This is actually correct behavior - we detect breaking but not feat in this case
+        self.assertFalse(is_feat)
 
     @patch('rc_align.run_git_command')
     def test_breaking_change_with_footer(self, mock_git):
@@ -209,8 +214,11 @@ class TestAnalyzeImpact(unittest.TestCase):
         Test detecting breaking change with BREAKING CHANGE footer
         Example: "feat: new\nBREAKING CHANGE: API changed" → breaking=True, feat=True
         """
-        mock_git.return_value = "feat: new feature\n\nBREAKING CHANGE: API changed"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        mock_git.side_effect = [
+            "feat: new feature",  # log subjects
+            "feat: new feature\n\nBREAKING CHANGE: API changed"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertTrue(is_breaking)
         self.assertTrue(is_feat)
 
@@ -220,8 +228,11 @@ class TestAnalyzeImpact(unittest.TestCase):
         Test detecting feature commit
         Example: "feat: new feature" → breaking=False, feat=True
         """
-        mock_git.return_value = "feat: new feature\nSome details"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        mock_git.side_effect = [
+            "feat: new feature",  # log subjects
+            "feat: new feature\nSome details"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertFalse(is_breaking)
         self.assertTrue(is_feat)
 
@@ -231,8 +242,11 @@ class TestAnalyzeImpact(unittest.TestCase):
         Test detecting fix commit
         Example: "fix: bug fix" → breaking=False, feat=False
         """
-        mock_git.return_value = "fix: bug fix\nSome details"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        mock_git.side_effect = [
+            "fix: bug fix",  # log subjects
+            "fix: bug fix\nSome details"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertFalse(is_breaking)
         self.assertFalse(is_feat)
 
@@ -242,8 +256,11 @@ class TestAnalyzeImpact(unittest.TestCase):
         Test detecting breaking fix
         Example: "fix!: breaking bug fix" → breaking=True, feat=False
         """
-        mock_git.return_value = "fix!: breaking bug fix"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        mock_git.side_effect = [
+            "fix!: breaking bug fix",  # log subjects
+            "fix!: breaking bug fix"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertTrue(is_breaking)
         self.assertFalse(is_feat)
 
@@ -253,48 +270,11 @@ class TestAnalyzeImpact(unittest.TestCase):
         Test detecting feature with scope
         Example: "feat(api): new endpoint" → breaking=False, feat=True
         """
-        mock_git.return_value = "feat(api): new endpoint"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
-        self.assertFalse(is_breaking)
-        self.assertTrue(is_feat)
-
-    @patch('rc_align.run_git_command')
-    def test_breaking_change_with_footer(self, mock_git):
-        """Test detecting breaking change with BREAKING CHANGE footer"""
-        mock_git.return_value = "feat: new feature\n\nBREAKING CHANGE: API changed"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
-        self.assertTrue(is_breaking)
-        self.assertTrue(is_feat)
-
-    @patch('rc_align.run_git_command')
-    def test_feature_commit(self, mock_git):
-        """Test detecting feature commit"""
-        mock_git.return_value = "feat: new feature\nSome details"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
-        self.assertFalse(is_breaking)
-        self.assertTrue(is_feat)
-
-    @patch('rc_align.run_git_command')
-    def test_fix_commit(self, mock_git):
-        """Test detecting fix commit"""
-        mock_git.return_value = "fix: bug fix\nSome details"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
-        self.assertFalse(is_breaking)
-        self.assertFalse(is_feat)
-
-    @patch('rc_align.run_git_command')
-    def test_breaking_fix(self, mock_git):
-        """Test detecting breaking fix"""
-        mock_git.return_value = "fix!: breaking bug fix"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
-        self.assertTrue(is_breaking)
-        self.assertFalse(is_feat)
-
-    @patch('rc_align.run_git_command')
-    def test_feature_with_scope(self, mock_git):
-        """Test detecting feature with scope"""
-        mock_git.return_value = "feat(api): new endpoint"
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        mock_git.side_effect = [
+            "feat(api): new endpoint",  # log subjects
+            "feat(api): new endpoint"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertFalse(is_breaking)
         self.assertTrue(is_feat)
 
@@ -302,7 +282,21 @@ class TestAnalyzeImpact(unittest.TestCase):
     def test_no_commits(self, mock_git):
         """Test with no commits"""
         mock_git.return_value = None
-        is_breaking, is_feat = rc_align.analyze_impact("v1.0.0")
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
+        self.assertFalse(is_breaking)
+        self.assertFalse(is_feat)
+
+    @patch('rc_align.run_git_command')
+    def test_filters_bot_commits(self, mock_git):
+        """
+        Test that bot commits are filtered out
+        Example: Multiple commits with bot commits filtered → analyzes last real commit
+        """
+        mock_git.side_effect = [
+            "feat: feature\nchore: enforce correct rc version\nfix: bug fix",  # log subjects
+            "fix: bug fix"  # latest body
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
         self.assertFalse(is_breaking)
         self.assertFalse(is_feat)
 
@@ -402,33 +396,190 @@ class TestCalculateNextVersion(unittest.TestCase):
 class TestMainFunction(unittest.TestCase):
     """Test the main function"""
 
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
     @patch('rc_align.find_baseline_tag')
     @patch('rc_align.get_commit_depth')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_no_commits(self, mock_stdout, mock_depth, mock_baseline):
+    def test_main_no_commits(self, mock_stdout, mock_depth, mock_baseline, mock_git, mock_env):
         """Test main with no commits"""
+        mock_env.return_value = "next"
+        mock_git.return_value = "feat: some feature"
         mock_baseline.return_value = ("v1.0.0", True)
         mock_depth.return_value = 0
 
         rc_align.main()
 
         output = mock_stdout.getvalue()
-        self.assertIn("No user commits found", output)
+        self.assertIn("No commits since baseline", output)
 
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
     @patch('rc_align.find_baseline_tag')
     @patch('sys.stdout', new_callable=StringIO)
-    def test_main_exception_handling(self, mock_stdout, mock_baseline):
+    def test_main_exception_handling(self, mock_stdout, mock_baseline, mock_git, mock_env):
         """Test main handles exceptions gracefully"""
+        mock_env.return_value = "next"
+        mock_git.return_value = "feat: some feature"
         mock_baseline.side_effect = Exception("Test error")
 
-        # Main should handle exception and exit gracefully
+        # Main should handle exception and exit with error code 1
         with self.assertRaises(SystemExit) as cm:
             rc_align.main()
-        self.assertEqual(cm.exception.code, 0)
+        self.assertEqual(cm.exception.code, 1)
 
         output = mock_stdout.getvalue()
-        # The actual output shows it falls back gracefully
-        self.assertIn("CRITICAL ERROR", output)
+        self.assertIn("ERROR", output)
+
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_skips_release_please_commit(self, mock_stdout, mock_git, mock_env):
+        """Test main skips when detecting a release-please commit"""
+        mock_env.return_value = "next"
+        mock_git.return_value = "chore(main): release 1.0.0"
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Detected release-please commit", output)
+        self.assertIn("Skipping", output)
+
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_skips_stable_tag_on_next(self, mock_stdout, mock_git, mock_env):
+        """Test main skips when stable tag is at HEAD on next branch"""
+        mock_env.return_value = "next"
+        # First call: last commit, second call: tags at HEAD
+        mock_git.side_effect = [
+            "feat: some feature",  # last commit
+            "v1.0.0"  # tags at HEAD
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Stable tag at HEAD", output)
+        self.assertIn("Skipping", output)
+
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_skips_release_please_merge(self, mock_stdout, mock_git, mock_env):
+        """Test main skips release-please merge commits"""
+        mock_env.return_value = "next"
+        mock_git.return_value = "Merge pull request #123 from release-please"
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("Detected release-please merge", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_branch_no_tags(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test main branch with no existing tags outputs 0.1.0"""
+        mock_env.return_value = "main"
+        mock_git.side_effect = [
+            "feat: initial commit",  # last commit
+            None,  # fetch origin main
+            None,  # fetch tags
+            None   # tag -l v*
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=0.1.0", output)
+        mock_file.assert_called()
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_branch_with_rc_tag(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test main branch strips RC from latest tag"""
+        mock_env.return_value = "main"
+        mock_git.side_effect = [
+            "feat: some feature",  # last commit
+            None,  # fetch origin main
+            None,  # fetch tags
+            "v1.2.3-rc.5\nv1.2.2\nv1.2.1-rc.1"  # tag -l v*
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=1.2.3", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_branch_with_stable_tag(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test main branch uses stable tag as-is"""
+        mock_env.return_value = "main"
+        mock_git.side_effect = [
+            "feat: some feature",  # last commit
+            None,  # fetch origin main
+            None,  # fetch tags
+            "v2.0.0\nv1.9.0\nv1.8.0"  # tag -l v*
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=2.0.0", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_master_branch_works_same_as_main(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test master branch behaves identically to main"""
+        mock_env.return_value = "master"
+        mock_git.side_effect = [
+            "feat: some feature",  # last commit
+            None,  # fetch origin master
+            None,  # fetch tags
+            "v1.5.0-rc.2"  # tag -l v*
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=1.5.0", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('rc_align.find_baseline_tag')
+    @patch('rc_align.get_commit_depth')
+    @patch('rc_align.analyze_impact_from_latest')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_next_branch_complete_flow(self, mock_stdout, mock_file, mock_analyze, mock_depth, mock_baseline, mock_git, mock_env):
+        """Test complete flow on next branch with feature commit"""
+        mock_env.return_value = "next"
+        mock_git.side_effect = [
+            "feat: new feature",  # last commit
+            None  # tags at HEAD
+        ]
+        mock_baseline.return_value = ("v1.2.3", True)
+        mock_depth.return_value = 1
+        mock_analyze.return_value = (False, True)  # is_breaking=False, is_feat=True
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=1.3.0-rc.1", output)
 
 
 class TestEdgeCases(unittest.TestCase):
@@ -466,7 +617,87 @@ class TestEdgeCases(unittest.TestCase):
     def test_parse_invalid_version_format(self):
         """Test parsing invalid version format"""
         result = rc_align.parse_semver("invalid")
-        self.assertIsNone(result)
+        self.assertEqual(result, (0, 0, 0, 0))
+
+    def test_parse_version_without_v_prefix(self):
+        """Test parsing version without 'v' prefix returns zeros"""
+        result = rc_align.parse_semver("1.2.3")
+        self.assertEqual(result, (0, 0, 0, 0))
+
+    def test_breaking_from_version_zero(self):
+        """
+        Test breaking change from v0.x.x bumps to v1.0.0
+        """
+        result = rc_align.calculate_next_version(
+            major=0, minor=5, patch=2, rc=0,
+            depth=1, is_breaking=True, is_feat=False, from_stable=True
+        )
+        self.assertEqual(result, "1.0.0-rc.1")
+
+    @patch('rc_align.run_git_command')
+    def test_find_baseline_with_only_rc_tags(self, mock_git):
+        """Test finding baseline when only RC tags exist"""
+        mock_git.side_effect = [
+            None,  # fetch tags
+            "v1.0.0-rc.1\nv0.9.0-rc.5\nv0.8.0-rc.2"  # tag list
+        ]
+        tag, from_stable = rc_align.find_baseline_tag()
+        self.assertEqual(tag, "v1.0.0-rc.1")
+        self.assertFalse(from_stable)
+
+    @patch('rc_align.run_git_command')
+    def test_commit_depth_with_only_bot_commits(self, mock_git):
+        """Test commit depth when all commits are bot commits"""
+        commits = "\n".join([
+            "chore: enforce correct rc version",
+            "Release-As: 1.0.0",
+            "chore(main): release 1.0.0"
+        ])
+        mock_git.return_value = commits
+        depth = rc_align.get_commit_depth("v1.0.0")
+        self.assertEqual(depth, 0)
+
+    @patch('rc_align.run_git_command')
+    def test_analyze_with_refactor_breaking(self, mock_git):
+        """Test analyze detects breaking change in refactor commits"""
+        mock_git.side_effect = [
+            "refactor!: major API change",
+            "refactor!: major API change"
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
+        self.assertTrue(is_breaking)
+        self.assertFalse(is_feat)
+
+    @patch('rc_align.run_git_command')
+    def test_analyze_with_breaking_in_body_only(self, mock_git):
+        """Test analyze detects BREAKING CHANGE in commit body"""
+        mock_git.side_effect = [
+            "refactor: change API",
+            "refactor: change API\n\nBREAKING CHANGE: Removed old method"
+        ]
+        is_breaking, is_feat = rc_align.analyze_impact_from_latest("v1.0.0")
+        self.assertTrue(is_breaking)
+        self.assertFalse(is_feat)
+
+    def test_version_with_double_digit_numbers(self):
+        """Test version calculation with double-digit version numbers"""
+        result = rc_align.calculate_next_version(
+            major=12, minor=34, patch=56, rc=78,
+            depth=10, is_breaking=False, is_feat=False, from_stable=False
+        )
+        self.assertEqual(result, "12.34.56-rc.88")
+
+    @patch('rc_align.run_git_command')
+    def test_tag_sorting_with_mixed_versions(self, mock_git):
+        """Test that tags are sorted correctly by version"""
+        mock_git.side_effect = [
+            None,  # fetch tags
+            "v1.10.0\nv1.2.0\nv1.9.0\nv2.0.0-rc.1\nv1.1.0"
+        ]
+        tag, from_stable = rc_align.find_baseline_tag()
+        # v2.0.0-rc.1 should be picked as highest
+        self.assertEqual(tag, "v2.0.0-rc.1")
+        self.assertFalse(from_stable)
 
 
 class TestIntegrationScenarios(unittest.TestCase):
@@ -511,6 +742,189 @@ class TestIntegrationScenarios(unittest.TestCase):
             depth=1, is_breaking=True, is_feat=True, from_stable=True
         )
         self.assertEqual(result, "3.0.0-rc.1")
+
+    def test_scenario_rc_progression(self):
+        """
+        Test RC progression scenarios
+        
+        Scenario: Track progression from stable through multiple RCs
+        v1.0.0 → v1.1.0-rc.1 → v1.1.0-rc.2 → v1.1.0-rc.3 → v1.1.0
+        """
+        # Step 1: feat from stable
+        result = rc_align.calculate_next_version(
+            major=1, minor=0, patch=0, rc=0,
+            depth=1, is_breaking=False, is_feat=True, from_stable=True
+        )
+        self.assertEqual(result, "1.1.0-rc.1")
+        
+        # Step 2: fix on RC (1 commit)
+        result = rc_align.calculate_next_version(
+            major=1, minor=1, patch=0, rc=1,
+            depth=1, is_breaking=False, is_feat=False, from_stable=False
+        )
+        self.assertEqual(result, "1.1.0-rc.2")
+        
+        # Step 3: another fix on RC (1 commit)
+        result = rc_align.calculate_next_version(
+            major=1, minor=1, patch=0, rc=2,
+            depth=1, is_breaking=False, is_feat=False, from_stable=False
+        )
+        self.assertEqual(result, "1.1.0-rc.3")
+
+    def test_scenario_breaking_changes_always_bump_major(self):
+        """
+        Test that breaking changes always bump major, regardless of current version
+        """
+        # From stable v0.1.0
+        result = rc_align.calculate_next_version(
+            major=0, minor=1, patch=0, rc=0,
+            depth=1, is_breaking=True, is_feat=False, from_stable=True
+        )
+        self.assertEqual(result, "1.0.0-rc.1")
+        
+        # From RC v2.5.3-rc.4
+        result = rc_align.calculate_next_version(
+            major=2, minor=5, patch=3, rc=4,
+            depth=1, is_breaking=True, is_feat=True, from_stable=False
+        )
+        self.assertEqual(result, "3.0.0-rc.1")
+
+    def test_scenario_patch_bump_from_stable(self):
+        """
+        Test patch bumps (fixes) from stable versions
+        
+        v1.2.3 + fix: bug → v1.2.4-rc.1
+        """
+        result = rc_align.calculate_next_version(
+            major=1, minor=2, patch=3, rc=0,
+            depth=1, is_breaking=False, is_feat=False, from_stable=True
+        )
+        self.assertEqual(result, "1.2.4-rc.1")
+
+    def test_scenario_multiple_fixes_accumulate_rc(self):
+        """
+        Test multiple fix commits accumulate RC numbers
+        
+        v1.0.0-rc.1 + 5 fix commits → v1.0.0-rc.6
+        """
+        result = rc_align.calculate_next_version(
+            major=1, minor=0, patch=0, rc=1,
+            depth=5, is_breaking=False, is_feat=False, from_stable=False
+        )
+        self.assertEqual(result, "1.0.0-rc.6")
+
+    def test_scenario_feature_on_rc_with_patch(self):
+        """
+        Test feature on RC with patch > 0 bumps minor
+        
+        v1.2.1-rc.3 + feat: new → v1.3.0-rc.1
+        """
+        result = rc_align.calculate_next_version(
+            major=1, minor=2, patch=1, rc=3,
+            depth=1, is_breaking=False, is_feat=True, from_stable=False
+        )
+        self.assertEqual(result, "1.3.0-rc.1")
+
+    def test_scenario_feature_on_rc_without_patch(self):
+        """
+        Test feature on RC with patch = 0 increments RC
+        
+        v1.2.0-rc.3 + feat: new → v1.2.0-rc.4
+        """
+        result = rc_align.calculate_next_version(
+            major=1, minor=2, patch=0, rc=3,
+            depth=1, is_breaking=False, is_feat=True, from_stable=False
+        )
+        self.assertEqual(result, "1.2.0-rc.4")
+
+
+class TestMainBranchScenarios(unittest.TestCase):
+    """Test main/master branch specific scenarios"""
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_branch_mixed_tags(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test main branch with mixed stable and RC tags"""
+        mock_env.return_value = "main"
+        mock_git.side_effect = [
+            "feat: feature",
+            None, None,
+            "v2.1.0-rc.5\nv2.0.0\nv1.9.0\nv1.9.0-rc.3"
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        # Should pick latest (v2.1.0-rc.5) and strip to v2.1.0
+        self.assertIn("OUTPUT: next_version=2.1.0", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_main_branch_handles_regex_in_rc(self, mock_stdout, mock_file, mock_git, mock_env):
+        """Test main branch correctly strips various RC formats"""
+        mock_env.return_value = "main"
+        mock_git.side_effect = [
+            "feat: feature",
+            None, None,
+            "v1.0.0-rc.100"  # High RC number
+        ]
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=1.0.0", output)
+
+
+class TestNextBranchScenarios(unittest.TestCase):
+    """Test next branch specific scenarios"""
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('rc_align.find_baseline_tag')
+    @patch('rc_align.get_commit_depth')
+    @patch('rc_align.analyze_impact_from_latest')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_next_branch_breaking_change(self, mock_stdout, mock_file, mock_analyze, mock_depth, mock_baseline, mock_git, mock_env):
+        """Test next branch with breaking change"""
+        mock_env.return_value = "next"
+        mock_git.side_effect = ["feat!: breaking", None]
+        mock_baseline.return_value = ("v1.5.2", True)
+        mock_depth.return_value = 1
+        mock_analyze.return_value = (True, True)
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=2.0.0-rc.1", output)
+
+    @patch.dict('os.environ', {'GITHUB_OUTPUT': '/tmp/test_output'})
+    @patch('os.environ.get')
+    @patch('rc_align.run_git_command')
+    @patch('rc_align.find_baseline_tag')
+    @patch('rc_align.get_commit_depth')
+    @patch('rc_align.analyze_impact_from_latest')
+    @patch('builtins.open', new_callable=mock_open)
+    @patch('sys.stdout', new_callable=StringIO)
+    def test_next_branch_from_rc_baseline(self, mock_stdout, mock_file, mock_analyze, mock_depth, mock_baseline, mock_git, mock_env):
+        """Test next branch calculating from RC baseline"""
+        mock_env.return_value = "next"
+        mock_git.side_effect = ["fix: bug", None]
+        mock_baseline.return_value = ("v1.2.0-rc.3", False)  # from_stable=False
+        mock_depth.return_value = 2
+        mock_analyze.return_value = (False, False)  # fix
+
+        rc_align.main()
+
+        output = mock_stdout.getvalue()
+        self.assertIn("OUTPUT: next_version=1.2.0-rc.5", output)  # 3 + 2 = 5
 
 
 def run_tests():
