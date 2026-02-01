@@ -1,6 +1,6 @@
 {
   "name": "jobnik-manager",
-  "version": "1.0.0-rc.33",
+  "version": "0.1.1-rc.38",
   "description": "This is jobnik management server",
   "main": "./src/index.ts",
   "scripts": {
