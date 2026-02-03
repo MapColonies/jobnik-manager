@@ -2,9 +2,9 @@ import type { Logger } from '@map-colonies/js-logger';
 import { inject, injectable } from 'tsyringe';
 import { createActor } from 'xstate';
 import { trace, type Tracer } from '@opentelemetry/api';
-import { withSpanAsyncV4 } from '@map-colonies/telemetry';
+import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { subMinutes } from 'date-fns';
-import { INFRA_CONVENTIONS } from '@map-colonies/telemetry/conventions';
+import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
 import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
@@ -357,9 +357,9 @@ export class TaskManager {
         updatedTasksCount: updateResults.successCount,
         failedTasksCount: updateResults.failureCount,
       });
-    } catch (error) {
-      this.logger.error({ msg: 'Failed to clean stale tasks', error });
-      throw error;
+    } catch (err) {
+      this.logger.error({ msg: 'Failed to clean stale tasks', err });
+      throw err;
     }
   }
 
@@ -590,14 +590,14 @@ export class TaskManager {
           stageId: task.stageId,
           originalStartTime: task.startTime?.toISOString(),
         });
-      } catch (error) {
+      } catch (err) {
         failureCount++;
 
         this.logger.warn({
           msg: 'Failed to update stale task status',
           taskId: task.id,
           stageId: task.stageId,
-          error: error,
+          err,
         });
       }
     }

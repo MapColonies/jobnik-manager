@@ -1,5 +1,5 @@
 import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { addMinutes } from 'date-fns';
 import { TaskOperationStatus, StageOperationStatus, JobOperationStatus, type PrismaClient } from '@prismaClient';

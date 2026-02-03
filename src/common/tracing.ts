@@ -1,4 +1,4 @@
-import { Tracing } from '@map-colonies/telemetry';
+import { Tracing } from '@map-colonies/tracing';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { IGNORED_INCOMING_TRACE_ROUTES, IGNORED_OUTGOING_TRACE_ROUTES, NODE_VERSION } from './constants';
 import { ATTR_MESSAGING_SYSTEM, ATTR_PROCESS_RUNTIME_NAME, ATTR_PROCESS_RUNTIME_VERSION } from './semconv';

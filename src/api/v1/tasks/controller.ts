@@ -67,7 +67,6 @@ export class TaskControllerV1 {
       const response = await this.manager.getTasks(params);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
-      this.logger.error(`Error occurred on getting tasks with error`, err);
       next(err);
     }
   };

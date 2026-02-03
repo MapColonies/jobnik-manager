@@ -223,10 +223,10 @@ const getTaskQueueDepthByStageType = async (
       ...row,
       count: Number(row.count),
     }));
-  } catch (error) {
+  } catch (err) {
     logger.error({
       msg: 'Failed to get task queue depth by stage type using database aggregation',
-      error,
+      err,
     });
     return [];
   }
@@ -258,10 +258,10 @@ const initializeTasksByStatusGauge = (logger: Logger, prisma: PrismaClient, serv
           totalTasks: statusCounts.reduce((sum, s) => sum + s.count, 0),
           executionTimeMs: Date.now() - startTime,
         });
-      } catch (error) {
+      } catch (err) {
         logger.error({
           msg: 'Failed to update service-level tasks by status gauge',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          err: err instanceof Error ? err.message : 'Unknown error',
           executionTimeMs: Date.now() - startTime,
         });
         this.reset();
@@ -296,10 +296,10 @@ const initializeStagesByStatusGauge = (logger: Logger, prisma: PrismaClient, ser
           totalStages: statusCounts.reduce((sum, s) => sum + s.count, 0),
           executionTimeMs: Date.now() - startTime,
         });
-      } catch (error) {
+      } catch (err) {
         logger.error({
           msg: 'Failed to update service-level stages by status gauge',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          err: err instanceof Error ? err.message : 'Unknown error',
           executionTimeMs: Date.now() - startTime,
         });
         this.reset();
@@ -334,10 +334,10 @@ const initializeJobsByStatusGauge = (logger: Logger, prisma: PrismaClient, servi
           totalJobs: statusCounts.reduce((sum, s) => sum + s.count, 0),
           executionTimeMs: Date.now() - startTime,
         });
-      } catch (error) {
+      } catch (err) {
         logger.error({
           msg: 'Failed to update service-level jobs by status gauge',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          err: err instanceof Error ? err.message : 'Unknown error',
           executionTimeMs: Date.now() - startTime,
         });
         this.reset();
@@ -382,10 +382,10 @@ const initializeTasksByTypePriorityGauge = (logger: Logger, prisma: PrismaClient
             executionTimeMs: Date.now() - startTime,
           });
         }
-      } catch (error) {
+      } catch (err) {
         logger.error({
           msg: 'Failed to update service-level tasks status by stage type gauge',
-          error: error instanceof Error ? error.message : 'Unknown error',
+          err: err instanceof Error ? err.message : 'Unknown error',
           executionTimeMs: Date.now() - startTime,
         });
         // On error, reset to ensure no stale data
