@@ -22,8 +22,6 @@ export class JobControllerV1 {
       const response = await this.manager.getJobs(params);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
-      this.logger.error(`Error occurred on getting job with error`, err);
-
       next(err);
     }
   };
@@ -34,8 +32,6 @@ export class JobControllerV1 {
 
       return res.status(httpStatus.CREATED).json(response);
     } catch (err) {
-      this.logger.error(`Error occurred on creating new job with error`, err);
-
       return next(err);
     }
   };

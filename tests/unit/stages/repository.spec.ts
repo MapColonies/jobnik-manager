@@ -1,5 +1,5 @@
 import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
-import jsLogger from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';

@@ -21,7 +21,6 @@ export class StageControllerV1 {
       const response = await this.manager.getStages(params);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
-      this.logger.error(`Error occurred on getting stage with error`, err);
       next(err);
     }
   };

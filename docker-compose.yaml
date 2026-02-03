@@ -2,7 +2,7 @@
 # Do not use this configuration in production environments as it is optimized for testing and may disable important features like fsync.
 services:
   postgresql:
-    image: postgres:14
+    image: postgres:15
     ports:
       - '${POSTGRES_PORT}:5432'
     container_name: 'postgres-for-testing'
