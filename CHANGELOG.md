@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/MapColonies/jobnik-manager/compare/v0.1.0...v0.2.0) (2026-02-03)
+
+
+### Features
+
+* introduce v1 API structure with jobs, stages, and tasks endpoints MAPCO-8959 ([#205](https://github.com/MapColonies/jobnik-manager/issues/205)) ([dad0bd3](https://github.com/MapColonies/jobnik-manager/commit/dad0bd3b7844346dad9754ed77ec2af42728890a))
+* modernized ([#233](https://github.com/MapColonies/jobnik-manager/issues/233)) ([0afb5ca](https://github.com/MapColonies/jobnik-manager/commit/0afb5ca8518959a37d81c21cbe8270a0ccbae93d))
+
 ## 0.1.0 (2025-11-16)
 
 
