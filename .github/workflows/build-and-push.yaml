@@ -149,7 +149,7 @@ jobs:
           update_dependencies: 'true'
 
   # ---------------------------------------------------------------------------
-  # Open the PR in test-site for the target environment.
+  # Open the PR in site-values for the target environment.
   #
   #   dev  → auto-merge (labels: "qa")
   #   prod → manual     (labels: "prod")
@@ -167,7 +167,7 @@ jobs:
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: ${{ needs.determine-config.outputs.chart_tag }}
-          repository: test-site
+          repository: site-values
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
           environment: ${{ needs.determine-config.outputs.environment }}
@@ -196,7 +196,7 @@ jobs:
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: ${{ needs.determine-config.outputs.chart_tag }}
-          repository: test-site
+          repository: site-values
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
           environment: ${{ matrix.env_name }}
