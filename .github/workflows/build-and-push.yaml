@@ -30,13 +30,13 @@ jobs:
   determine-config:
     runs-on: ubuntu-latest
     outputs:
-      should_run:      ${{ steps.check.outputs.should_run }}
-      image_tag:       ${{ steps.config.outputs.image_tag }}
-      chart_tag:       ${{ steps.config.outputs.chart_tag }}
-      environment:     ${{ steps.config.outputs.environment }}
-      pr_labels:       ${{ steps.config.outputs.pr_labels }}
-      update_paths:    ${{ steps.config.outputs.update_paths }}
-      is_stable:       ${{ steps.config.outputs.is_stable }}
+      should_run: ${{ steps.check.outputs.should_run }}
+      image_tag: ${{ steps.config.outputs.image_tag }}
+      chart_tag: ${{ steps.config.outputs.chart_tag }}
+      environment: ${{ steps.config.outputs.environment }}
+      pr_labels: ${{ steps.config.outputs.pr_labels }}
+      update_paths: ${{ steps.config.outputs.update_paths }}
+      is_stable: ${{ steps.config.outputs.is_stable }}
     steps:
       - name: Check if should run
         id: check
@@ -47,10 +47,10 @@ jobs:
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          
+
           # For push to next: skip bot commits
           COMMIT_MSG="${{ github.event.head_commit.message }}"
-          
+
           # Skip if commit message contains bot indicators
           if [[ "$COMMIT_MSG" == *"Release-As:"* ]] || \
              [[ "$COMMIT_MSG" == "chore: enforce correct rc version"* ]] || \
@@ -60,9 +60,9 @@ jobs:
             echo "Skipping bot commit"
             exit 0
           fi
-          
+
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-      
+
       - name: Resolve config
         id: config
         if: steps.check.outputs.should_run == 'true'
@@ -89,7 +89,7 @@ jobs:
           # Set environment-based outputs
           echo "environment=${ENV}" >> "$GITHUB_OUTPUT"
           echo "update_paths=infra/environments/${ENV}.yaml" >> "$GITHUB_OUTPUT"
-          
+
           # Set PR labels (dev gets auto-merge)
           if [[ "${ENV}" == "dev" ]]; then
             echo "pr_labels=${ENV}, auto-merge" >> "$GITHUB_OUTPUT"
