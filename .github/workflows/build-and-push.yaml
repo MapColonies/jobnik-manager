@@ -30,13 +30,13 @@ jobs:
   determine-config:
     runs-on: ubuntu-latest
     outputs:
-      should_run: ${{ steps.check.outputs.should_run }}
-      image_tag: ${{ steps.config.outputs.image_tag }}
-      chart_tag: ${{ steps.config.outputs.chart_tag }}
-      environment: ${{ steps.config.outputs.environment }}
-      pr_labels: ${{ steps.config.outputs.pr_labels }}
-      update_paths: ${{ steps.config.outputs.update_paths }}
-      is_stable: ${{ steps.config.outputs.is_stable }}
+      should_run:      ${{ steps.check.outputs.should_run }}
+      image_tag:       ${{ steps.config.outputs.image_tag }}
+      chart_tag:       ${{ steps.config.outputs.chart_tag }}
+      environment:     ${{ steps.config.outputs.environment }}
+      pr_labels:       ${{ steps.config.outputs.pr_labels }}
+      update_paths:    ${{ steps.config.outputs.update_paths }}
+      is_stable:       ${{ steps.config.outputs.is_stable }}
     steps:
       - name: Check if should run
         id: check
@@ -47,10 +47,10 @@ jobs:
             echo "should_run=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
+          
           # For push to next: skip bot commits
           COMMIT_MSG="${{ github.event.head_commit.message }}"
-
+          
           # Skip if commit message contains bot indicators
           if [[ "$COMMIT_MSG" == *"Release-As:"* ]] || \
              [[ "$COMMIT_MSG" == "chore: enforce correct rc version"* ]] || \
@@ -60,9 +60,9 @@ jobs:
             echo "Skipping bot commit"
             exit 0
           fi
-
+          
           echo "should_run=true" >> "$GITHUB_OUTPUT"
-
+      
       - name: Resolve config
         id: config
         if: steps.check.outputs.should_run == 'true'
@@ -89,7 +89,7 @@ jobs:
           # Set environment-based outputs
           echo "environment=${ENV}" >> "$GITHUB_OUTPUT"
           echo "update_paths=infra/environments/${ENV}.yaml" >> "$GITHUB_OUTPUT"
-
+          
           # Set PR labels (dev gets auto-merge)
           if [[ "${ENV}" == "dev" ]]; then
             echo "pr_labels=${ENV}, auto-merge" >> "$GITHUB_OUTPUT"
@@ -126,7 +126,7 @@ jobs:
   # ---------------------------------------------------------------------------
   push-helm-package:
     runs-on: ubuntu-latest
-    needs: [determine-config, push-docker-image]
+    needs: [determine-config]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -156,7 +156,7 @@ jobs:
   # ---------------------------------------------------------------------------
   update-site-values:
     runs-on: ubuntu-latest
-    needs: [determine-config, push-helm-package]
+    needs: [determine-config, push-docker-image, push-helm-package]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -176,26 +176,29 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Housekeeping — only on stable release.
-  # When v0.1.2 is cut, qa ןד still pointing at v0.1.2-rc.X.
-  # This job auto-updates qa to the new stable tag so it will stay in sync.
+  # When v0.1.2 is cut, qa and integration are still pointing at v0.1.2-rc.X.
+  # This job auto-updates both to the new stable tag so they stay in sync.
   # ---------------------------------------------------------------------------
   housekeeping-update-qa-and-integration:
     runs-on: ubuntu-latest
     needs: [determine-config, push-helm-package]
     if: needs.determine-config.outputs.is_stable == 'true'
+    strategy:
+      matrix:
+        env_name: [qa, integration]
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - name: Update qa to stable tag
+      - name: Update ${{ matrix.env_name }} to stable tag
         uses: MapColonies/shared-workflows/actions/update-chart-version@update-chart-version-v0.1.0
         with:
           tag: ${{ needs.determine-config.outputs.chart_tag }}
           repository: test-site
           github_token: ${{ secrets.GH_PAT }}
           chart: ${{ github.event.repository.name }}
-          environment: qa
-          pr_labels: qa, auto-merge
-          paths: infra/environments/qa.yaml
+          environment: ${{ matrix.env_name }}
+          pr_labels: ${{ matrix.env_name }}, auto-merge
+          paths: infra/environments/${{ matrix.env_name }}.yaml
