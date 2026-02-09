@@ -126,6 +126,7 @@ jobs:
   # ---------------------------------------------------------------------------
   push-helm-package:
     runs-on: ubuntu-latest
+    if: needs.determine-config.outputs.should_run == 'true'
     needs: [determine-config]
     steps:
       - name: Checkout
