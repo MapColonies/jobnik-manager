@@ -157,7 +157,7 @@ jobs:
   # ---------------------------------------------------------------------------
   # Open the PR in site-values for the target environment.
   #
-  #   dev  → auto-merge (labels: "qa")
+  #   dev  → auto-merge (labels: "dev")
   #   prod → manual     (labels: "prod")
   # ---------------------------------------------------------------------------
   update-site-values:
