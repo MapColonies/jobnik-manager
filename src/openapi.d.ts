@@ -1839,6 +1839,18 @@ export interface operations {
           'application/json': components['schemas']['taskNotFoundResponse'];
         };
       };
+      /** @description Race condition detected: task was claimed by another worker. This occurs when multiple workers attempt to dequeue the same task simultaneously. The client should retry the dequeue operation to get a different task. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['baseErrorResponse'] & {
+            /** @enum {unknown} */
+            code?: 'TASK_STATUS_UPDATE_FAILED';
+          };
+        };
+      };
       /** @description Internal server error or invalid state transition */
       500: {
         headers: {
@@ -2063,6 +2075,18 @@ export interface operations {
         };
         content: {
           'application/json': components['schemas']['taskNotFoundResponse'];
+        };
+      };
+      /** @description Race condition detected: task status was modified by another request. This occurs when multiple workers attempt to update the same task simultaneously. The current state of the task has changed since it was retrieved. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['baseErrorResponse'] & {
+            /** @enum {unknown} */
+            code?: 'TASK_STATUS_UPDATE_FAILED';
+          };
         };
       };
       /** @description Internal server error */

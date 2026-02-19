@@ -163,9 +163,12 @@ export class JobManager {
     });
 
     if (!tx) {
-      return this.prisma.$transaction(async (newTx) => {
-        await this.executeUpdateStatus(jobId, status, newTx);
-      });
+      return this.prisma.$transaction(
+        async (newTx) => {
+          await this.executeUpdateStatus(jobId, status, newTx);
+        },
+        { timeout: 15000 } // 15 seconds timeout for status updates
+      );
     }
 
     await this.executeUpdateStatus(jobId, status, tx);

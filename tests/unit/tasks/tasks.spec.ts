@@ -588,8 +588,9 @@ describe('JobManager', () => {
 
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
+              $queryRaw: vi.fn().mockResolvedValue([taskEntity]),
               task: {
-                findFirst: vi.fn().mockResolvedValue(taskEntity),
+                findUnique: vi.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: vi.fn().mockResolvedValue([taskEntity]),
               },
               stage: {
@@ -610,9 +611,7 @@ describe('JobManager', () => {
         it('should get code 404 not found for no available tasks to dequeue', async function () {
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
-              task: {
-                findFirst: vi.fn().mockResolvedValue(null),
-              },
+              $queryRaw: vi.fn().mockResolvedValue([]),
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
             return callback(mockTx);
@@ -626,9 +625,7 @@ describe('JobManager', () => {
         it('should fail with a database error when adding tasks', async function () {
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
-              task: {
-                findFirst: vi.fn().mockRejectedValue(new Error('db connection error')),
-              },
+              $queryRaw: vi.fn().mockRejectedValue(new Error('db connection error')),
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
             return callback(mockTx);
@@ -653,8 +650,9 @@ describe('JobManager', () => {
 
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
+              $queryRaw: vi.fn().mockResolvedValue([taskEntity]),
               task: {
-                findFirst: vi.fn().mockResolvedValue(taskEntity),
+                findUnique: vi.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: vi.fn().mockResolvedValue([]),
               },
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;

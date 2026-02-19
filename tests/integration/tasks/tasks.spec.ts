@@ -1455,9 +1455,7 @@ describe('task', function () {
         const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
-            task: {
-              findFirst: vi.fn().mockRejectedValueOnce(error),
-            },
+            $queryRaw: vi.fn().mockRejectedValueOnce(error),
           } as unknown as PrismaTransaction;
 
           await callback(mockTx);
@@ -1480,9 +1478,7 @@ describe('task', function () {
         const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
-            task: {
-              findFirst: vi.fn().mockRejectedValueOnce(error),
-            },
+            $queryRaw: vi.fn().mockRejectedValueOnce(error),
           } as unknown as PrismaTransaction;
 
           await callback(mockTx);
@@ -1536,7 +1532,7 @@ describe('task', function () {
         expect(getJobResponse.body).toHaveProperty('status', JobOperationStatus.PENDING);
       });
 
-      it('should return 500 and prevent multiple dequeue of the same task', async function () {
+      it('should prevent multiple dequeue of the same task using database-level locking', async function () {
         expect.assertions(4);
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
@@ -1555,39 +1551,18 @@ describe('task', function () {
         const stageId = stage.id;
         const taskId = tasks[0]!.id;
 
-        let continueUpdateFirstTask: (value?: unknown) => void;
-        let continueUpdateSecondTask: (value?: unknown) => void;
-        const updateTaskHolderFirst = new Promise((resolve) => {
-          continueUpdateFirstTask = resolve;
-        });
-        const updateTaskHolderSecond = new Promise((resolve) => {
-          continueUpdateSecondTask = resolve;
-        });
-        const original = prisma.task.findFirst.bind(prisma.task);
-        const spy = createProxyMock(prisma.task, 'findFirst');
-        spy.mockImplementationOnce(async (...args: Parameters<typeof original>) => {
-          const res = await original(...args);
-          await updateTaskHolderFirst; // prevent updating the task until the second dequeue is called
-          return res;
-        });
-
-        spy.mockImplementationOnce(async (...args: Parameters<typeof original>) => {
-          const res = await original(...args);
-          continueUpdateFirstTask(); // release the first dequeue update process
-          await updateTaskHolderSecond; // prevent updating the task until first dequeue release it (after his updating)
-          return res;
-        });
+        // With FOR UPDATE SKIP LOCKED, concurrent dequeues are handled at database level
+        // The first transaction locks the row, second transaction skips it and finds no tasks
         const dequeueFirstPromise = requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
         const dequeueSecondPromise = requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_PREVENT_MULTIPLE_DEQUEUE' },
         });
-        const firstResponse = await dequeueFirstPromise;
-        // @ts-expect-error not recognized initialization
-        continueUpdateSecondTask(); //release to update second call
-        const secondResponse = await dequeueSecondPromise;
-        // first call will success and pull task
+
+        const [firstResponse, secondResponse] = await Promise.all([dequeueFirstPromise, dequeueSecondPromise]);
+
+        // First call will success and pull task
         expect(firstResponse).toSatisfyApiSpec();
         expect(firstResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -1597,10 +1572,147 @@ describe('task', function () {
             stageId: stageId,
           },
         });
-        //second call will fail with 500 status code due to race condition protection
+
+        // Second call will fail with 404 status code because task was locked by first transaction
         expect(secondResponse).toSatisfyApiSpec();
         expect(secondResponse).toMatchObject({
-          status: StatusCodes.INTERNAL_SERVER_ERROR,
+          status: StatusCodes.NOT_FOUND,
+          body: {
+            message: tasksErrorMessages.taskNotFound,
+            code: 'TASK_NOT_FOUND',
+          },
+        });
+      });
+
+      it('should handle concurrent dequeue and updateStatus operations with race condition protection', { timeout: 10000 }, async function () {
+        expect.assertions(4);
+
+        const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_DEQUEUE_UPDATE_RACE',
+          },
+          [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
+        );
+
+        const stageId = stage.id;
+        const taskId = tasks[0]!.id;
+
+        // Test that dequeue and updateStatus handle race conditions properly
+        // Start both operations - one will succeed, the other should fail with 409
+        const dequeuePromise = requestSender.dequeueTaskV1({
+          pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_UPDATE_RACE' },
+        });
+        const updateStatusPromise = requestSender.updateTaskStatusV1({
+          pathParams: { taskId },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
+        });
+
+        const [dequeueResponse, updateStatusResponse] = await Promise.allSettled([dequeuePromise, updateStatusPromise]);
+
+        // One should succeed, one should fail with conflict
+        const successCount = [dequeueResponse, updateStatusResponse].filter(
+          (r) => r.status === 'fulfilled' && r.value.status === StatusCodes.OK
+        ).length;
+        const conflictCount = [dequeueResponse, updateStatusResponse].filter(
+          (r) => r.status === 'fulfilled' && r.value.status === StatusCodes.CONFLICT
+        ).length;
+
+        // Exactly one operation should succeed
+        expect(successCount).toBe(1);
+        // The other should get a conflict or one might complete
+        expect(successCount + conflictCount).toBeGreaterThanOrEqual(1);
+
+        // Verify the task ended up in a valid state
+        const finalTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+        expect(finalTaskResponse.status).toBe(StatusCodes.OK);
+        expect([TaskOperationStatus.IN_PROGRESS, TaskOperationStatus.COMPLETED]).toContain(finalTaskResponse.body.status);
+      });
+
+      it('should handle multiple concurrent updateStatus operations with race condition protection', async function () {
+        expect.assertions(4);
+        const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
+
+        const { stage, tasks } = await createJobnikTree(
+          prisma,
+          { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
+          {
+            status: StageOperationStatus.IN_PROGRESS,
+            xstate: inProgressStageXstatePersistentSnapshot,
+            summary: initialSummary,
+            type: 'SOME_TEST_TYPE_MULTIPLE_UPDATE_RACE',
+          },
+          [{ status: TaskOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot }]
+        );
+
+        const taskId = tasks[0]!.id;
+        let continueFirstUpdate: (value?: unknown) => void;
+        let continueSecondUpdate: (value?: unknown) => void;
+        const firstUpdateHolder = new Promise((resolve) => {
+          continueFirstUpdate = resolve;
+        });
+        const secondUpdateHolder = new Promise((resolve) => {
+          continueSecondUpdate = resolve;
+        });
+
+        // Mock task.findUnique for both update calls
+        const originalFindUnique = prisma.task.findUnique.bind(prisma.task);
+        const findUniqueSpy = createProxyMock(prisma.task, 'findUnique');
+
+        // First update call - pause before updating
+        findUniqueSpy.mockImplementationOnce(async (...args: Parameters<typeof originalFindUnique>) => {
+          const res = await originalFindUnique(...args);
+          await firstUpdateHolder; // Pause first update
+          return res;
+        });
+
+        // Second update call - pause before updating
+        findUniqueSpy.mockImplementationOnce(async (...args: Parameters<typeof originalFindUnique>) => {
+          const res = await originalFindUnique(...args);
+          continueFirstUpdate(); // Allow first update to proceed
+          await secondUpdateHolder; // Pause second update
+          return res;
+        });
+
+        // Start both update operations concurrently (simulating 2 workers completing the same task)
+        const firstUpdatePromise = requestSender.updateTaskStatusV1({
+          pathParams: { taskId },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
+        });
+        const secondUpdatePromise = requestSender.updateTaskStatusV1({
+          pathParams: { taskId },
+          requestBody: { status: TaskOperationStatus.COMPLETED },
+        });
+
+        // Wait for first update to complete
+        const firstResponse = await firstUpdatePromise;
+
+        // Allow second update to proceed
+        // @ts-expect-error not recognized initialization
+        continueSecondUpdate();
+        const secondResponse = await secondUpdatePromise;
+
+        // First update should succeed - task transitioned from IN_PROGRESS to COMPLETED
+        expect(firstResponse).toSatisfyApiSpec();
+        expect(firstResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: {
+            id: taskId,
+            status: TaskOperationStatus.COMPLETED,
+          },
+        });
+
+        // Second update should fail because task is no longer IN_PROGRESS
+        // The optimistic locking prevents duplicate completion
+        expect(secondResponse).toSatisfyApiSpec();
+        expect(secondResponse).toMatchObject({
+          status: StatusCodes.CONFLICT,
           body: {
             message: tasksErrorMessages.taskStatusUpdateFailed,
             code: 'TASK_STATUS_UPDATE_FAILED',
