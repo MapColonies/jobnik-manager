@@ -242,9 +242,12 @@ export class StageManager {
     });
 
     if (!tx) {
-      return this.prisma.$transaction(async (newTx) => {
-        await this.executeUpdateStatus(stageId, status, newTx);
-      });
+      return this.prisma.$transaction(
+        async (newTx) => {
+          await this.executeUpdateStatus(stageId, status, newTx);
+        },
+        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to job updates
+      );
     }
 
     await this.executeUpdateStatus(stageId, status, tx);
@@ -304,6 +307,8 @@ export class StageManager {
 
     // update stage status if it was initialized by first task
     // and the stage is not already in progress
+    // Race condition protection: Only transition if stage is PENDING
+    // Multiple concurrent tasks may trigger this check simultaneously
     if (updatedSummary.inProgress > 0 && stage.status === StageOperationStatus.PENDING) {
       await this.updateStatus(stageId, StageOperationStatus.IN_PROGRESS, tx);
       trace.getActiveSpan()?.addEvent('Stage set to IN_PROGRESS because first task started', { stageId });
@@ -317,6 +322,19 @@ export class StageManager {
     if (!stage) {
       throw new StageNotFoundError(stagesErrorMessages.stageNotFound);
     }
+
+    // Idempotent status update: if already in target status, no-op
+    // This prevents errors during race conditions where multiple workers
+    // try to set the same status (e.g., multiple tasks setting stage to IN_PROGRESS)
+    if (stage.status === status) {
+      this.logger.debug({
+        msg: 'Stage already in target status, skipping transition',
+        stageId,
+        status,
+      });
+      return;
+    }
+
     //#region validate status transition rules
     const previousStageOrder = stage.order - 1;
 

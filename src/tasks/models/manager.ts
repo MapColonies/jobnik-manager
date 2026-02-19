@@ -5,7 +5,7 @@ import { trace, type Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { subMinutes } from 'date-fns';
 import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
-import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
@@ -27,55 +27,6 @@ import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function generatePrioritizedTaskQuery(stageType: string) {
-  // Define valid states for filtering
-  const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
-  const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
-  const validJobStatuses = [JobOperationStatus.PENDING, JobOperationStatus.IN_PROGRESS];
-
-  const queryBody = {
-    where: {
-      stage: {
-        type: stageType,
-        status: {
-          in: validStageStatuses,
-        },
-        job: {
-          status: {
-            in: validJobStatuses,
-          },
-        },
-      },
-      status: {
-        in: validTaskStatuses,
-      },
-    },
-    include: {
-      stage: {
-        include: {
-          job: {
-            select: {
-              priority: true,
-              id: true,
-              status: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      stage: {
-        job: {
-          priority: Prisma.SortOrder.asc,
-        },
-      },
-    },
-  } satisfies Prisma.TaskFindFirstArgs;
-
-  return queryBody;
-}
 
 @injectable()
 export class TaskManager {
@@ -253,11 +204,14 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
     });
 
-    /* v8 ignore next 6 -- @preserve */
+    /* v8 ignore next 8 -- @preserve */
     if (!tx) {
-      return this.prisma.$transaction(async (newTx) => {
-        return this.executeUpdateStatus(taskId, status, newTx);
-      });
+      return this.prisma.$transaction(
+        async (newTx) => {
+          return this.executeUpdateStatus(taskId, status, newTx);
+        },
+        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to stage/job updates
+      );
     }
     /* v8 ignore next  -- @preserve */
     return this.executeUpdateStatus(taskId, status, tx);
@@ -276,11 +230,14 @@ export class TaskManager {
       [ATTR_MESSAGING_DESTINATION_NAME]: stageType,
     });
 
-    /* v8 ignore next 5 -- @preserve */
+    /* v8 ignore next 7 -- @preserve */
     if (tx === undefined) {
-      return this.prisma.$transaction(async (newTx) => {
-        return this.executeDequeue(stageType, newTx);
-      });
+      return this.prisma.$transaction(
+        async (newTx) => {
+          return this.executeDequeue(stageType, newTx);
+        },
+        { timeout: 15000 } // 15 seconds timeout for dequeue operations that may cascade to stage/job updates
+      );
     }
 
     /* v8 ignore next -- @preserve */
@@ -365,6 +322,8 @@ export class TaskManager {
 
   /**
    * Executes the dequeue operation within a transaction.
+   * Uses SELECT FOR UPDATE to lock the task row, preventing race conditions
+   * when multiple workers try to dequeue simultaneously.
    * @param stageType - The type of stage to dequeue a task from
    * @param tx - The transaction object
    * @returns The dequeued task
@@ -373,11 +332,37 @@ export class TaskManager {
   private async executeDequeue(stageType: string, tx: PrismaTransaction): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
 
-    const queryBody = generatePrioritizedTaskQuery(stageType);
+    // Use raw SQL with FOR UPDATE SKIP LOCKED for pessimistic locking
+    // - FOR UPDATE: Locks the row so other transactions wait
+    // - SKIP LOCKED: Skip rows that are already locked (instead of waiting)
+    // This allows multiple workers to efficiently grab different tasks
+    const tasks = await tx.$queryRaw<Task[]>`
+      SELECT t.*
+      FROM "job_manager"."task" t
+      INNER JOIN "job_manager"."stage" s ON t."stage_id" = s.id
+      INNER JOIN "job_manager"."job" j ON s."job_id" = j.id
+      WHERE s.type = ${stageType}
+        AND t.status IN ('Pending', 'Retried')
+        AND s.status IN ('Pending', 'In-Progress')
+        AND j.status IN ('Pending', 'In-Progress')
+      ORDER BY j.priority ASC
+      LIMIT 1
+      FOR UPDATE OF t SKIP LOCKED
+    `;
 
-    const task = await tx.task.findFirst(queryBody);
+    if (tasks.length === 0) {
+      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
+    }
 
-    if (task === null) {
+    // Note: $queryRaw returns raw database values, not Prisma-mapped values
+    // We need to re-fetch the task using Prisma to get properly mapped enum values
+    const rawTask = tasks[0]!;
+    const task = await tx.task.findUnique({
+      where: { id: rawTask.id },
+    });
+
+    /* v8 ignore next 3 -- @preserve */
+    if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
@@ -426,11 +411,14 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
     });
 
-    /* v8 ignore next 5 -- @preserve */
+    /* v8 ignore next 7 -- @preserve */
     if (!tx) {
-      return this.prisma.$transaction(async (newTx) => {
-        return this.executeUpdateAndValidateStatus(task, status, newTx);
-      });
+      return this.prisma.$transaction(
+        async (newTx) => {
+          return this.executeUpdateAndValidateStatus(task, status, newTx);
+        },
+        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to stage/job updates
+      );
     }
 
     return this.executeUpdateAndValidateStatus(task, status, tx);
@@ -453,6 +441,15 @@ export class TaskManager {
     const previousStatus = task.status;
     const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
 
+    this.logger.debug({
+      msg: 'Attempting task status update',
+      taskId: task.id,
+      stageId: task.stageId,
+      currentStatus: previousStatus,
+      requestedStatus: status,
+      nextStatus,
+    });
+
     const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
 
     const startTime: Date | undefined = nextStatus === TaskOperationStatus.IN_PROGRESS ? new Date() : undefined;
@@ -467,6 +464,15 @@ export class TaskManager {
 
     const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
     if (updatedTasks[0] === undefined) {
+      // Race condition detected: another process already modified this task
+      this.logger.warn({
+        msg: 'Task status update failed - race condition detected',
+        taskId: task.id,
+        stageId: task.stageId,
+        attemptedTransition: `${previousStatus} -> ${nextStatus}`,
+        expectedStatus: previousStatus,
+        reason: 'Task status was changed by another worker before this update could complete',
+      });
       throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
     }
 
@@ -529,6 +535,33 @@ export class TaskManager {
 
   /**
    * Creates the where clause for task updates, with race condition protection.
+   * Always includes the current status to implement optimistic locking.
+   * This ensures updates only succeed if the task is still in the expected state.
+   *
+   * **Why this is necessary:**
+   * In high-concurrency scenarios with multiple workers, race conditions can occur:
+   *
+   * Scenario 1: Concurrent dequeue operations
+   * - Worker A and B both read Task1 as PENDING
+   * - Worker A updates: WHERE id=X AND status=PENDING → IN_PROGRESS (succeeds)
+   * - Worker B updates: WHERE id=X AND status=PENDING → IN_PROGRESS (fails - optimistic lock)
+   *
+   * Scenario 2: Dequeue during update
+   * - Task1 is PENDING
+   * - Worker A calls updateStatus(Task1, COMPLETED) - reads task as PENDING
+   * - Worker B calls dequeue() - reads Task1 as PENDING
+   * - Worker B commits: WHERE id=X AND status=PENDING → IN_PROGRESS (succeeds)
+   * - Worker A commits: WHERE id=X AND status=PENDING → COMPLETED (fails - status is now IN_PROGRESS)
+   *
+   * Scenario 3: Double completion
+   * - Task1 is IN_PROGRESS
+   * - Worker A and B both try to update to COMPLETED
+   * - Worker A updates: WHERE id=X AND status=IN_PROGRESS → COMPLETED (succeeds)
+   * - Worker B updates: WHERE id=X AND status=IN_PROGRESS → COMPLETED (fails - status is now COMPLETED)
+   *
+   * Without status check, these scenarios would succeed silently, causing data inconsistency.
+   * With status check (optimistic locking), the second update fails with TASK_STATUS_UPDATE_FAILED.
+   *
    * @param taskId - The ID of the task to update
    * @param nextStatus - The target status
    * @param previousStatus - The current status
@@ -540,16 +573,11 @@ export class TaskManager {
     previousStatus: TaskOperationStatus
   ): {
     id: string;
-    status?: TaskOperationStatus;
+    status: TaskOperationStatus;
   } {
-    const whereClause = { id: taskId };
-
-    // Add status check to prevent race conditions when setting to IN_PROGRESS
-    if (nextStatus === TaskOperationStatus.IN_PROGRESS) {
-      return { ...whereClause, status: previousStatus };
-    }
-
-    return whereClause;
+    // Always include status check to prevent race conditions for all status transitions
+    // This implements optimistic locking: update succeeds only if task is still in expected state
+    return { id: taskId, status: previousStatus };
   }
 
   private async updateStageSummary(
