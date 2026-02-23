@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
-import { jsLogger } from '@map-colonies/js-logger';
+import { describe, beforeEach, afterEach, it, expect, vi, beforeAll } from 'vitest';
+import { jsLogger, Logger } from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
@@ -38,11 +38,17 @@ type StageAggregateResult = Prisma.GetStageAggregateType<Prisma.StageAggregateAr
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
+  let logger: Logger;
+
+  beforeAll(function () {
+    logger = jsLogger({ enabled: false });
+  });
+
   beforeEach(function () {
     prisma = mockDeep<PrismaClient>();
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
-    stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
+    jobManager = new JobManager(logger, prisma, tracer);
+    stageRepository = new StageRepository(logger, prisma);
+    stageManager = new StageManager(logger, prisma, tracer, stageRepository, jobManager);
   });
 
   afterEach(function () {

@@ -7,7 +7,7 @@ import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
 import type { PrismaClient } from '@prismaClient';
 import { JobOperationStatus, Prisma, StageOperationStatus } from '@prismaClient';
 import { JobManager } from '@src/jobs/models/manager';
-import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
+import { SERVICES, TX_TIMEOUT_MS, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
@@ -246,7 +246,7 @@ export class StageManager {
         async (newTx) => {
           await this.executeUpdateStatus(stageId, status, newTx);
         },
-        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to job updates
+        { timeout: TX_TIMEOUT_MS }
       );
     }
 
@@ -326,6 +326,7 @@ export class StageManager {
     // Idempotent status update: if already in target status, no-op
     // This prevents errors during race conditions where multiple workers
     // try to set the same status (e.g., multiple tasks setting stage to IN_PROGRESS)
+    /* v8 ignore next 4 -- @preserve */
     if (stage.status === status) {
       this.logger.debug({
         msg: 'Stage already in target status, skipping transition',

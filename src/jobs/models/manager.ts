@@ -7,7 +7,7 @@ import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
 import type { PrismaClient, Priority } from '@prismaClient';
 import { Prisma, JobOperationStatus } from '@prismaClient';
-import { SERVICES } from '@common/constants';
+import { SERVICES, TX_TIMEOUT_MS } from '@common/constants';
 import { convertArrayPrismaStageToStageResponse } from '@src/stages/models/helper';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@common/errors';
 import { type PrismaTransaction } from '@src/db/types';
@@ -167,7 +167,7 @@ export class JobManager {
         async (newTx) => {
           await this.executeUpdateStatus(jobId, status, newTx);
         },
-        { timeout: 15000 } // 15 seconds timeout for status updates
+        { timeout: TX_TIMEOUT_MS }
       );
     }
 

@@ -6,7 +6,7 @@ import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { subMinutes } from 'date-fns';
 import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
 import { Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
-import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
+import { SERVICES, TX_TIMEOUT_MS, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';
@@ -24,6 +24,7 @@ import {
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src/common/semconv';
+import { TaskRepository } from '../DAL/taskRepository';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
@@ -35,7 +36,8 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(SERVICES.CONFIG) private readonly config: ConfigType
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType,
+    @inject(TaskRepository) private readonly taskRepository: TaskRepository
   ) {}
 
   @withSpanAsyncV4
@@ -210,7 +212,7 @@ export class TaskManager {
         async (newTx) => {
           return this.executeUpdateStatus(taskId, status, newTx);
         },
-        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to stage/job updates
+        { timeout: TX_TIMEOUT_MS }
       );
     }
     /* v8 ignore next  -- @preserve */
@@ -236,7 +238,7 @@ export class TaskManager {
         async (newTx) => {
           return this.executeDequeue(stageType, newTx);
         },
-        { timeout: 15000 } // 15 seconds timeout for dequeue operations that may cascade to stage/job updates
+        { timeout: TX_TIMEOUT_MS }
       );
     }
 
@@ -332,36 +334,8 @@ export class TaskManager {
   private async executeDequeue(stageType: string, tx: PrismaTransaction): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
 
-    // Use raw SQL with FOR UPDATE SKIP LOCKED for pessimistic locking
-    // - FOR UPDATE: Locks the row so other transactions wait
-    // - SKIP LOCKED: Skip rows that are already locked (instead of waiting)
-    // This allows multiple workers to efficiently grab different tasks
-    const tasks = await tx.$queryRaw<Task[]>`
-      SELECT t.*
-      FROM "job_manager"."task" t
-      INNER JOIN "job_manager"."stage" s ON t."stage_id" = s.id
-      INNER JOIN "job_manager"."job" j ON s."job_id" = j.id
-      WHERE s.type = ${stageType}
-        AND t.status IN ('Pending', 'Retried')
-        AND s.status IN ('Pending', 'In-Progress')
-        AND j.status IN ('Pending', 'In-Progress')
-      ORDER BY j.priority ASC
-      LIMIT 1
-      FOR UPDATE OF t SKIP LOCKED
-    `;
+    const task = await this.taskRepository.findAndLockTaskForDequeue(stageType, tx);
 
-    if (tasks.length === 0) {
-      throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
-    }
-
-    // Note: $queryRaw returns raw database values, not Prisma-mapped values
-    // We need to re-fetch the task using Prisma to get properly mapped enum values
-    const rawTask = tasks[0]!;
-    const task = await tx.task.findUnique({
-      where: { id: rawTask.id },
-    });
-
-    /* v8 ignore next 3 -- @preserve */
     if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
@@ -417,7 +391,7 @@ export class TaskManager {
         async (newTx) => {
           return this.executeUpdateAndValidateStatus(task, status, newTx);
         },
-        { timeout: 15000 } // 15 seconds timeout for status updates that may cascade to stage/job updates
+        { timeout: TX_TIMEOUT_MS }
       );
     }
 
