@@ -1837,7 +1837,7 @@ paths:
                 $ref: '#/components/schemas/taskNotFoundResponse'
         '409':
           description: >-
-            Race condition detected: task status was modified by another request.
+            task status was modified by another request.
             This occurs when multiple workers attempt to update the same task simultaneously.
             The current state of the task has changed since it was retrieved.
           content:
