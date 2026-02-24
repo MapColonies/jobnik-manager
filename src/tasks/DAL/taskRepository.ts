@@ -13,14 +13,12 @@ export class TaskRepository {
   ) {}
 
   /**
-   * Finds and locks the highest priority task for dequeuing.
-   * Uses SELECT FOR UPDATE SKIP LOCKED for pessimistic locking:
-   * - FOR UPDATE: Locks the row so other transactions wait
-   * - SKIP LOCKED: Skip rows that are already locked (instead of waiting)
-   * This allows multiple workers to efficiently grab different tasks
-   * @param stageType - The type of stage to dequeue a task from
-   * @param tx - The transaction object
-   * @returns The locked task, or null if no task is available
+   * Finds and locks the next available high-priority task for processing.
+   * * Uses a row-level lock with `SKIP LOCKED` to allow multiple concurrent
+   * workers to claim different tasks without blocking each other.
+   * * @param stageType - The stage category to pull tasks from.
+   * @param tx - The current database transaction.
+   * @returns The locked task or null if no eligible tasks are found.
    */
   public async findAndLockTaskForDequeue(stageType: string, tx: PrismaTransaction): Promise<TaskPrismaObject | null> {
     this.logger.debug({ msg: 'Finding task for dequeue', stageType });

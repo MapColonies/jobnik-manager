@@ -432,7 +432,7 @@ export class TaskManager {
 
     // Create update query with race condition protection for IN_PROGRESS
     const updateQueryBody = {
-      where: this.createUpdateWhereClause(task.id, nextStatus, previousStatus),
+      where: this.createUpdateWhereClause(task.id, previousStatus),
       data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot, startTime, endTime },
     };
 
@@ -508,49 +508,17 @@ export class TaskManager {
   }
 
   /**
-   * Creates the where clause for task updates, with race condition protection.
-   * Always includes the current status to implement optimistic locking.
-   * This ensures updates only succeed if the task is still in the expected state.
+   * Generates the query filter for task updates using optimistic locking.
+   * * By including `previousStatus` in the WHERE clause, we ensure that state
+   * transitions (e.g., PENDING → IN_PROGRESS) only occur if no other worker
+   * has modified the task in the interim.
    *
-   * **Why this is necessary:**
-   * In high-concurrency scenarios with multiple workers, race conditions can occur:
-   *
-   * Scenario 1: Concurrent dequeue operations
-   * - Worker A and B both read Task1 as PENDING
-   * - Worker A updates: WHERE id=X AND status=PENDING → IN_PROGRESS (succeeds)
-   * - Worker B updates: WHERE id=X AND status=PENDING → IN_PROGRESS (fails - optimistic lock)
-   *
-   * Scenario 2: Dequeue during update
-   * - Task1 is PENDING
-   * - Worker A calls updateStatus(Task1, COMPLETED) - reads task as PENDING
-   * - Worker B calls dequeue() - reads Task1 as PENDING
-   * - Worker B commits: WHERE id=X AND status=PENDING → IN_PROGRESS (succeeds)
-   * - Worker A commits: WHERE id=X AND status=PENDING → COMPLETED (fails - status is now IN_PROGRESS)
-   *
-   * Scenario 3: Double completion
-   * - Task1 is IN_PROGRESS
-   * - Worker A and B both try to update to COMPLETED
-   * - Worker A updates: WHERE id=X AND status=IN_PROGRESS → COMPLETED (succeeds)
-   * - Worker B updates: WHERE id=X AND status=IN_PROGRESS → COMPLETED (fails - status is now COMPLETED)
-   *
-   * Without status check, these scenarios would succeed silently, causing data inconsistency.
-   * With status check (optimistic locking), the second update fails with TASK_STATUS_UPDATE_FAILED.
-   *
-   * @param taskId - The ID of the task to update
-   * @param nextStatus - The target status
-   * @param previousStatus - The current status
-   * @returns The where clause object for the update query
+   * @param taskId - The ID of the task to update.
+   * @param nextStatus - The target status.
+   * @param previousStatus - The expected current status to prevent race conditions.
+   * @returns The filter object for the update query.
    */
-  private createUpdateWhereClause(
-    taskId: string,
-    nextStatus: TaskOperationStatus,
-    previousStatus: TaskOperationStatus
-  ): {
-    id: string;
-    status: TaskOperationStatus;
-  } {
-    // Always include status check to prevent race conditions for all status transitions
-    // This implements optimistic locking: update succeeds only if task is still in expected state
+  private createUpdateWhereClause(taskId: string, previousStatus: TaskOperationStatus): { id: string; status: TaskOperationStatus } {
     return { id: taskId, status: previousStatus };
   }
 
