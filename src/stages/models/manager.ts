@@ -316,7 +316,7 @@ export class StageManager {
   }
 
   @withSpanAsyncV4
-  private async executeUpdateStatus(stageId: string, status: StageOperationStatus, tx: PrismaTransaction): Promise<void> {
+  private async executeUpdateStatus(stageId: string, targetStatus: StageOperationStatus, tx: PrismaTransaction): Promise<void> {
     const stage = await this.getStageEntityById(stageId, { includeJob: true, tx });
 
     if (!stage) {
@@ -327,11 +327,11 @@ export class StageManager {
     // This prevents errors during race conditions where multiple workers
     // try to set the same status (e.g., multiple tasks setting stage to IN_PROGRESS)
     /* v8 ignore next 4 -- @preserve */
-    if (stage.status === status) {
+    if (stage.status === targetStatus) {
       this.logger.debug({
         msg: 'Stage already in target status, skipping transition',
         stageId,
-        status,
+        targetStatus,
       });
       return;
     }
@@ -340,7 +340,7 @@ export class StageManager {
     const previousStageOrder = stage.order - 1;
 
     // can't move to PENDING if previous stage is not COMPLETED
-    if (status === StageOperationStatus.PENDING && previousStageOrder > 0) {
+    if (targetStatus === StageOperationStatus.PENDING && previousStageOrder > 0) {
       const previousStage = await tx.stage.findFirst({
         where: {
           jobId: stage.jobId,
@@ -353,12 +353,12 @@ export class StageManager {
       }
     }
 
-    const nextStatusChange = OperationStatusMapper[status];
+    const nextStatusChange = OperationStatusMapper[targetStatus];
     const updateActor = createActor(stageStateMachine, { snapshot: stage.xstate }).start();
     const isValidStatus = updateActor.getSnapshot().can({ type: nextStatusChange });
 
     if (!isValidStatus) {
-      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, status));
+      throw new IllegalStageStatusTransitionError(illegalStatusTransitionErrorMessage(stage.status, targetStatus));
     }
     //#endregion
     updateActor.send({ type: nextStatusChange });
@@ -369,7 +369,7 @@ export class StageManager {
         id: stageId,
       },
       data: {
-        status,
+        status: targetStatus,
         xstate: newPersistedSnapshot,
       },
     };
@@ -379,7 +379,7 @@ export class StageManager {
     //#region update related entities
     // Update job completion when a stage is completed
     // If the stage is marked as completed, and there is a next stage in the job, update the next stage status to PENDING
-    if (status === StageOperationStatus.COMPLETED) {
+    if (targetStatus === StageOperationStatus.COMPLETED) {
       const nextStageOrder = stage.order + 1;
       const nextStage = await tx.stage.findFirst({
         where: {
@@ -405,11 +405,11 @@ export class StageManager {
       }
     }
 
-    if (status === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
+    if (targetStatus === StageOperationStatus.IN_PROGRESS && stage.job.status === JobOperationStatus.PENDING) {
       // Update job status to IN_PROGRESS
       await this.jobManager.updateStatus(stage.job.id, JobOperationStatus.IN_PROGRESS, tx);
       trace.getActiveSpan()?.addEvent('Job status set to IN_PROGRESS because first stage is being processed', { jobId: stage.jobId });
-    } else if (status === StageOperationStatus.FAILED) {
+    } else if (targetStatus === StageOperationStatus.FAILED) {
       // Update job status to FAILED
       await this.jobManager.updateStatus(stage.jobId, JobOperationStatus.FAILED, tx);
       trace.getActiveSpan()?.addEvent('Job set to FAILED because its stage failed', { jobId: stage.jobId });
