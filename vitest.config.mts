@@ -28,6 +28,11 @@ export default defineConfig({
           setupFiles: ['./tests/configurations/initJestOpenapi.setup.ts', './tests/configurations/vite.setup.ts'],
           include: ['tests/unit/**/*.spec.ts'],
           environment: 'node',
+          server: {
+            deps: {
+              external: ['node-cron'],
+            },
+          },
         },
         resolve: {
           alias: pathAlias,
@@ -40,6 +45,11 @@ export default defineConfig({
           setupFiles: ['./tests/configurations/initJestOpenapi.setup.ts', './tests/configurations/vite.setup.ts'],
           include: ['tests/integration/**/*.spec.ts'],
           environment: 'node',
+          server: {
+            deps: {
+              external: ['node-cron'],
+            },
+          },
         },
         resolve: {
           alias: pathAlias,

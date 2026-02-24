@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { describe, beforeEach, afterEach, it, expect, beforeAll, vi } from 'vitest';
-import { jsLogger } from '@map-colonies/js-logger';
+import { jsLogger, type Logger } from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { subHours, subMinutes } from 'date-fns';
@@ -15,6 +15,7 @@ import { TaskManager } from '@src/tasks/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';
 import { TaskCreateModel } from '@src/tasks/models/models';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
+import { TaskRepository } from '@src/tasks/DAL/taskRepository';
 import { SERVICE_NAME } from '@src/common/constants';
 import { IllegalTaskStatusTransitionError, NotAllowedToAddTasksToInProgressStageError, StageInFiniteStateError } from '@src/common/generated/errors';
 import { getConfig, initConfig } from '@src/common/config';
@@ -41,6 +42,7 @@ let jobManager: JobManager;
 let stageManager: StageManager;
 let taskManager: TaskManager;
 let stageRepository: StageRepository;
+let taskRepository: TaskRepository;
 let prisma: DeepMockProxy<PrismaClient>;
 
 const tracer = trace.getTracer(SERVICE_NAME);
@@ -50,17 +52,21 @@ let config: ReturnType<typeof getConfig>;
 const notFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
+  let logger: Logger;
+
   beforeAll(async function () {
+    logger = jsLogger({ enabled: false });
     await initConfig(true);
   });
 
   beforeEach(function () {
     config = getConfig();
     prisma = mockDeep<PrismaClient>();
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
-    stageRepository = new StageRepository(jsLogger({ enabled: false }), prisma);
-    stageManager = new StageManager(jsLogger({ enabled: false }), prisma, tracer, stageRepository, jobManager);
-    taskManager = new TaskManager(jsLogger({ enabled: false }), prisma, tracer, stageManager, config);
+    jobManager = new JobManager(logger, prisma, tracer);
+    stageRepository = new StageRepository(logger, prisma);
+    taskRepository = new TaskRepository(logger, prisma);
+    stageManager = new StageManager(logger, prisma, tracer, stageRepository, jobManager);
+    taskManager = new TaskManager(logger, prisma, tracer, stageManager, config, taskRepository);
   });
 
   afterEach(function () {
@@ -586,10 +592,12 @@ describe('JobManager', () => {
             xstate: pendingStageXstatePersistentSnapshot,
           });
 
+          vi.spyOn(taskRepository, 'findAndLockTaskForDequeue').mockResolvedValue(taskEntity);
+
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
-                findFirst: vi.fn().mockResolvedValue(taskEntity),
+                findUnique: vi.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: vi.fn().mockResolvedValue([taskEntity]),
               },
               stage: {
@@ -608,12 +616,10 @@ describe('JobManager', () => {
 
       describe('#BadPath', () => {
         it('should get code 404 not found for no available tasks to dequeue', async function () {
+          vi.spyOn(taskRepository, 'findAndLockTaskForDequeue').mockResolvedValue(null);
+
           prisma.$transaction.mockImplementationOnce(async (callback) => {
-            const mockTx = {
-              task: {
-                findFirst: vi.fn().mockResolvedValue(null),
-              },
-            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
             return callback(mockTx);
           });
@@ -624,12 +630,10 @@ describe('JobManager', () => {
 
       describe('#SadPath', () => {
         it('should fail with a database error when adding tasks', async function () {
+          vi.spyOn(taskRepository, 'findAndLockTaskForDequeue').mockRejectedValue(new Error('db connection error'));
+
           prisma.$transaction.mockImplementationOnce(async (callback) => {
-            const mockTx = {
-              task: {
-                findFirst: vi.fn().mockRejectedValue(new Error('db connection error')),
-              },
-            } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+            const mockTx = {} as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 
             return callback(mockTx);
           });
@@ -651,10 +655,12 @@ describe('JobManager', () => {
             xstate: pendingStageXstatePersistentSnapshot,
           });
 
+          vi.spyOn(taskRepository, 'findAndLockTaskForDequeue').mockResolvedValue(taskEntity);
+
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               task: {
-                findFirst: vi.fn().mockResolvedValue(taskEntity),
+                findUnique: vi.fn().mockResolvedValue(taskEntity),
                 updateManyAndReturn: vi.fn().mockResolvedValue([]),
               },
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;

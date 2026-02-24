@@ -3,6 +3,7 @@ import { hostname } from 'node:os';
 import { commonDbFullV1Type } from '@map-colonies/schemas';
 import type { PoolConfig } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
+import { TX_TIMEOUT_MS } from '@src/common/constants';
 import { PrismaClient } from '../db/prisma/generated/client';
 
 interface SchemaExistsResult {
@@ -37,7 +38,12 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export function createPrismaClient(poolConfig: PoolConfig, schema: string) {
   const adapter = new PrismaPg(poolConfig, { schema });
-  const prisma = new PrismaClient({ adapter }).$extends({
+  const prisma = new PrismaClient({
+    adapter,
+    transactionOptions: {
+      timeout: TX_TIMEOUT_MS,
+    },
+  }).$extends({
     query: {
       // eslint-disable-next-line @typescript-eslint/promise-function-async
       $allOperations({ args, query }) {
