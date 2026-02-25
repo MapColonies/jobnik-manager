@@ -108,7 +108,7 @@
     "prettier": "^3.7.4",
     "pretty-quick": "^4.1.1",
     "prisma": "^6.19.0",
-    "prisma-json-types-generator": "^3.6.2",
+    "prisma-json-types-generator": "^4.0.1",
     "rimraf": "^6.1.2",
     "supertest": "^7.1.4",
     "tsc-alias": "^1.8.11",
