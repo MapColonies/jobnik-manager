@@ -1,6 +1,5 @@
 FROM node:24 AS build
 
-
 WORKDIR /tmp/buildApp
 
 COPY ./package*.json ./
@@ -8,7 +7,7 @@ COPY .husky/ .husky/
 
 RUN npm install
 COPY . .
-RUN npm run build
+RUN npm run build:docker
 
 FROM node:24-alpine AS production
 

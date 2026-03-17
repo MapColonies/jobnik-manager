@@ -1,5 +1,7 @@
+import { Snapshot } from 'xstate';
 import { Prisma } from '@prismaClient';
-import { TaskModel } from './models';
+import { findAndLockTask } from '@src/db/prisma/generated/client/sql';
+import { TaskModel, TaskPrismaObject } from './models';
 
 /**
  * This function converts a Prisma stage object to a TaskModel API object.
@@ -29,4 +31,20 @@ export function convertPrismaToTaskResponse(prismaObjects: Prisma.TaskGetPayload
  */
 export function convertArrayPrismaTaskToTaskResponse(prismaObjects: Prisma.TaskGetPayload<Record<string, unknown>>[]): TaskModel[] {
   return prismaObjects.map((task) => convertPrismaToTaskResponse(task));
+}
+
+/**
+ * This function converts a Prisma stage object to a TaskModel API object.
+ * @param prismaObjects db entity
+ * @returns TaskModel
+ */
+export function convertRawToTaskModel(raw: findAndLockTask.Result): TaskPrismaObject {
+  return {
+    ...raw,
+    stageId: raw.stage_id, // Handle camelCase conversion
+    status: raw.status.toUpperCase() as TaskPrismaObject['status'],
+    data: (raw.data ?? {}) as Record<string, unknown>,
+    userMetadata: (raw.user_metadata ?? {}) as Record<string, unknown>,
+    xstate: raw.xstate as unknown as Snapshot<unknown>,
+  } as unknown as TaskPrismaObject;
 }

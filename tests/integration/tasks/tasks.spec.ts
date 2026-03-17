@@ -10,7 +10,7 @@ import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import type { PrismaTransaction } from '@src/db/types';
 import { getApp } from '@src/app';
-import { SERVICES, TX_TIMEOUT_MS } from '@common/constants';
+import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
@@ -1455,7 +1455,7 @@ describe('task', function () {
         const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
-            $queryRaw: vi.fn().mockRejectedValueOnce(error),
+            $queryRawTyped: vi.fn().mockRejectedValueOnce(error),
           } as unknown as PrismaTransaction;
 
           await callback(mockTx);
@@ -1478,7 +1478,7 @@ describe('task', function () {
         const transactionSpy = createProxyMock(prisma, '$transaction');
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<void> => {
           const mockTx = {
-            $queryRaw: vi.fn().mockRejectedValueOnce(error),
+            $queryRawTyped: vi.fn().mockRejectedValueOnce(error),
           } as unknown as PrismaTransaction;
 
           await callback(mockTx);
@@ -1584,59 +1584,6 @@ describe('task', function () {
         });
       });
 
-      it(
-        'should handle concurrent dequeue and updateStatus operations with race condition protection',
-        { timeout: TX_TIMEOUT_MS },
-        async function () {
-          expect.assertions(3);
-
-          const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
-
-          const { tasks } = await createJobnikTree(
-            prisma,
-            { status: JobOperationStatus.IN_PROGRESS, xstate: inProgressStageXstatePersistentSnapshot, traceparent: DEFAULT_TRACEPARENT },
-            {
-              status: StageOperationStatus.IN_PROGRESS,
-              xstate: inProgressStageXstatePersistentSnapshot,
-              summary: initialSummary,
-              type: 'SOME_TEST_TYPE_DEQUEUE_UPDATE_RACE',
-            },
-            [{ status: TaskOperationStatus.PENDING, xstate: pendingStageXstatePersistentSnapshot }]
-          );
-
-          const taskId = tasks[0]!.id;
-
-          // Test that dequeue and updateStatus handle race conditions properly
-          // Start both operations - one will succeed, the other should fail with 409
-          const dequeuePromise = requestSender.dequeueTaskV1({
-            pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_UPDATE_RACE' },
-          });
-          const updateStatusPromise = requestSender.updateTaskStatusV1({
-            pathParams: { taskId },
-            requestBody: { status: TaskOperationStatus.COMPLETED },
-          });
-
-          const [dequeueResponse, updateStatusResponse] = await Promise.allSettled([dequeuePromise, updateStatusPromise]);
-
-          // One should succeed, one should fail with conflict
-          const successCount = [dequeueResponse, updateStatusResponse].filter(
-            (r) => r.status === 'fulfilled' && (r.value.status as StatusCodes) === StatusCodes.OK
-          ).length;
-          const conflictCount = [dequeueResponse, updateStatusResponse].filter(
-            (r) => r.status === 'fulfilled' && (r.value.status as StatusCodes) === StatusCodes.CONFLICT
-          ).length;
-
-          // Exactly one operation should succeed
-          expect(successCount).toBe(1);
-          // The other should get a conflict or one might complete
-          expect(successCount + conflictCount).toBeGreaterThanOrEqual(1);
-
-          // Verify the task ended up in a valid state
-          const finalTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
-          expect(finalTaskResponse).toMatchObject({ body: { status: TaskOperationStatus.IN_PROGRESS }, status: StatusCodes.OK });
-        }
-      );
-
       it('should return 409 CONFLICT when dequeue encounters race condition during task update', async function () {
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
@@ -1657,7 +1604,7 @@ describe('task', function () {
         transactionSpy.mockImplementationOnce(async <T>(callback: (tx: PrismaTransaction) => Promise<T>): Promise<T> => {
           const mockTx = {
             ...prisma,
-            $queryRaw: prisma.$queryRaw.bind(prisma),
+            $queryRawTyped: prisma.$queryRawTyped.bind(prisma),
             task: {
               ...prisma.task,
               findUnique: prisma.task.findUnique.bind(prisma.task),

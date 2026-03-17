@@ -92,16 +92,19 @@ export class TaskManager {
     };
 
     try {
-      const tasks = await this.prisma.$transaction(async (tx) => {
-        const tasks = await tx.task.createManyAndReturn(queryBody);
+      const tasks = await this.prisma.$transaction(
+        async (tx) => {
+          const tasks = await tx.task.createManyAndReturn(queryBody);
 
-        const updateSummaryPayload: UpdateSummaryCount = {
-          add: { status: TaskOperationStatus.PENDING, count: tasks.length },
-        };
+          const updateSummaryPayload: UpdateSummaryCount = {
+            add: { status: TaskOperationStatus.PENDING, count: tasks.length },
+          };
 
-        await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
-        return tasks;
-      });
+          await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
+          return tasks;
+        },
+        { timeout: TX_TIMEOUT_MS }
+      );
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {

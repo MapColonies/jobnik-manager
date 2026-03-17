@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
 import { JobOperationStatus, Priority, Prisma, Stage, StageOperationStatus, Task, TaskOperationStatus } from '@prismaClient';
+import type { findAndLockTask } from '@src/db/prisma/generated/client/sql';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
 import { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
@@ -83,3 +84,28 @@ export const createTaskEntity = (override: Partial<TaskPrismaObject>): TaskPrism
   } satisfies TaskPrismaObject;
   return { ...taskEntity, ...override };
 };
+
+/**
+ * Creates raw task entity with snake_case field names for database layer testing
+ */
+/* eslint-disable @typescript-eslint/naming-convention */
+export const createRawTaskEntity = (override?: Partial<findAndLockTask.Result>): findAndLockTask.Result => {
+  const rawTaskEntity: findAndLockTask.Result = {
+    id: faker.string.uuid(),
+    stage_id: faker.string.uuid(),
+    status: 'Created',
+    attempts: 0,
+    max_attempts: 3,
+    data: {},
+    user_metadata: {},
+    xstate: taskInitializedPersistedSnapshot as Prisma.JsonValue,
+    creation_time: new Date(),
+    update_time: new Date(),
+    start_time: null,
+    end_time: null,
+    traceparent: DEFAULT_TRACEPARENT,
+    tracestate: null,
+  };
+  return { ...rawTaskEntity, ...override };
+};
+/* eslint-enable @typescript-eslint/naming-convention */

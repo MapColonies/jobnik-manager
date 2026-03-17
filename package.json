@@ -18,6 +18,7 @@
     "lint:fix": "eslint --fix .",
     "prebuild": "npm run clean && npm run migration:generate-types",
     "build": "tsc --project tsconfig.build.json && npm run prisma:copy && tsc-alias -p tsconfig.build.json && npm run assets:copy",
+    "build:docker": "npx prisma generate --schema ./src/db/prisma/schema.prisma || true && npm run clean && tsc --project tsconfig.build.json && npm run prisma:copy && tsc-alias -p tsconfig.build.json && npm run assets:copy",
     "start": "npm run build && cd dist && node --import ./instrumentation.mjs ./index.js",
     "start:dev": "npm run build && cd dist && cross-env CONFIG_OFFLINE_MODE=true  node --enable-source-maps --import ./instrumentation.mjs ./index.js",
     "assets:copy": "copyfiles -f ./config/* ./dist/config && copyfiles -f ./openapi3.yaml ./dist/ && copyfiles ./package.json dist && copyfiles -f ./src/db/prisma/migrations/** ./dist/db/prisma/migrations",
@@ -31,7 +32,7 @@
     "migration:format-fix": "npx prisma format --schema ./src/db/prisma/schema.prisma  ",
     "migration:dev": "npx prisma migrate dev --schema ./src/db/prisma/schema.prisma",
     "migration:generate": "npx prisma migrate dev --schema ./src/db/prisma/schema.prisma --name ",
-    "migration:generate-types": "npx prisma generate --schema ./src/db/prisma/schema.prisma",
+    "migration:generate-types": "npx prisma generate --sql --schema ./src/db/prisma/schema.prisma",
     "migration:deploy": "npx prisma migrate deploy --schema ./src/db/prisma/schema.prisma",
     "openapi:build": "node scripts/generateVersionedOpenApi.mts"
   },

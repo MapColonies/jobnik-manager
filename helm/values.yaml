@@ -22,14 +22,14 @@ fullnameOverride: ""
 livenessProbe:
   enabled: true
   initialDelaySeconds: 30
-  timeoutSeconds: 5
+  timeoutSeconds: 60
   failureThreshold: 6
   path: /liveness
 
 readinessProbe:
   enabled: true
   initialDelaySeconds: 30
-  timeoutSeconds: 5
+  timeoutSeconds: 60
   failureThreshold: 6
   path: /liveness
 
