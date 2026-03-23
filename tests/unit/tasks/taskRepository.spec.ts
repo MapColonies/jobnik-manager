@@ -60,7 +60,7 @@ describe('TaskRepository', () => {
 
         expect(result).toMatchObject({
           stageId: stageId,
-          status: 'Pending',
+          status: TaskOperationStatus.PENDING,
           id: taskId,
           data: {},
           userMetadata: {},
