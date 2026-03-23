@@ -43,7 +43,7 @@ export function convertRawToTaskModel(raw: findAndLockTask.Result): TaskPrismaOb
     ...raw,
     stageId: raw.stage_id, // Handle camelCase conversion
     status: raw.status.toUpperCase() as TaskPrismaObject['status'],
-    data: (raw.data ?? {}) as Record<string, unknown>,
+    data: raw.data as Record<string, unknown>,
     userMetadata: (raw.user_metadata ?? {}) as Record<string, unknown>,
     xstate: raw.xstate as unknown as Snapshot<unknown>,
   } as unknown as TaskPrismaObject;

@@ -6,7 +6,7 @@ import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { subMinutes } from 'date-fns';
 import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
 import { Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
-import { SERVICES, TX_TIMEOUT_MS, XSTATE_DONE_STATE } from '@common/constants';
+import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
 import { prismaKnownErrors } from '@src/common/errors';
@@ -92,19 +92,16 @@ export class TaskManager {
     };
 
     try {
-      const tasks = await this.prisma.$transaction(
-        async (tx) => {
-          const tasks = await tx.task.createManyAndReturn(queryBody);
+      const tasks = await this.prisma.$transaction(async (tx) => {
+        const tasks = await tx.task.createManyAndReturn(queryBody);
 
-          const updateSummaryPayload: UpdateSummaryCount = {
-            add: { status: TaskOperationStatus.PENDING, count: tasks.length },
-          };
+        const updateSummaryPayload: UpdateSummaryCount = {
+          add: { status: TaskOperationStatus.PENDING, count: tasks.length },
+        };
 
-          await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
-          return tasks;
-        },
-        { timeout: TX_TIMEOUT_MS }
-      );
+        await this.stageManager.updateStageProgressFromTaskChanges(stageId, updateSummaryPayload, tx);
+        return tasks;
+      });
 
       return convertArrayPrismaTaskToTaskResponse(tasks);
     } catch (error) {
@@ -211,12 +208,9 @@ export class TaskManager {
 
     /* v8 ignore next 8 -- @preserve */
     if (!tx) {
-      return this.prisma.$transaction(
-        async (newTx) => {
-          return this.executeUpdateStatus(taskId, status, newTx);
-        },
-        { timeout: TX_TIMEOUT_MS }
-      );
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeUpdateStatus(taskId, status, newTx);
+      });
     }
     /* v8 ignore next  -- @preserve */
     return this.executeUpdateStatus(taskId, status, tx);
@@ -237,12 +231,9 @@ export class TaskManager {
 
     /* v8 ignore next 7 -- @preserve */
     if (tx === undefined) {
-      return this.prisma.$transaction(
-        async (newTx) => {
-          return this.executeDequeue(stageType, newTx);
-        },
-        { timeout: TX_TIMEOUT_MS }
-      );
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeDequeue(stageType, newTx);
+      });
     }
 
     /* v8 ignore next -- @preserve */
@@ -390,12 +381,9 @@ export class TaskManager {
 
     /* v8 ignore next 7 -- @preserve */
     if (!tx) {
-      return this.prisma.$transaction(
-        async (newTx) => {
-          return this.executeUpdateAndValidateStatus(task, status, newTx);
-        },
-        { timeout: TX_TIMEOUT_MS }
-      );
+      return this.prisma.$transaction(async (newTx) => {
+        return this.executeUpdateAndValidateStatus(task, status, newTx);
+      });
     }
 
     return this.executeUpdateAndValidateStatus(task, status, tx);
