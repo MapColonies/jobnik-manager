@@ -7,7 +7,7 @@ COPY .husky/ .husky/
 
 RUN npm install
 COPY . .
-RUN npm run build:docker
+RUN npm run build
 
 FROM node:24-alpine AS production
 
