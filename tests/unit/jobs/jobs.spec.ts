@@ -1,5 +1,5 @@
-import { describe, beforeEach, afterEach, it, expect, vi } from 'vitest';
-import { jsLogger } from '@map-colonies/js-logger';
+import { describe, beforeEach, afterEach, it, expect, vi, beforeAll } from 'vitest';
+import { jsLogger, Logger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
@@ -18,9 +18,15 @@ const tracer = trace.getTracer(SERVICE_NAME);
 const jobNotFoundError = new Prisma.PrismaClientKnownRequestError('RECORD_NOT_FOUND', { code: prismaKnownErrors.recordNotFound, clientVersion: '1' });
 
 describe('JobManager', () => {
+  let logger: Logger;
+
+  beforeAll(function () {
+    logger = jsLogger({ enabled: false });
+  });
+
   beforeEach(function () {
     prisma = mockDeep<PrismaClient>();
-    jobManager = new JobManager(jsLogger({ enabled: false }), prisma, tracer);
+    jobManager = new JobManager(logger, prisma, tracer);
   });
 
   afterEach(function () {

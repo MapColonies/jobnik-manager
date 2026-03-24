@@ -117,9 +117,11 @@ export class TaskControllerV1 {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof TaskStatusUpdateFailedError) {
+        // Race condition: resource was modified by another request
+        (err as HttpError).status = httpStatus.CONFLICT;
       } else if (badRequestErrors.some((e) => err instanceof e)) {
         (err as HttpError).status = httpStatus.BAD_REQUEST;
-        this.logger.error({ msg: `Task status update failed: invalid status transition`, status: req.body.status, err });
       }
 
       return next(err);
@@ -134,6 +136,9 @@ export class TaskControllerV1 {
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         (err as HttpError).status = httpStatus.NOT_FOUND;
+      } else if (err instanceof TaskStatusUpdateFailedError) {
+        // Race condition: another worker already dequeued this task
+        (err as HttpError).status = httpStatus.CONFLICT;
       } else if (internalErrors.some((e) => err instanceof e)) {
         (err as HttpError).status = httpStatus.INTERNAL_SERVER_ERROR;
       }

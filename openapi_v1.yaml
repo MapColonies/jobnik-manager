@@ -2,7 +2,7 @@ openapi: 3.0.1
 info:
   title: Job Manager Service - API v1
   description: Job Manager Service API version 1
-  version: 0.1.0
+  version: 0.2.0
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -1571,6 +1571,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/taskNotFoundResponse'
+        '409':
+          description: >-
+            task was claimed by another worker.
+            This occurs when multiple workers attempt to dequeue the same task simultaneously.
+            The client should retry the dequeue operation to get a different task.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    properties:
+                      code:
+                        enum:
+                          - TASK_STATUS_UPDATE_FAILED
         '500':
           description: Internal server error or invalid state transition
           content:
@@ -1819,6 +1834,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/taskNotFoundResponse'
+        '409':
+          description: >-
+            task status was modified by another request.
+            This occurs when multiple workers attempt to update the same task simultaneously.
+            The current state of the task has changed since it was retrieved.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/baseErrorResponse'
+                  - type: object
+                    properties:
+                      code:
+                        enum:
+                          - TASK_STATUS_UPDATE_FAILED
         '500':
           description: Internal server error
           content:

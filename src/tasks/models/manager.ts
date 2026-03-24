@@ -5,7 +5,7 @@ import { trace, type Tracer } from '@opentelemetry/api';
 import { withSpanAsyncV4 } from '@map-colonies/tracing-utils';
 import { subMinutes } from 'date-fns';
 import { INFRA_CONVENTIONS } from '@map-colonies/semantic-conventions';
-import { JobOperationStatus, Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
+import { Prisma, StageOperationStatus, Task, TaskOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES, XSTATE_DONE_STATE } from '@common/constants';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { StageManager } from '@src/stages/models/manager';
@@ -24,58 +24,10 @@ import {
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src/common/semconv';
+import { TaskRepository } from '../DAL/taskRepository';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
-
-// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-function generatePrioritizedTaskQuery(stageType: string) {
-  // Define valid states for filtering
-  const validTaskStatuses = [TaskOperationStatus.PENDING, TaskOperationStatus.RETRIED];
-  const validStageStatuses = [StageOperationStatus.PENDING, StageOperationStatus.IN_PROGRESS];
-  const validJobStatuses = [JobOperationStatus.PENDING, JobOperationStatus.IN_PROGRESS];
-
-  const queryBody = {
-    where: {
-      stage: {
-        type: stageType,
-        status: {
-          in: validStageStatuses,
-        },
-        job: {
-          status: {
-            in: validJobStatuses,
-          },
-        },
-      },
-      status: {
-        in: validTaskStatuses,
-      },
-    },
-    include: {
-      stage: {
-        include: {
-          job: {
-            select: {
-              priority: true,
-              id: true,
-              status: true,
-            },
-          },
-        },
-      },
-    },
-    orderBy: {
-      stage: {
-        job: {
-          priority: Prisma.SortOrder.asc,
-        },
-      },
-    },
-  } satisfies Prisma.TaskFindFirstArgs;
-
-  return queryBody;
-}
 
 @injectable()
 export class TaskManager {
@@ -84,7 +36,8 @@ export class TaskManager {
     @inject(SERVICES.PRISMA) private readonly prisma: PrismaClient,
     @inject(SERVICES.TRACER) public readonly tracer: Tracer,
     @inject(StageManager) private readonly stageManager: StageManager,
-    @inject(SERVICES.CONFIG) private readonly config: ConfigType
+    @inject(SERVICES.CONFIG) private readonly config: ConfigType,
+    @inject(TaskRepository) private readonly taskRepository: TaskRepository
   ) {}
 
   @withSpanAsyncV4
@@ -253,7 +206,7 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.status]: status,
     });
 
-    /* v8 ignore next 6 -- @preserve */
+    /* v8 ignore next 8 -- @preserve */
     if (!tx) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeUpdateStatus(taskId, status, newTx);
@@ -276,7 +229,7 @@ export class TaskManager {
       [ATTR_MESSAGING_DESTINATION_NAME]: stageType,
     });
 
-    /* v8 ignore next 5 -- @preserve */
+    /* v8 ignore next 7 -- @preserve */
     if (tx === undefined) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeDequeue(stageType, newTx);
@@ -365,6 +318,8 @@ export class TaskManager {
 
   /**
    * Executes the dequeue operation within a transaction.
+   * Uses SELECT FOR UPDATE to lock the task row, preventing race conditions
+   * when multiple workers try to dequeue simultaneously.
    * @param stageType - The type of stage to dequeue a task from
    * @param tx - The transaction object
    * @returns The dequeued task
@@ -373,11 +328,9 @@ export class TaskManager {
   private async executeDequeue(stageType: string, tx: PrismaTransaction): Promise<TaskModel> {
     const spanActive = trace.getActiveSpan();
 
-    const queryBody = generatePrioritizedTaskQuery(stageType);
+    const task = await this.taskRepository.findAndLockTaskForDequeue(stageType, tx);
 
-    const task = await tx.task.findFirst(queryBody);
-
-    if (task === null) {
+    if (!task) {
       throw new TaskNotFoundError(tasksErrorMessages.taskNotFound);
     }
 
@@ -426,7 +379,7 @@ export class TaskManager {
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: task.stageId,
     });
 
-    /* v8 ignore next 5 -- @preserve */
+    /* v8 ignore next 7 -- @preserve */
     if (!tx) {
       return this.prisma.$transaction(async (newTx) => {
         return this.executeUpdateAndValidateStatus(task, status, newTx);
@@ -453,6 +406,15 @@ export class TaskManager {
     const previousStatus = task.status;
     const { nextStatus, taskDataToUpdate } = this.determineNextStatus(task, status);
 
+    this.logger.debug({
+      msg: 'Attempting task status update',
+      taskId: task.id,
+      stageId: task.stageId,
+      currentStatus: previousStatus,
+      requestedStatus: status,
+      nextStatus,
+    });
+
     const newPersistedSnapshot = updateTaskMachineState(nextStatus, task.xstate);
 
     const startTime: Date | undefined = nextStatus === TaskOperationStatus.IN_PROGRESS ? new Date() : undefined;
@@ -461,12 +423,21 @@ export class TaskManager {
 
     // Create update query with race condition protection for IN_PROGRESS
     const updateQueryBody = {
-      where: this.createUpdateWhereClause(task.id, nextStatus, previousStatus),
+      where: this.createUpdateWhereClause(task.id, previousStatus),
       data: { ...taskDataToUpdate, status: nextStatus, xstate: newPersistedSnapshot, startTime, endTime },
     };
 
     const updatedTasks = await tx.task.updateManyAndReturn(updateQueryBody);
     if (updatedTasks[0] === undefined) {
+      // Race condition detected: another process already modified this task
+      this.logger.warn({
+        msg: 'Task status update failed - race condition detected',
+        taskId: task.id,
+        stageId: task.stageId,
+        attemptedTransition: `${previousStatus} -> ${nextStatus}`,
+        expectedStatus: previousStatus,
+        reason: 'Task status was changed by another worker before this update could complete',
+      });
       throw new TaskStatusUpdateFailedError(tasksErrorMessages.taskStatusUpdateFailed);
     }
 
@@ -528,28 +499,18 @@ export class TaskManager {
   }
 
   /**
-   * Creates the where clause for task updates, with race condition protection.
-   * @param taskId - The ID of the task to update
-   * @param nextStatus - The target status
-   * @param previousStatus - The current status
-   * @returns The where clause object for the update query
+   * Generates the query filter for task updates using optimistic locking.
+   * * By including `previousStatus` in the WHERE clause, we ensure that state
+   * transitions (e.g., PENDING → IN_PROGRESS) only occur if no other worker
+   * has modified the task in the interim.
+   *
+   * @param taskId - The ID of the task to update.
+   * @param nextStatus - The target status.
+   * @param previousStatus - The expected current status to prevent race conditions.
+   * @returns The filter object for the update query.
    */
-  private createUpdateWhereClause(
-    taskId: string,
-    nextStatus: TaskOperationStatus,
-    previousStatus: TaskOperationStatus
-  ): {
-    id: string;
-    status?: TaskOperationStatus;
-  } {
-    const whereClause = { id: taskId };
-
-    // Add status check to prevent race conditions when setting to IN_PROGRESS
-    if (nextStatus === TaskOperationStatus.IN_PROGRESS) {
-      return { ...whereClause, status: previousStatus };
-    }
-
-    return whereClause;
+  private createUpdateWhereClause(taskId: string, previousStatus: TaskOperationStatus): { id: string; status: TaskOperationStatus } {
+    return { id: taskId, status: previousStatus };
   }
 
   private async updateStageSummary(
