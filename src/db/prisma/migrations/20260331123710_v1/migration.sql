@@ -73,10 +73,10 @@ ALTER TABLE "stage" ADD CONSTRAINT "stage_job_id_fkey" FOREIGN KEY ("job_id") RE
 ALTER TABLE "task" ADD CONSTRAINT "task_stage_id_fkey" FOREIGN KEY ("stage_id") REFERENCES "stage"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- CreateIndex (Partial Indexes for Active Statuses)
-CREATE UNIQUE INDEX "JOBS_ID_ACTIVE_STATUS_IDX" ON "job" ("priority", "id") WHERE (status IN ('Pending', 'In-Progress', 'Created'));
+CREATE INDEX "JOBS_ID_ACTIVE_STATUS_IDX" ON "job" ("priority", "id") WHERE (status IN ('Pending', 'In-Progress', 'Created'));
 
 -- CreateIndex
-CREATE UNIQUE INDEX "STAGE_ID_ACTIVE_STATUS_IDX" ON "stage" ("job_id", "id") WHERE (status IN ('Pending', 'In-Progress', 'Created', 'Waiting'));
+CREATE INDEX "STAGE_ID_ACTIVE_STATUS_IDX" ON "stage" ("job_id", "id") WHERE (status IN ('Pending', 'In-Progress', 'Created', 'Waiting'));
 
 -- CreateIndex
 CREATE INDEX "TASKS_ID_ACTIVE_STATUS_IDX" ON "task" ("stage_id") WHERE (status IN ('Pending', 'In-Progress', 'Created'));
