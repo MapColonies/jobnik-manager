@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE "stage" ADD COLUMN     "order" INTEGER NOT NULL DEFAULT 1;
