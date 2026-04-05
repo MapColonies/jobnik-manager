@@ -80,3 +80,21 @@ CREATE INDEX "STAGE_ID_ACTIVE_STATUS_IDX" ON "stage" ("job_id", "id") WHERE (sta
 
 -- CreateIndex
 CREATE INDEX "TASKS_ID_ACTIVE_STATUS_IDX" ON "task" ("stage_id") WHERE (status IN ('Pending', 'In-Progress', 'Created'));
+
+-- CreateIndex (Composite index for stage ordering and lookups)
+-- Serves: getNextStageOrder, findFirst, getStagesByJobId, stage.count, CASCADE DELETE
+-- Subsumes standalone (job_id) index via prefix lookup
+CREATE INDEX "STAGE_JOB_ID_ORDER_IDX" ON "stage" ("job_id", "order");
+
+-- CreateIndex (Full index for CASCADE DELETE and all task lookups)
+-- Complements partial index TASKS_ID_ACTIVE_STATUS_IDX for complete coverage
+-- Critical for FK integrity and cascade performance
+CREATE INDEX "TASK_STAGE_ID_IDX" ON "task" ("stage_id");
+
+-- CreateIndex (Stage type index for dequeue path optimization)
+-- Enables efficient filtering in findAndLockTask query (task → stage → job join)
+CREATE INDEX "STAGE_TYPE_IDX" ON "stage" ("type");
+
+-- CreateIndex (Partial index for stale task cleanup)
+-- Only maintains entries for IN_PROGRESS tasks, optimized for sweeper query
+CREATE INDEX "TASK_IN_PROGRESS_START_TIME_IDX" ON "task" ("start_time") WHERE (status = 'In-Progress');
