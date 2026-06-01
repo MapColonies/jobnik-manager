@@ -8,7 +8,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ $fullName }}
+  name: {{ $fullName }}-ingress
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "jobnik-manager.labels" . | nindent 4 }}
@@ -18,12 +18,12 @@ metadata:
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- range $key, $value := . }}
-    {{ $key }}: {{ tpl $value $ | quote }}
+    {{ $key }}: {{ tpl ($value | toString) $ | quote }}
     {{- end }}
   {{- end }}
 spec:
   {{- if .Values.ingress.className }}
-  className: {{ .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   {{- with .Values.ingress.tls }}
   tls:
