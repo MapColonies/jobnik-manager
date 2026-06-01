@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.1](https://github.com/MapColonies/jobnik-manager/compare/v0.2.0...v0.2.1) (2026-06-01)
+
+
+### ⚠ BREAKING CHANGES
+
+* squash database migrations into a single migration and added performance indexes ([#242](https://github.com/MapColonies/jobnik-manager/issues/242))
+
+### Features
+
+* implement race condition handling for task dequeue and status updates ([#237](https://github.com/MapColonies/jobnik-manager/issues/237)) ([e05f283](https://github.com/MapColonies/jobnik-manager/commit/e05f283f478ee97ccb4458e5760def14fe2793e2))
+* squash database migrations into a single migration and added performance indexes ([#242](https://github.com/MapColonies/jobnik-manager/issues/242)) ([3054003](https://github.com/MapColonies/jobnik-manager/commit/305400380a170b51a48b15b2817daffcb0585ce3))
+
+
+### Miscellaneous Chores
+
+* force alignment to rc track ([dcbc8ed](https://github.com/MapColonies/jobnik-manager/commit/dcbc8ed4fa94616a9211787e7a39d182d02c2d32))
+
 ## [0.2.0](https://github.com/MapColonies/jobnik-manager/compare/v0.1.0...v0.2.0) (2026-02-03)
 
 
