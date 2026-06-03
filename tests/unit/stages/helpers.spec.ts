@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getCurrentPercentage, summaryCountsMapper, getInitialXstate } from '@src/stages/models/helper';
-import { StageSummary, StageCreateModel } from '@src/stages/models/models';
+import type { StageSummary, StageCreateModel } from '@src/stages/models/models';
 
 describe('helpers', function () {
   const createSummary = (completed: number, total: number): StageSummary => {

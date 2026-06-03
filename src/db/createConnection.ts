@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { hostname } from 'node:os';
-import { commonDbFullV1Type } from '@map-colonies/schemas';
+import type { commonDbFullV1Type } from '@map-colonies/schemas';
 import type { PoolConfig } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { TX_TIMEOUT_MS } from '@src/common/constants';

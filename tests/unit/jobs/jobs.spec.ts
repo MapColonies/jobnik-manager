@@ -1,5 +1,6 @@
 import { describe, beforeEach, afterEach, it, expect, vi, beforeAll } from 'vitest';
-import { jsLogger, Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
@@ -7,7 +8,7 @@ import { Prisma, JobOperationStatus, Priority } from '@prismaClient';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { JobCreateModel } from '@src/jobs/models/models';
+import type { JobCreateModel } from '@src/jobs/models/models';
 import { randomUuid } from '@tests/unit/generator';
 import { SERVICE_NAME } from '@src/common/constants';
 import { jobEntityWithAbortStatus, jobEntityWithoutStages, jobEntityWithStages } from '../data';

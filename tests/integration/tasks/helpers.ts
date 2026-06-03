@@ -1,7 +1,7 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { type Prisma, type PrismaClient } from '@prismaClient';
-import { TaskPrismaObject } from '@src/tasks/models/models';
+import type { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 

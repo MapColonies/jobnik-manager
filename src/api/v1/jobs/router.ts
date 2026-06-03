@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { FactoryFunction } from 'tsyringe';
+import type { FactoryFunction } from 'tsyringe';
 import { StageControllerV1 } from '../stages/controller';
 import { JobControllerV1 } from './controller';
 

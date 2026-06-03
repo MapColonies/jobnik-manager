@@ -1,9 +1,9 @@
-import { Application } from 'express';
-import { DependencyContainer } from 'tsyringe';
+import type { Application } from 'express';
+import type { DependencyContainer } from 'tsyringe';
 import { schedule, validate } from 'node-cron';
-import { PrismaClient } from '@prismaClient';
+import type { PrismaClient } from '@prismaClient';
 import type { ConfigType } from '@common/config';
-import { registerExternalValues, RegisterOptions } from './containerConfig';
+import { registerExternalValues, type RegisterOptions } from './containerConfig';
 import { ServerBuilder } from './serverBuilder';
 import { SERVICES } from './common/constants';
 import { verifyDbSetup } from './db/createConnection';

@@ -2,7 +2,7 @@ import { describe, beforeEach, afterEach, it, expect, beforeAll } from 'vitest';
 import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import httpStatusCodes from 'http-status-codes';
-import { PrismaClient } from '@prismaClient';
+import type { PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@src/common/constants';
 import { initConfig } from '@src/common/config';

@@ -7,7 +7,8 @@ import isCI from 'is-ci';
 import { initConfig, getConfig } from '../../../src/common/config';
 import { createDbConnectUrl } from '../../../src/db/helpers';
 import { createConnectionOptions, createPrismaClient } from '../../../src/db/createConnection';
-import { Config, getLocalTestConfig, updateLocalTestConfig } from './utils';
+import type { Config } from './utils';
+import { getLocalTestConfig, updateLocalTestConfig } from './utils';
 
 async function getSelectedPort(config: Config): Promise<number> {
   if (config.db?.port !== undefined) {

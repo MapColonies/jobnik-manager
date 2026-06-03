@@ -1,10 +1,10 @@
 import { createActor } from 'xstate';
 import { faker } from '@faker-js/faker';
 import { type Prisma, type PrismaClient } from '@prismaClient';
-import { StagePrismaObject } from '@src/stages/models/models';
+import type { StagePrismaObject } from '@src/stages/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
 import { defaultStatusCounts } from '@src/stages/models/helper';
-import { JobPrismaObject } from '@src/jobs/models/models';
+import type { JobPrismaObject } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 
 const persistedSnapshot = createActor(stageStateMachine).start().getPersistedSnapshot();

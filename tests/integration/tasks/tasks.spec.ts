@@ -4,7 +4,7 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
@@ -14,7 +14,7 @@ import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
+import type { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
   abortedStageXstatePersistentSnapshot,

@@ -1,8 +1,8 @@
-import { Snapshot } from 'xstate';
-import { Prisma, TaskOperationStatus } from '@prismaClient';
+import type { Snapshot } from 'xstate';
+import type { Prisma, TaskOperationStatus } from '@prismaClient';
 import type { components, operations } from '@src/openapi';
-import { JobPrismaObject } from '@src/jobs/models/models';
-import { PrismaTransaction } from '@src/db/types';
+import type { JobPrismaObject } from '@src/jobs/models/models';
+import type { PrismaTransaction } from '@src/db/types';
 
 type StageModel = components['schemas']['getStageResponse'];
 type StageCreateModel = components['schemas']['createStagePayloadRequest'];

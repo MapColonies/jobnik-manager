@@ -1,5 +1,4 @@
-import express, { Router } from 'express';
-import bodyParser from 'body-parser';
+import express, { Router, json } from 'express';
 import compression from 'compression';
 import { OpenapiViewerRouter } from '@map-colonies/openapi-express-viewer';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
@@ -81,7 +80,7 @@ export class ServerBuilder {
       this.serverInstance.use(compression(this.config.get('server.response.compression.options') as unknown as compression.CompressionFilter));
     }
 
-    this.serverInstance.use(bodyParser.json(this.config.get('server.request.payload')));
+    this.serverInstance.use(json(this.config.get('server.request.payload')));
     this.serverInstance.use(getTraceContexHeaderMiddleware());
 
     const ignorePathRegex = new RegExp(`^${this.config.get('openapiConfig.basePath')}/.*`, 'i');

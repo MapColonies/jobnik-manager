@@ -1,4 +1,4 @@
-import { NextFunction, ErrorRequestHandler } from 'express';
+import type { NextFunction, ErrorRequestHandler } from 'express';
 import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
 /**
