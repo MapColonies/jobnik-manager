@@ -35,6 +35,7 @@ describe('TaskRepository', () => {
         } as unknown as Parameters<typeof taskRepository.findAndLockTaskForDequeue>[1];
 
         const result = await taskRepository.findAndLockTaskForDequeue(stageType, mockTx);
+
         expect(result).toMatchObject({ stageId: stageId, status: TaskOperationStatus.PENDING, id: taskId });
         expect(mockTx.$queryRawTyped).toHaveBeenCalledOnce();
       });

@@ -555,6 +555,7 @@ describe('JobManager', () => {
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
             return callback(mockTx);
           });
+
           await expect(taskManager.updateStatus(taskId, TaskOperationStatus.CREATED)).rejects.toThrow(IllegalTaskStatusTransitionError);
         });
       });

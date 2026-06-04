@@ -694,6 +694,7 @@ describe('job', function () {
           pathParams: { jobId: 'someBadUuid' },
           requestBody: { status: JobOperationStatus.PENDING },
         });
+
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,

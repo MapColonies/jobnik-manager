@@ -46,6 +46,7 @@ describe('JobManager', () => {
           } satisfies JobCreateModel;
 
           const job = await jobManager.createJob(createJobParams);
+
           expect(job).toMatchObject(createJobParams);
         });
       });

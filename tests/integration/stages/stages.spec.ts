@@ -92,6 +92,7 @@ describe('stage', function () {
 
       it('should return 200 status code and empty array', async function () {
         const response = await requestSender.getStagesV1({ queryParams: { job_id: faker.string.uuid() } });
+
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
@@ -1139,6 +1140,7 @@ describe('stage', function () {
         // Sanity check to ensure stage1 has order 1 and stage2 has order 2
         expect(stage1).toHaveProperty('order', 1);
         expect(stage2).toHaveProperty('order', 2);
+
         const setStatusResponse = await requestSender.updateStageStatusV1({
           pathParams: { stageId: stage1.id },
           requestBody: { status: StageOperationStatus.PENDING },
