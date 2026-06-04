@@ -1,6 +1,6 @@
 import { faker } from '@faker-js/faker';
 import { type Snapshot } from 'xstate';
-import type { JobOperationStatus, type Prisma, type PrismaClient, Job, Stage, Task } from '@prismaClient';
+import type { JobOperationStatus, Prisma, PrismaClient, Job, Stage, Task } from '@prismaClient';
 import type { JobCreateModel } from '@src/jobs/models/models';
 import { createJobRecord, createJobRequestBody } from '../jobs/helpers';
 import { createStageBody, addStageRecord } from '../stages/helpers';

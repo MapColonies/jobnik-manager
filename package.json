@@ -27,6 +27,7 @@
     "generate:openapi-types": "openapi-helpers generate types ./openapi3.yaml ./src/openapi.d.ts --format --add-typed-request-handler",
     "generate:openapi-errors": "openapi-helpers generate errors ./openapi3.yaml ./src/common/generated/errors.ts --format --errors-output classes",
     "prepare": "node .husky/install.mjs",
+    "type-check": "tsc --noEmit",
     "migration:validate": "npx prisma validate --schema ./src/db/prisma/schema.prisma  ",
     "migration:format": "npx prisma format --check --schema ./src/db/prisma/schema.prisma  ",
     "migration:format-fix": "npx prisma format --schema ./src/db/prisma/schema.prisma  ",

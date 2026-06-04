@@ -30,7 +30,7 @@ export default defineConfig({
           environment: 'node',
           server: {
             deps: {
-              external: ['node-cron'],
+              external: ['node-cron', /prisma[\/]generated[\/]client[\/]runtime[\/]library/],
             },
           },
         },
@@ -47,7 +47,7 @@ export default defineConfig({
           environment: 'node',
           server: {
             deps: {
-              external: ['node-cron'],
+              external: ['node-cron', /prisma[\/]generated[\/]client[\/]runtime[\/]library/],
             },
           },
         },
