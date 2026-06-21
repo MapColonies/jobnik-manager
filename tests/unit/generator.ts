@@ -1,11 +1,12 @@
 import { faker } from '@faker-js/faker';
 import { createActor } from 'xstate';
-import { JobOperationStatus, Priority, Prisma, Stage, StageOperationStatus, Task, TaskOperationStatus } from '@prismaClient';
+import type { Prisma, Stage, Task } from '@prismaClient';
+import { JobOperationStatus, Priority, StageOperationStatus, TaskOperationStatus } from '@prismaClient';
 import type { findAndLockTask } from '@src/db/prisma/generated/client/sql';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { JobCreateModel } from '@src/jobs/models/models';
+import type { JobCreateModel } from '@src/jobs/models/models';
 import { stageStateMachine } from '@src/stages/models/stageStateMachine';
-import { TaskPrismaObject } from '@src/tasks/models/models';
+import type { TaskPrismaObject } from '@src/tasks/models/models';
 import { taskStateMachine } from '@src/tasks/models/taskStateMachine';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';

@@ -25,6 +25,7 @@ function createQueryParamsObject(paramsString: string) {
   const queryObject: object = Object.fromEntries(queryParamsPairs);
   return queryObject;
 }
+
 describe('DB helpers', () => {
   describe('#createConnectionUrl', () => {
     it('should return no ssl url string', function () {

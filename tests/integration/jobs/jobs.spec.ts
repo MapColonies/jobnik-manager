@@ -4,7 +4,7 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
-import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import type { PrismaTransaction } from '@src/db/types';
@@ -14,7 +14,7 @@ import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { abortedStageXstatePersistentSnapshot, completedStageXstatePersistentSnapshot, pendingStageXstatePersistentSnapshot } from '@tests/unit/data';
-import { JobCreateModel } from '@src/jobs/models/models';
+import type { JobCreateModel } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
@@ -694,6 +694,7 @@ describe('job', function () {
           pathParams: { jobId: 'someBadUuid' },
           requestBody: { status: JobOperationStatus.PENDING },
         });
+
         expect(getJobResponse).toSatisfyApiSpec();
         expect(getJobResponse).toMatchObject({
           status: StatusCodes.BAD_REQUEST,

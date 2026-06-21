@@ -1,7 +1,7 @@
-import { Snapshot } from 'xstate';
-import { Prisma } from '@prismaClient';
-import { findAndLockTask } from '@src/db/prisma/generated/client/sql';
-import { TaskModel, TaskPrismaObject } from './models';
+import type { Snapshot } from 'xstate';
+import type { Prisma } from '@prismaClient';
+import type { findAndLockTask } from '@src/db/prisma/generated/client/sql';
+import type { TaskModel, TaskPrismaObject } from './models';
 
 /**
  * This function converts a Prisma stage object to a TaskModel API object.

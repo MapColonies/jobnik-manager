@@ -1,6 +1,6 @@
 import { readPackageJsonSync } from '@map-colonies/read-pkg';
-import { CamelCase, ScreamingSnakeCase } from 'type-fest';
-import { components } from '@src/openapi';
+import type { CamelCase, ScreamingSnakeCase } from 'type-fest';
+import type { components } from '@src/openapi';
 
 type SuccessMessages = components['schemas']['successMessages'];
 type SuccessMessagesObj = {

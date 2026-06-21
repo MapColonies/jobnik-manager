@@ -1,4 +1,4 @@
-import { JobOperationStatus, StageOperationStatus, TaskOperationStatus } from '@src/db/prisma/generated/client';
+import type { JobOperationStatus, StageOperationStatus, TaskOperationStatus } from '@src/db/prisma/generated/client';
 
 export const prismaKnownErrors = {
   /**An operation failed because it depends on one or more records that were required but not found. {cause} */

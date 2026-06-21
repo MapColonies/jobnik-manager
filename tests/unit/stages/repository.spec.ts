@@ -4,7 +4,7 @@ import { faker } from '@faker-js/faker';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
 import type { PrismaClient } from '@prismaClient';
 import { TaskOperationStatus } from '@prismaClient';
-import { UpdateSummaryCount } from '@src/stages/models/models';
+import type { UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
 import { createStageEntity } from '../generator';

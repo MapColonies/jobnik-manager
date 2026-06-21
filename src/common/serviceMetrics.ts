@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import type { Logger } from '@map-colonies/js-logger';
 import type { FactoryFunction } from 'tsyringe';
-import { Gauge, Registry } from 'prom-client';
+import type { Registry } from 'prom-client';
+import { Gauge } from 'prom-client';
 import { TaskOperationStatus, StageOperationStatus, JobOperationStatus, type PrismaClient } from '@prismaClient';
 import { SERVICES } from '@common/constants';
 

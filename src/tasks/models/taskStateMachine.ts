@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/naming-convention */
-import { createActor, setup, Snapshot } from 'xstate';
+import type { Snapshot } from 'xstate';
+import { createActor, setup } from 'xstate';
 import { TaskOperationStatus } from '@prismaClient';
 import { IllegalTaskStatusTransitionError } from '@src/common/generated/errors';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';

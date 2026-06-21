@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { commonDbFullV1Type } from '@map-colonies/schemas';
+import type { commonDbFullV1Type } from '@map-colonies/schemas';
 
 /**
  * Extract and build DB connection url based on configuration

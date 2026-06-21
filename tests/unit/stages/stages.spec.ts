@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/naming-convention */
 import { describe, beforeEach, afterEach, it, expect, vi, beforeAll } from 'vitest';
-import { jsLogger, Logger } from '@map-colonies/js-logger';
+import type { Logger } from '@map-colonies/js-logger';
+import { jsLogger } from '@map-colonies/js-logger';
 import { faker } from '@faker-js/faker';
 import { trace } from '@opentelemetry/api';
 import { mockDeep, type DeepMockProxy } from 'vitest-mock-extended';
@@ -11,10 +12,10 @@ import { JobManager } from '@src/jobs/models/manager';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
 import { illegalStatusTransitionErrorMessage, prismaKnownErrors } from '@src/common/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { StageCreateModel, StageIncludingJob, UpdateSummaryCount } from '@src/stages/models/models';
+import type { StageCreateModel, StageIncludingJob, UpdateSummaryCount } from '@src/stages/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { StageRepository } from '@src/stages/DAL/stageRepository';
-import { JobPrismaObject } from '@src/jobs/models/models';
+import type { JobPrismaObject } from '@src/jobs/models/models';
 import { SERVICE_NAME } from '@src/common/constants';
 import { JobInFiniteStateError } from '@src/common/generated/errors';
 import {
@@ -26,7 +27,8 @@ import {
   pendingStageXstatePersistentSnapshot,
   stageEntity,
 } from '../data';
-import { createStageEntity, createJobEntity, createTaskEntity, StageWithTasks } from '../generator';
+import type { StageWithTasks } from '../generator';
+import { createStageEntity, createJobEntity, createTaskEntity } from '../generator';
 
 let jobManager: JobManager;
 let stageManager: StageManager;

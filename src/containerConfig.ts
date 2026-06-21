@@ -1,12 +1,12 @@
 import { getOtelMixin } from '@map-colonies/tracing-utils';
 import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
-import { DependencyContainer } from 'tsyringe/dist/typings/types';
+import type { DependencyContainer } from 'tsyringe/dist/typings/types';
 import { jsLogger } from '@map-colonies/js-logger';
 import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
-import { HealthCheck } from '@godaddy/terminus';
-import { PrismaClient } from '@prismaClient';
-import { InjectionObject, registerDependencies } from '@common/dependencyRegistration';
+import type { HealthCheck } from '@godaddy/terminus';
+import type { PrismaClient } from '@prismaClient';
+import { type InjectionObject, registerDependencies } from '@common/dependencyRegistration';
 import { DB_CONNECTION_TIMEOUT, ROUTERS, SERVICES, SERVICE_NAME } from '@common/constants';
 import { getTracing } from '@common/tracing';
 import { getConfig } from './common/config';

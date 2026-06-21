@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
-import { readFile, writeFile, readdir, unlink } from 'fs/promises';
+import { readFile, writeFile, readdir, unlink } from 'node:fs/promises';
+import { execSync } from 'node:child_process';
 import { parse, stringify } from 'yaml';
-import { execSync } from 'child_process';
 import type { OpenAPIV3 } from 'openapi-types';
 import { format } from 'prettier';
 
@@ -55,10 +55,8 @@ const addVersionToSpec = (spec: OpenAPIV3.Document, version: string): OpenAPIV3.
 
     if (pathItem) {
       for (const [, operation] of Object.entries(pathItem)) {
-        if (typeof operation === 'object' && 'operationId' in operation) {
-          if (operation.operationId !== undefined) {
-            operation.operationId = `${operation.operationId}${version.toUpperCase()}`;
-          }
+        if (typeof operation === 'object' && 'operationId' in operation && operation.operationId !== undefined) {
+          operation.operationId = `${operation.operationId}${version.toUpperCase()}`;
         }
       }
     }

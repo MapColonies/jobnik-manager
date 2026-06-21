@@ -4,7 +4,7 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
@@ -13,7 +13,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import { StageCreateModel, StageModel } from '@src/stages/models/models';
+import type { StageCreateModel, StageModel } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
@@ -92,6 +92,7 @@ describe('stage', function () {
 
       it('should return 200 status code and empty array', async function () {
         const response = await requestSender.getStagesV1({ queryParams: { job_id: faker.string.uuid() } });
+
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
@@ -1139,6 +1140,7 @@ describe('stage', function () {
         // Sanity check to ensure stage1 has order 1 and stage2 has order 2
         expect(stage1).toHaveProperty('order', 1);
         expect(stage2).toHaveProperty('order', 2);
+
         const setStatusResponse = await requestSender.updateStageStatusV1({
           pathParams: { stageId: stage1.id },
           requestBody: { status: StageOperationStatus.PENDING },

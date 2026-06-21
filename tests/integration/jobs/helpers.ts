@@ -1,8 +1,8 @@
 import { createActor, type Snapshot } from 'xstate';
 import { faker } from '@faker-js/faker';
-import { type Prisma, type PrismaClient, JobOperationStatus } from '@prismaClient';
+import type { JobOperationStatus, Prisma, PrismaClient } from '@prismaClient';
 import { jobStateMachine } from '@src/jobs/models/jobStateMachine';
-import { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
+import type { JobCreateModel, JobPrismaObject } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 
 type JobTestCreateModel = JobCreateModel & {

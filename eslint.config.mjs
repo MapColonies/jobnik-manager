@@ -1,5 +1,6 @@
 import tsBaseConfig, { namingConventions } from '@map-colonies/eslint-config/ts-base';
 import { config } from '@map-colonies/eslint-config/helpers';
+import vitestConfig from '@map-colonies/eslint-config/vitest';
 
 const AllowedSqlOperators = {
   selector: 'objectLiteralProperty',
@@ -25,6 +26,6 @@ const customConfig = {
   },
 };
 
-export default config(tsBaseConfig, customConfig, {
+export default config(vitestConfig, tsBaseConfig, customConfig, {
   ignores: ['src/db/prisma/generated', 'src/common/generated', 'vitest.config.mts'],
 });

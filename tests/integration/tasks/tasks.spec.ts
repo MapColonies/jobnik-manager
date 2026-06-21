@@ -4,7 +4,7 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { createRequestSender, RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
@@ -14,7 +14,7 @@ import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as tasksErrorMessages } from '@src/tasks/models/errors';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
-import { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
+import type { TaskCreateModel, TaskModel } from '@src/tasks/models/models';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
   abortedStageXstatePersistentSnapshot,
@@ -704,6 +704,7 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId: stage.id } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary });
@@ -728,6 +729,7 @@ describe('task', function () {
         });
 
         const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponseBeforeUpdate.body).not.toHaveProperty('endTime');
         expect(getTaskResponse.body).toHaveProperty('endTime');
@@ -784,6 +786,7 @@ describe('task', function () {
 
         const getTaskResponse = await requestSender.getTaskByIdV1({ pathParams: { taskId } });
         const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+
         expect(updateStatusResponse).toSatisfyApiSpec();
         expect(getTaskResponse.body).toMatchObject(updateStatusInput);
         expect(getStageResponse.body).toMatchObject({ summary: expectedSummary, status: StageOperationStatus.IN_PROGRESS, percentage: 99 });
@@ -1092,6 +1095,7 @@ describe('task', function () {
         });
 
         const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -1128,6 +1132,7 @@ describe('task', function () {
         });
 
         const getStageResponse = await requestSender.getStageByIdV1({ pathParams: { stageId } });
+
         expect(dequeueResponse).toSatisfyApiSpec();
         expect(dequeueResponse).toMatchObject({
           status: StatusCodes.OK,
@@ -1278,6 +1283,7 @@ describe('task', function () {
         const dequeueResponseLow = await requestSender.dequeueTaskV1({
           pathParams: { stageType: 'SOME_TEST_TYPE_DEQUEUE_BY_PRIORITY' },
         });
+
         expect(dequeueResponseHigh).toSatisfyApiSpec();
         expect(dequeueResponseHigh).toMatchObject({
           status: StatusCodes.OK,
@@ -1534,6 +1540,7 @@ describe('task', function () {
 
       it('should prevent multiple dequeue of the same task using database-level locking', async function () {
         expect.assertions(4);
+
         const initialSummary = { ...defaultStatusCounts, pending: 1, total: 1 };
 
         const { stage, tasks } = await createJobnikTree(
@@ -1631,6 +1638,7 @@ describe('task', function () {
 
       it('should handle multiple concurrent updateStatus operations with race condition protection', async function () {
         expect.assertions(4);
+
         const initialSummary = { ...defaultStatusCounts, inProgress: 1, total: 1 };
 
         const { tasks } = await createJobnikTree(
