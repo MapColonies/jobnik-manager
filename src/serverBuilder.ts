@@ -1,4 +1,4 @@
-import express, { Router, json } from 'express';
+import express, { json, type Router } from 'express';
 import compression from 'compression';
 import { OpenapiViewerRouter } from '@map-colonies/openapi-express-viewer';
 import { middleware as OpenApiMiddleware } from 'express-openapi-validator';
