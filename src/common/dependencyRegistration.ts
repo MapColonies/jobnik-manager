@@ -1,8 +1,9 @@
-import type { ClassProvider, FactoryProvider, InjectionToken, ValueProvider } from 'tsyringe';
+import type { ClassProvider, DependencyContainer, FactoryProvider, InjectionToken, ValueProvider } from 'tsyringe';
 import { container as defaultContainer } from 'tsyringe';
-import type { constructor, DependencyContainer } from 'tsyringe/dist/typings/types';
 
-export type Providers<T> = ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | constructor<T>;
+type Constructor<T> = new (...args: unknown[]) => T;
+
+export type Providers<T> = ValueProvider<T> | FactoryProvider<T> | ClassProvider<T> | Constructor<T>;
 
 export interface InjectionObject<T> {
   token: InjectionToken<T>;
@@ -18,11 +19,11 @@ export const registerDependencies = (
   dependencies.forEach((injectionObj) => {
     const inject = override?.find((overrideObj) => overrideObj.token === injectionObj.token) === undefined;
     if (inject) {
-      container.register(injectionObj.token, injectionObj.provider as constructor<unknown>);
+      container.register(injectionObj.token, injectionObj.provider as Constructor<unknown>);
     }
   });
   override?.forEach((injectionObj) => {
-    container.register(injectionObj.token, injectionObj.provider as constructor<unknown>);
+    container.register(injectionObj.token, injectionObj.provider as Constructor<unknown>);
   });
   return container;
 };
