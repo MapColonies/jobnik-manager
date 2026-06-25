@@ -21,8 +21,8 @@ function createJobEntity(override: Partial<commonDbFullV1Type>) {
 function createQueryParamsObject(paramsString: string) {
   const queryParamsArr = paramsString.split('&');
   const queryParamsPairs = queryParamsArr.map((params) => params.split('='));
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-  const queryObject: object = Object.fromEntries(queryParamsPairs);
+
+  const queryObject: Record<string, string> = Object.fromEntries(queryParamsPairs as [string, string][]);
   return queryObject;
 }
 

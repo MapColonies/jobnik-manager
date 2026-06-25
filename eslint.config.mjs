@@ -1,5 +1,5 @@
 import tsBaseConfig, { namingConventions } from '@map-colonies/eslint-config/ts-base';
-import { config } from '@map-colonies/eslint-config/helpers';
+import { defineConfig } from '@map-colonies/eslint-config/helpers';
 import vitestConfig from '@map-colonies/eslint-config/vitest';
 
 const AllowedSqlOperators = {
@@ -19,13 +19,8 @@ const customConfig = {
     '@typescript-eslint/naming-convention': namingConvention,
     'no-console': 'error',
   },
-  languageOptions: {
-    parserOptions: {
-      project: './tsconfig.json',
-    },
-  },
 };
 
-export default config(vitestConfig, tsBaseConfig, customConfig, {
+export default defineConfig(vitestConfig, tsBaseConfig, customConfig, {
   ignores: ['src/db/prisma/generated', 'src/common/generated', 'vitest.config.mts'],
 });
