@@ -388,7 +388,7 @@ export class StageManager {
         },
       });
 
-      if (nextStage && nextStage.status === StageOperationStatus.CREATED) {
+      if (nextStage?.status === StageOperationStatus.CREATED) {
         await this.executeUpdateStatus(nextStage.id, StageOperationStatus.PENDING, tx);
         trace.getActiveSpan()?.addEvent('Next stage set to PENDING', { nextStageId: nextStage.id });
       }

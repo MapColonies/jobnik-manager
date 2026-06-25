@@ -4,7 +4,12 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import {
+  createRequestSender,
+  expectResponseStatusFactory,
+  type ExpectResponseStatus,
+  type RequestSender,
+} from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, Prisma, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
@@ -30,6 +35,8 @@ import { createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
 import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
 import { createTaskBody, createTaskRecords } from './helpers';
+
+const expectResponseStatus: ExpectResponseStatus = expectResponseStatusFactory(expect);
 
 describe('task', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -96,9 +103,7 @@ describe('task', function () {
 
         const response = await requestSender.getTasksByCriteriaV1();
 
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
@@ -905,9 +910,7 @@ describe('task', function () {
           },
         });
 
-        if (secondStage.status !== StatusCodes.CREATED) {
-          throw new Error('Failed to create second stage');
-        }
+        expectResponseStatus(secondStage, 201);
 
         const taskId = tasks[0]!.id;
         const stageId = stage.id;
