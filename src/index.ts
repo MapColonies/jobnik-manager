@@ -1,8 +1,7 @@
 // this import must be called before the first import of tsyringe
 import 'reflect-metadata';
 import { createServer } from 'node:http';
-import { createTerminus, type HealthCheck } from '@godaddy/terminus';
-import type { Logger } from '@map-colonies/js-logger';
+import { type Logger } from '@map-colonies/js-logger';
 import { container } from 'tsyringe';
 import { SERVICES } from '@common/constants';
 import type { ConfigType } from '@common/config';
@@ -14,11 +13,15 @@ void getApp()
     const config = container.resolve<ConfigType>(SERVICES.CONFIG);
     const port = config.get('server.port');
 
-    const healthCheck = container.resolve<HealthCheck>(SERVICES.HEALTHCHECK);
+    const httpServer = createServer(app);
 
-    const server = createTerminus(createServer(app), { healthChecks: { '/liveness': healthCheck }, onSignal: container.resolve('onSignal') });
+    // Register the server so containerConfig factories can use it
+    container.registerInstance(SERVICES.SERVER, httpServer);
 
-    server.listen(port, () => {
+    // Trigger lazy registration of health checks from containerConfig
+    container.resolve(SERVICES.HEALTHCHECK);
+
+    httpServer.listen(port, () => {
       logger.info(`app started on port ${port}`);
     });
   })

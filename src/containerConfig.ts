@@ -1,17 +1,18 @@
+import type { Server } from 'node:http';
 import { getOtelMixin } from '@map-colonies/tracing-utils';
 import { trace } from '@opentelemetry/api';
 import { Registry } from 'prom-client';
 import type { DependencyContainer } from 'tsyringe/dist/typings/types';
-import { jsLogger } from '@map-colonies/js-logger';
+import { type Logger, jsLogger } from '@map-colonies/js-logger';
 import { instanceCachingFactory, instancePerContainerCachingFactory } from 'tsyringe';
-import type { HealthCheck } from '@godaddy/terminus';
+import { HealthCheckManager } from '@map-colonies/health-check';
 import type { PrismaClient } from '@prismaClient';
 import { type InjectionObject, registerDependencies } from '@common/dependencyRegistration';
 import { DB_CONNECTION_TIMEOUT, ROUTERS, SERVICES, SERVICE_NAME } from '@common/constants';
 import { getTracing } from '@common/tracing';
+import { promiseTimeout } from './common/utils/promiseTimeout';
 import { getConfig } from './common/config';
 import { createConnectionOptions, createPrismaClient } from './db/createConnection';
-import { promiseTimeout } from './common/utils/promiseTimeout';
 import { SERVICE_METRICS_SYMBOL, serviceMetricsFactory } from './common/serviceMetrics';
 import { jobV1RouterFactory } from './api/v1/jobs/router';
 import { stageV1RouterFactory } from './api/v1/stages/router';
@@ -39,16 +40,6 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
 
   const prismaClientConfig = createConnectionOptions(dbConfig);
 
-  /* v8 ignore next 7 -- @preserve */
-  const healthCheck = (prisma: PrismaClient): HealthCheck => {
-    return async (): Promise<void> => {
-      const check = prisma.$queryRaw`SELECT 1`.then(() => {
-        return;
-      });
-      return promiseTimeout<void>(DB_CONNECTION_TIMEOUT, check);
-    };
-  };
-
   const dependencies: InjectionObject<unknown>[] = [
     { token: SERVICES.CONFIG, provider: { useValue: configInstance } },
     { token: SERVICES.LOGGER, provider: { useValue: logger } },
@@ -67,10 +58,27 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: SERVICES.HEALTHCHECK,
       provider: {
-        /* v8 ignore next 4 -- @preserve */
+        /* v8 ignore next 17 -- @preserve */
         useFactory: instanceCachingFactory((container) => {
+          const server = container.resolve<Server>(SERVICES.SERVER);
+          const logger = container.resolve<Logger>(SERVICES.LOGGER);
+          const onSignal = container.resolve<() => Promise<void>>('onSignal');
           const prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
-          return healthCheck(prisma);
+
+          const manager = new HealthCheckManager(server, logger, { onSignal });
+
+          manager.registerReadinessCheck('postgres', async () => {
+            const check = prisma.$queryRaw`SELECT 1`.then(() => {
+              return;
+            });
+            return promiseTimeout<void>(DB_CONNECTION_TIMEOUT, check);
+          });
+
+          manager.registerShutdownHook('postgres', async () => {
+            await prisma.$disconnect();
+          });
+
+          return manager;
         }),
       },
     },
@@ -83,11 +91,9 @@ export const registerExternalValues = async (options?: RegisterOptions): Promise
     {
       token: 'onSignal',
       provider: {
-        useValue: {
-          /* v8 ignore next 3 -- @preserve */
-          useValue: async (): Promise<void> => {
-            await Promise.all([getTracing().stop()]);
-          },
+        /* v8 ignore next 3 -- @preserve */
+        useValue: async (): Promise<void> => {
+          await Promise.all([getTracing().stop()]);
         },
       },
     },
