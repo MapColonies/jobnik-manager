@@ -763,9 +763,7 @@ describe('JobManager', () => {
           prisma.$transaction.mockImplementationOnce(async (callback) => {
             const mockTx = {
               stage: {
-                findUnique: vi
-                  .fn()
-                  .mockResolvedValue({ ...stageEntity, job: { status: JobOperationStatus.IN_PROGRESS } } as unknown as StageWithTasks),
+                findUnique: vi.fn().mockResolvedValue({ ...stageEntity, job: { status: JobOperationStatus.IN_PROGRESS } }),
               },
             } as unknown as Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
 

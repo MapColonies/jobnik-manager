@@ -29,7 +29,9 @@ export const createConnectionOptions = (dbConfig: DbConfig): PoolConfig => {
         ca: readFileSync(ssl.ca),
       };
     } catch (error) {
-      throw new Error(`Failed to load SSL certificates. Ensure the files exist and are accessible. Details: ${(error as Error).message}`);
+      throw new Error(`Failed to load SSL certificates. Ensure the files exist and are accessible. Details: ${(error as Error).message}`, {
+        cause: error,
+      });
     }
   }
   return poolConfig;
@@ -75,6 +77,6 @@ export async function verifyDbSetup(prisma: PrismaClient, schema: string): Promi
     await prisma.stage.count(); // validate migration deployed stage table
     await prisma.task.count(); // validate migration deployed task table
   } catch (error) {
-    throw new Error(`Error on db connection: ${(error as Error).message}`);
+    throw new Error(`Error on db connection: ${(error as Error).message}`, { cause: error });
   }
 }

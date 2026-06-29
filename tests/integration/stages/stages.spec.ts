@@ -4,7 +4,12 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
-import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import {
+  createRequestSender,
+  expectResponseStatusFactory,
+  type ExpectResponseStatus,
+  type RequestSender,
+} from '@map-colonies/openapi-helpers/requestSender';
 import { faker } from '@faker-js/faker';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, StageOperationStatus, TaskOperationStatus, type PrismaClient } from '@prismaClient';
@@ -29,6 +34,8 @@ import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
 import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+
+const expectResponseStatus: ExpectResponseStatus = expectResponseStatusFactory(expect);
 
 describe('stage', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -150,9 +157,7 @@ describe('stage', function () {
 
         const response = await requestSender.getStagesV1({ queryParams: { job_id: job.id, should_return_tasks: false } });
 
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
@@ -328,9 +333,7 @@ describe('stage', function () {
 
         const getStageResponse = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: job.id } });
 
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
@@ -347,9 +350,7 @@ describe('stage', function () {
           queryParams: { should_return_tasks: true },
         });
 
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
@@ -367,9 +368,7 @@ describe('stage', function () {
           queryParams: { should_return_tasks: false },
         });
 
-        if (getStageResponse.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });

@@ -4,7 +4,12 @@ import { jsLogger } from '@map-colonies/js-logger';
 import { InMemorySpanExporter, NodeTracerProvider, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-node';
 import { trace } from '@opentelemetry/api';
 import { StatusCodes } from 'http-status-codes';
-import { createRequestSender, type RequestSender } from '@map-colonies/openapi-helpers/requestSender';
+import {
+  createRequestSender,
+  expectResponseStatusFactory,
+  type ExpectResponseStatus,
+  type RequestSender,
+} from '@map-colonies/openapi-helpers/requestSender';
 import type { paths, operations } from '@openapi';
 import { JobOperationStatus, Priority, StageOperationStatus, type PrismaClient } from '@prismaClient';
 import type { PrismaTransaction } from '@src/db/types';
@@ -25,6 +30,8 @@ const memoryExporter = new InMemorySpanExporter();
 const spanProcessor = new SimpleSpanProcessor(memoryExporter);
 const provider = new NodeTracerProvider({ spanProcessors: [spanProcessor] });
 provider.register();
+
+const expectResponseStatus: ExpectResponseStatus = expectResponseStatusFactory(expect);
 
 describe('job', function () {
   let requestSender: RequestSender<paths, operations>;
@@ -69,9 +76,7 @@ describe('job', function () {
 
         const response = await requestSender.findJobsV1({ queryParams: { should_return_stages: true } });
 
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
         expect(response.body).toBeArray();
@@ -88,9 +93,7 @@ describe('job', function () {
 
         const response = await requestSender.findJobsV1({ queryParams: { should_return_stages: false } });
 
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
         expect(response.body[0]).toMatchObject(jobRequestBody);
@@ -105,9 +108,7 @@ describe('job', function () {
         });
 
         const response = await requestSender.findJobsV1({ queryParams: {} });
-        if (response.status !== StatusCodes.OK) {
-          throw new Error();
-        }
+        expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
         expect(response.body[0]).toMatchObject(jobRequestBody);
