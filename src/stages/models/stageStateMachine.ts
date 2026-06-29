@@ -17,13 +17,7 @@ const OperationStatusMapper: { [key in StageOperationStatus]: changeStatusOperat
 const stageStateMachine = setup({
   types: {
     events: {} as
-      | { type: 'pend' }
-      | { type: 'wait' }
-      | { type: 'abort' }
-      | { type: 'complete' }
-      | { type: 'process' }
-      | { type: 'fail' }
-      | { type: 'create' },
+      { type: 'pend' } | { type: 'wait' } | { type: 'abort' } | { type: 'complete' } | { type: 'process' } | { type: 'fail' } | { type: 'create' },
   },
 }).createMachine({
   id: 'stageStatus',
