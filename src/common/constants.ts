@@ -25,6 +25,7 @@ export const SERVICES = {
   SERVICE_METRICS: Symbol('SERVICE_METRICS'),
   PRISMA: Symbol('Prisma'),
   HEALTHCHECK: Symbol('Healthcheck'),
+  SERVER: Symbol('Server'),
 } satisfies Record<string, symbol>;
 
 export const ROUTERS = {
