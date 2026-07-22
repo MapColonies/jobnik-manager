@@ -18,7 +18,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import type { StageCreateModel, StageModel } from '@src/stages/models/models';
+import type { StageCreateModel, StageModel, StagesPaginatedResponse } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
@@ -85,15 +85,18 @@ describe('stage', function () {
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [
-            {
-              jobId,
-              status: StageOperationStatus.CREATED,
-              type: 'SOME_STAGE_TYPE',
-              data: { avi: 'is the best' },
-              order: 1,
-            },
-          ],
+          body: {
+            total: 1,
+            items: [
+              {
+                jobId,
+                status: StageOperationStatus.CREATED,
+                type: 'SOME_STAGE_TYPE',
+                data: { avi: 'is the best' },
+                order: 1,
+              },
+            ],
+          },
         });
       });
 
@@ -103,7 +106,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [],
+          body: { total: 0, items: [] },
         });
       });
 
@@ -114,8 +117,41 @@ describe('stage', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body).toBeArray();
-        expect(response.body).not.toHaveLength(0);
+
+        const stagesBody = response.body as StagesPaginatedResponse;
+
+        expect(stagesBody.items).toBeArray();
+        expect(stagesBody.items).not.toHaveLength(0);
+      });
+
+      it('should return 200 with total and items when paginating', async function () {
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+
+        const response = await requestSender.getStagesV1({ queryParams: { page: 1, page_size: 1 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const paginatedBody = response.body;
+
+        expect(paginatedBody.total).toBeGreaterThanOrEqual(2);
+        expect(paginatedBody.items).toHaveLength(1);
+      });
+
+      it('should return 200 with empty items array when page is beyond total', async function () {
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+
+        const response = await requestSender.getStagesV1({ queryParams: { page: 9999, page_size: 10 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const beyondPageBody = response.body;
+
+        expect(beyondPageBody.items).toHaveLength(0);
       });
 
       it('should return 200 status code and the matching stage with related tasks', async function () {
@@ -137,10 +173,15 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          body: {
+            total: 1,
+            items: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          },
         });
 
-        expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
+        const stagesBodyWithTasks = response.body as StagesPaginatedResponse;
+
+        expect(stagesBodyWithTasks.items).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
       });
 
       it('should return 200 status code and the matching stage without related tasks', async function () {
@@ -162,10 +203,15 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          body: {
+            total: 1,
+            items: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          },
         });
 
-        expect(response.body[0]).not.toHaveProperty('tasks');
+        const stagesBodyNoTasks = response.body;
+
+        expect(stagesBodyNoTasks.items[0]).not.toHaveProperty('tasks');
       });
     });
 
@@ -336,8 +382,11 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
-        expect(getStageResponse.body[0]).not.toHaveProperty('tasks');
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
+        });
+        expect(getStageResponse.body.items[0]).not.toHaveProperty('tasks');
       });
 
       it('should return 200 status code and return the stages with related tasks', async function () {
@@ -353,9 +402,12 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
-        expect(getStageResponse.body[0]).toHaveProperty('tasks');
-        expect(getStageResponse.body[0]).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
+        });
+        expect(getStageResponse.body.items[0]).toHaveProperty('tasks');
+        expect(getStageResponse.body.items[0]).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
       });
 
       it('should return 200 status code and return the stages without related tasks', async function () {
@@ -371,8 +423,11 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
-        expect(getStageResponse.body[0]).not.toHaveProperty('tasks');
+        expect(getStageResponse).toMatchObject({
+          status: StatusCodes.OK,
+          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
+        });
+        expect(getStageResponse.body.items[0]).not.toHaveProperty('tasks');
       });
 
       it('should return a 200 status code with empty array object if no stages exists for the requested job', async function () {
@@ -383,7 +438,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: [],
+          body: { total: 0, items: [] },
         });
       });
 
@@ -424,12 +479,49 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: [
-            { type: 'FIRST_STAGE', order: 1 },
-            { type: 'SECOND_STAGE', order: 2 },
-            { type: 'THIRD_STAGE', order: 3 },
-          ],
+          body: {
+            total: 3,
+            items: [
+              { type: 'FIRST_STAGE', order: 1 },
+              { type: 'SECOND_STAGE', order: 2 },
+              { type: 'THIRD_STAGE', order: 3 },
+            ],
+          },
         });
+      });
+
+      it('should return 200 with total and items when paginating', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_A', data: {}, userMetadata: {} } });
+        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_B', data: {}, userMetadata: {} } });
+        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_C', data: {}, userMetadata: {} } });
+
+        const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: createdJobId }, queryParams: { page: 1, page_size: 2 } });
+
+        expect(response).toSatisfyApiSpec();
+
+        const paginatedStages = response.body as StagesPaginatedResponse;
+
+        expect(paginatedStages.total).toBe(3);
+        expect(paginatedStages.items).toHaveLength(2);
+      });
+
+      it('should return 200 with empty items array when page is beyond total', async function () {
+        const job = await createJobRecord(createJobRequestBody, prisma);
+        const createdJobId = job.id;
+
+        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_X', data: {}, userMetadata: {} } });
+
+        const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: createdJobId }, queryParams: { page: 9999, page_size: 10 } });
+
+        expect(response).toSatisfyApiSpec();
+
+        const beyondPageStages = response.body as StagesPaginatedResponse;
+
+        expect(beyondPageStages.total).toBe(1);
+        expect(beyondPageStages.items).toHaveLength(0);
       });
     });
 
@@ -895,7 +987,7 @@ describe('stage', function () {
 
         expect(getStagesResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ order: 1 }, { order: 2 }, { order: 3 }],
+          body: { total: 3, items: [{ order: 1 }, { order: 2 }, { order: 3 }] },
         });
       });
 

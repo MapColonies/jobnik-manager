@@ -86,7 +86,7 @@ export class TaskControllerV1 {
 
   public getTaskByStageId: TypedRequestHandlers['getTasksByStageIdV1'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getTasksByStageId(req.params.stageId);
+      const response = await this.manager.getTasksByStageId(req.params.stageId, req.query);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof StageNotFoundError) {

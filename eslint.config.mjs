@@ -11,8 +11,18 @@ const AllowedSqlOperators = {
   },
 };
 
+const AllowedSnakeCaseDestructured = {
+  selector: 'variable',
+  modifiers: ['destructured'],
+  format: null,
+  filter: {
+    match: true,
+    regex: '^page_size$',
+  },
+};
+
 // Create a new array with the base rules and our custom rule
-const namingConvention = [...namingConventions, AllowedSqlOperators];
+const namingConvention = [...namingConventions, AllowedSqlOperators, AllowedSnakeCaseDestructured];
 
 const customConfig = {
   rules: {

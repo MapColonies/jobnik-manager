@@ -5,6 +5,7 @@ type JobModel = components['schemas']['job'];
 type JobCreateModel = components['schemas']['createJobPayload'];
 type JobGetParams = components['parameters'];
 type JobFindCriteriaArg = operations['findJobsV1']['parameters']['query'];
+type JobsPaginatedResponse = components['schemas']['jobsPaginatedResponse'];
 
 /**
  * Generic type for Job Prisma objects with configurable stage inclusion
@@ -14,4 +15,4 @@ type JobPrismaObject<IncludeStages extends boolean = boolean> = Prisma.JobGetPay
   include: { stage: IncludeStages };
 }>;
 
-export type { JobModel, JobCreateModel, JobGetParams, JobFindCriteriaArg, JobPrismaObject };
+export type { JobModel, JobCreateModel, JobGetParams, JobFindCriteriaArg, JobPrismaObject, JobsPaginatedResponse };

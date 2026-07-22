@@ -14,8 +14,9 @@ import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
+import { paginationParamsToTakeAndSkip } from '@src/common/utils/pagination';
 import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
-import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject } from './models';
+import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject, JobsPaginatedResponse } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
 
 @injectable()
@@ -27,26 +28,30 @@ export class JobManager {
   ) {}
 
   @withSpanAsyncV4
-  public async getJobs(params: JobFindCriteriaArg): Promise<JobModel[]> {
-    let queryBody = undefined;
+  public async getJobs(params: JobFindCriteriaArg): Promise<JobsPaginatedResponse> {
+    const { page, page_size, ...filterParams } = params ?? {};
+    const { take, skip } = paginationParamsToTakeAndSkip(page, page_size);
 
-    if (params !== undefined) {
-      queryBody = {
-        where: {
-          AND: {
-            name: { equals: params.job_name },
-            priority: { equals: params.priority },
-            creationTime: { gte: params.from_date, lte: params.end_date },
-          },
-        },
-        include: { stage: params.should_return_stages },
-      };
-    }
+    const where = {
+      AND: {
+        name: { equals: filterParams.job_name },
+        priority: { equals: filterParams.priority },
+        creationTime: { gte: filterParams.from_date, lte: filterParams.end_date },
+      },
+    };
 
-    const jobs = await this.prisma.job.findMany(queryBody);
+    const queryOptions = {
+      where,
+      include: { stage: filterParams.should_return_stages ?? false },
+      take,
+      skip,
+      orderBy: { creationTime: 'asc' as const },
+    };
 
-    const result = jobs.map((job) => this.convertPrismaToJobResponse(job));
-    return result;
+    const [jobs, total] = await Promise.all([this.prisma.job.findMany(queryOptions), this.prisma.job.count({ where })]);
+
+    const items = jobs.map((job) => this.convertPrismaToJobResponse(job));
+    return { total, items };
   }
 
   @withSpanAsyncV4
