@@ -79,9 +79,12 @@ describe('job', function () {
         expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body).toBeArray();
-        expect(response.body).not.toHaveLength(0);
-        expect(response.body[0]).toHaveProperty('stages');
+
+        const jobsBody = response.body;
+
+        expect(jobsBody.items).toBeArray();
+        expect(jobsBody.items).not.toHaveLength(0);
+        expect(jobsBody.items[0]).toHaveProperty('stages');
       });
 
       it('should return 200 status code and the matching job with stages when stages flag is false', async function () {
@@ -96,8 +99,11 @@ describe('job', function () {
         expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body[0]).toMatchObject(jobRequestBody);
-        expect(response.body[0]).not.toHaveProperty('stages');
+
+        const jobsBodyNoStages = response.body;
+
+        expect(jobsBodyNoStages.items[0]).toMatchObject(jobRequestBody);
+        expect(jobsBodyNoStages.items[0]).not.toHaveProperty('stages');
       });
 
       it('should return 200 status code and return the job without stages when stages flag is omitted', async function () {
@@ -111,8 +117,41 @@ describe('job', function () {
         expectResponseStatus(response, 200);
 
         expect(response).toSatisfyApiSpec();
-        expect(response.body[0]).toMatchObject(jobRequestBody);
-        expect(response.body[0]).not.toHaveProperty('stages');
+
+        const jobsBodyOmitted = response.body;
+
+        expect(jobsBodyOmitted.items[0]).toMatchObject(jobRequestBody);
+        expect(jobsBodyOmitted.items[0]).not.toHaveProperty('stages');
+      });
+
+      it('should return 200 with total and items when paginating', async function () {
+        await requestSender.createJobV1({ requestBody: createJobRequestBody });
+        await requestSender.createJobV1({ requestBody: createJobRequestBody });
+
+        const response = await requestSender.findJobsV1({ queryParams: { page: 1, page_size: 1 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const paginatedJobsBody = response.body;
+
+        expect(paginatedJobsBody.total).toBeGreaterThanOrEqual(2);
+        expect(paginatedJobsBody.items).toHaveLength(1);
+      });
+
+      it('should return 200 with empty items array when page is beyond total', async function () {
+        await requestSender.createJobV1({ requestBody: createJobRequestBody });
+
+        const response = await requestSender.findJobsV1({ queryParams: { page: 9999, page_size: 10 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const beyondPageJobsBody = response.body;
+
+        expect(beyondPageJobsBody.items).toHaveLength(0);
       });
     });
 

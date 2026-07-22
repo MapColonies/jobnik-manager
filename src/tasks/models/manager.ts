@@ -24,8 +24,9 @@ import {
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src/common/semconv';
+import { paginationParamsToTakeAndSkip } from '@src/common/utils/pagination';
 import { TaskRepository } from '../DAL/taskRepository';
-import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel } from './models';
+import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel, TasksPaginatedResponse, TasksByStageIdQuery } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
 import { convertArrayPrismaTaskToTaskResponse, convertPrismaToTaskResponse } from './helper';
 
@@ -117,24 +118,28 @@ export class TaskManager {
    * @returns Promise resolving to array of task models
    */
   @withSpanAsyncV4
-  public async getTasks(params: TasksFindCriteriaArg): Promise<TaskModel[]> {
-    const hasNoParams = params === undefined || Object.keys(params).length === 0;
+  public async getTasks(params: TasksFindCriteriaArg): Promise<TasksPaginatedResponse> {
+    const { page, page_size, ...filterParams } = params ?? {};
+    const { take, skip } = paginationParamsToTakeAndSkip(page, page_size);
+    const hasNoFilters = Object.keys(filterParams).length === 0;
 
-    const queryBody: Prisma.TaskFindManyArgs = {
-      where: hasNoParams
-        ? undefined
-        : {
-            AND: {
-              stageId: { equals: params.stage_id },
-              stage: { type: { equals: params.stage_type } },
-              status: { equals: params.status },
-              creationTime: { gte: params.from_date, lte: params.end_date },
-            },
+    const where: Prisma.TaskWhereInput | undefined = hasNoFilters
+      ? undefined
+      : {
+          AND: {
+            stageId: { equals: filterParams.stage_id },
+            stage: { type: { equals: filterParams.stage_type } },
+            status: { equals: filterParams.status },
+            creationTime: { gte: filterParams.from_date, lte: filterParams.end_date },
           },
-    };
+        };
 
-    const tasks = await this.prisma.task.findMany(queryBody);
-    return convertArrayPrismaTaskToTaskResponse(tasks);
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({ where, take, skip, orderBy: { creationTime: 'asc' as const } }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    return { total, items: convertArrayPrismaTaskToTaskResponse(tasks) };
   }
 
   @withSpanAsyncV4
@@ -154,7 +159,7 @@ export class TaskManager {
   }
 
   @withSpanAsyncV4
-  public async getTasksByStageId(stageId: string): Promise<TaskModel[]> {
+  public async getTasksByStageId(stageId: string, query: TasksByStageIdQuery): Promise<TasksPaginatedResponse> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [INFRA_CONVENTIONS.infra.jobnik.stage.id]: stageId,
@@ -162,15 +167,16 @@ export class TaskManager {
     // To validate existence of stage, if not will throw StageNotFoundError
     await this.stageManager.getStageById(stageId);
 
-    const queryBody = {
-      where: {
-        stageId,
-      },
-    };
+    const { take, skip } = paginationParamsToTakeAndSkip(query?.page, query?.page_size);
+    const where = { stageId };
 
-    const stages = await this.prisma.task.findMany(queryBody);
-    const result = stages.map((stage) => convertPrismaToTaskResponse(stage));
-    return result;
+    const [tasks, total] = await Promise.all([
+      this.prisma.task.findMany({ where, take, skip, orderBy: { creationTime: 'asc' as const } }),
+      this.prisma.task.count({ where }),
+    ]);
+
+    const items = tasks.map((task) => convertPrismaToTaskResponse(task));
+    return { total, items };
   }
 
   @withSpanAsyncV4

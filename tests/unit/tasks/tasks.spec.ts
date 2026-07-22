@@ -80,33 +80,50 @@ describe('JobManager', () => {
         it('should return array with single task formatted object by criteria', async function () {
           const taskEntity = createTaskEntity({});
           prisma.task.findMany.mockResolvedValue([taskEntity]);
+          prisma.task.count.mockResolvedValue(1);
 
-          const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
+          const result = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
           const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
-          expect(tasks).toMatchObject(expectedTask);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedTask);
         });
 
         it('should return array with task formatted object by empty criteria', async function () {
           const taskEntity = createTaskEntity({});
           prisma.task.findMany.mockResolvedValue([taskEntity]);
+          prisma.task.count.mockResolvedValue(1);
 
-          const tasks = await taskManager.getTasks({});
+          const result = await taskManager.getTasks({});
 
           const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
-          expect(tasks).toMatchObject(expectedTask);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedTask);
         });
 
         it('should return empty array', async function () {
           prisma.task.findMany.mockResolvedValue([]);
+          prisma.task.count.mockResolvedValue(0);
 
-          const tasks = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
+          const result = await taskManager.getTasks({ stage_type: 'SOME_STAGE_TYPE' });
 
-          expect(tasks).toMatchObject([]);
+          expect(result.total).toBe(0);
+          expect(result.items).toMatchObject([]);
+        });
+
+        it('should return all tasks when no criteria is provided', async function () {
+          const taskEntity = createTaskEntity({});
+          prisma.task.findMany.mockResolvedValue([taskEntity]);
+          prisma.task.count.mockResolvedValue(1);
+
+          const result = await taskManager.getTasks(undefined);
+
+          expect(result.total).toBe(1);
+          expect(result.items).toHaveLength(1);
         });
       });
 
@@ -157,16 +174,17 @@ describe('JobManager', () => {
         it('should return task object by provided stage id', async function () {
           const stageEntity = createStageEntity({});
           const taskEntity = createTaskEntity({ stageId: stageEntity.id });
-
           prisma.stage.findUnique.mockResolvedValue(stageEntity);
           prisma.task.findMany.mockResolvedValue([taskEntity]);
+          prisma.task.count.mockResolvedValue(1);
 
-          const tasks = await taskManager.getTasksByStageId(stageEntity.id);
+          const result = await taskManager.getTasksByStageId(stageEntity.id, {});
 
           const { creationTime, updateTime, xstate, startTime, endTime, ...rest } = taskEntity;
           const expectedTask = [{ ...rest, tracestate: undefined, creationTime: creationTime.toISOString(), updateTime: updateTime.toISOString() }];
 
-          expect(tasks).toMatchObject(expectedTask);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedTask);
         });
       });
 
@@ -174,7 +192,7 @@ describe('JobManager', () => {
         it('should failed on not founded task when getting by non exists stage', async function () {
           prisma.stage.findUnique.mockResolvedValue(null);
 
-          await expect(taskManager.getTasksByStageId('some_id')).rejects.toThrow(stagesErrorMessages.stageNotFound);
+          await expect(taskManager.getTasksByStageId('some_id', {})).rejects.toThrow(stagesErrorMessages.stageNotFound);
         });
       });
 
@@ -182,7 +200,7 @@ describe('JobManager', () => {
         it('should fail and throw an error if prisma throws an error', async function () {
           prisma.stage.findUnique.mockRejectedValueOnce(new Error('db connection error'));
 
-          await expect(taskManager.getTasksByStageId('some_id')).rejects.toThrow('db connection error');
+          await expect(taskManager.getTasksByStageId('some_id', {})).rejects.toThrow('db connection error');
         });
       });
     });

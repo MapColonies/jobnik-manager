@@ -6,6 +6,20 @@ This server provides a management interface for job trees and includes a RESTful
 
 * Manages job trees.
 * Provides a RESTful API for database management.
+* Paginated list endpoints for jobs, stages, and tasks.
+
+## Pagination
+
+All 5 list endpoints support `page` (1-based, default `1`) and `page_size` (1–100, default `10`) query parameters.
+
+Responses are wrapped in `{ total, items }` instead of a plain array — `total` is the full match count regardless of page.
+
+```
+GET /v1/jobs?page=2&page_size=5
+→ { "total": 15, "items": [...5 jobs...] }
+```
+
+Requesting beyond the last page returns `items: []`, not an error.
 
 **Requirements:**
 
