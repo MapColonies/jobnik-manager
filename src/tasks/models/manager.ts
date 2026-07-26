@@ -24,7 +24,7 @@ import {
   TaskStatusUpdateFailedError,
 } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_ID } from '@src/common/semconv';
-import { paginationParamsToTakeAndSkip } from '@src/common/utils/pagination';
+import { paginate } from '@src/common/utils/pagination';
 import { TaskRepository } from '../DAL/taskRepository';
 import type { TasksFindCriteriaArg, TaskModel, TaskPrismaObject, TaskCreateModel, TasksPaginatedResponse, TasksByStageIdQuery } from './models';
 import { errorMessages as tasksErrorMessages } from './errors';
@@ -120,7 +120,6 @@ export class TaskManager {
   @withSpanAsyncV4
   public async getTasks(params: TasksFindCriteriaArg): Promise<TasksPaginatedResponse> {
     const { page, page_size, ...filterParams } = params ?? {};
-    const { take, skip } = paginationParamsToTakeAndSkip(page, page_size);
     const hasNoFilters = Object.keys(filterParams).length === 0;
 
     const where: Prisma.TaskWhereInput | undefined = hasNoFilters
@@ -134,10 +133,7 @@ export class TaskManager {
           },
         };
 
-    const [tasks, total] = await Promise.all([
-      this.prisma.task.findMany({ where, take, skip, orderBy: { creationTime: 'asc' as const } }),
-      this.prisma.task.count({ where }),
-    ]);
+    const { total, items: tasks } = await paginate(this.prisma.task, { where, orderBy: { creationTime: 'asc' as const } }, page, page_size);
 
     return { total, items: convertArrayPrismaTaskToTaskResponse(tasks) };
   }
@@ -167,13 +163,12 @@ export class TaskManager {
     // To validate existence of stage, if not will throw StageNotFoundError
     await this.stageManager.getStageById(stageId);
 
-    const { take, skip } = paginationParamsToTakeAndSkip(query?.page, query?.page_size);
-    const where = { stageId };
-
-    const [tasks, total] = await Promise.all([
-      this.prisma.task.findMany({ where, take, skip, orderBy: { creationTime: 'asc' as const } }),
-      this.prisma.task.count({ where }),
-    ]);
+    const { total, items: tasks } = await paginate(
+      this.prisma.task,
+      { where: { stageId }, orderBy: { creationTime: 'asc' as const } },
+      query?.page,
+      query?.page_size
+    );
 
     const items = tasks.map((task) => convertPrismaToTaskResponse(task));
     return { total, items };
