@@ -382,11 +382,8 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({
-          status: StatusCodes.OK,
-          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
-        });
-        expect(getStageResponse.body.items[0]).not.toHaveProperty('tasks');
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
+        expect(getStageResponse.body[0]).not.toHaveProperty('tasks');
       });
 
       it('should return 200 status code and return the stages with related tasks', async function () {
@@ -402,12 +399,9 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({
-          status: StatusCodes.OK,
-          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
-        });
-        expect(getStageResponse.body.items[0]).toHaveProperty('tasks');
-        expect(getStageResponse.body.items[0]).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
+        expect(getStageResponse.body[0]).toHaveProperty('tasks');
+        expect(getStageResponse.body[0]).toMatchObject({ tasks: [{ data: {}, userMetadata: {} }] });
       });
 
       it('should return 200 status code and return the stages without related tasks', async function () {
@@ -423,11 +417,8 @@ describe('stage', function () {
         expectResponseStatus(getStageResponse, 200);
 
         expect(getStageResponse).toSatisfyApiSpec();
-        expect(getStageResponse).toMatchObject({
-          status: StatusCodes.OK,
-          body: { total: 1, items: [{ status: StageOperationStatus.CREATED, id: stage.id }] },
-        });
-        expect(getStageResponse.body.items[0]).not.toHaveProperty('tasks');
+        expect(getStageResponse).toMatchObject({ status: StatusCodes.OK, body: [{ status: StageOperationStatus.CREATED, id: stage.id }] });
+        expect(getStageResponse.body[0]).not.toHaveProperty('tasks');
       });
 
       it('should return a 200 status code with empty array object if no stages exists for the requested job', async function () {
@@ -438,7 +429,7 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: { total: 0, items: [] },
+          body: [],
         });
       });
 
@@ -479,49 +470,12 @@ describe('stage', function () {
         expect(getStageResponse).toSatisfyApiSpec();
         expect(getStageResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: {
-            total: 3,
-            items: [
-              { type: 'FIRST_STAGE', order: 1 },
-              { type: 'SECOND_STAGE', order: 2 },
-              { type: 'THIRD_STAGE', order: 3 },
-            ],
-          },
+          body: [
+            { type: 'FIRST_STAGE', order: 1 },
+            { type: 'SECOND_STAGE', order: 2 },
+            { type: 'THIRD_STAGE', order: 3 },
+          ],
         });
-      });
-
-      it('should return 200 with total and items when paginating', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_A', data: {}, userMetadata: {} } });
-        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_B', data: {}, userMetadata: {} } });
-        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_C', data: {}, userMetadata: {} } });
-
-        const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: createdJobId }, queryParams: { page: 1, page_size: 2 } });
-
-        expect(response).toSatisfyApiSpec();
-
-        const paginatedStages = response.body as StagesPaginatedResponse;
-
-        expect(paginatedStages.total).toBe(3);
-        expect(paginatedStages.items).toHaveLength(2);
-      });
-
-      it('should return 200 with empty items array when page is beyond total', async function () {
-        const job = await createJobRecord(createJobRequestBody, prisma);
-        const createdJobId = job.id;
-
-        await requestSender.addStageV1({ pathParams: { jobId: createdJobId }, requestBody: { type: 'STAGE_X', data: {}, userMetadata: {} } });
-
-        const response = await requestSender.getStagesByJobIdV1({ pathParams: { jobId: createdJobId }, queryParams: { page: 9999, page_size: 10 } });
-
-        expect(response).toSatisfyApiSpec();
-
-        const beyondPageStages = response.body as StagesPaginatedResponse;
-
-        expect(beyondPageStages.total).toBe(1);
-        expect(beyondPageStages.items).toHaveLength(0);
       });
     });
 
@@ -987,7 +941,7 @@ describe('stage', function () {
 
         expect(getStagesResponse).toMatchObject({
           status: StatusCodes.OK,
-          body: { total: 3, items: [{ order: 1 }, { order: 2 }, { order: 3 }] },
+          body: [{ order: 1 }, { order: 2 }, { order: 3 }],
         });
       });
 

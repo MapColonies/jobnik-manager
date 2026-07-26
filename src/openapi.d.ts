@@ -1334,10 +1334,6 @@ export interface operations {
       query?: {
         /** @description When true, includes task data in the response */
         should_return_tasks?: components['parameters']['includeTasks'];
-        /** @description 1-based page number for pagination. Requesting beyond the last page returns an empty items array. */
-        page?: components['parameters']['pageParam'];
-        /** @description Number of items to return per page. */
-        page_size?: components['parameters']['pageSizeParam'];
       };
       header?: never;
       path: {
@@ -1354,7 +1350,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          'application/json': components['schemas']['stagesPaginatedResponse'];
+          'application/json': components['schemas']['getStageResponse'][];
         };
       };
       /** @description Invalid job ID format or other parameter error */

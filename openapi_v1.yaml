@@ -651,8 +651,6 @@ paths:
       operationId: getStagesByJobId
       parameters:
         - $ref: '#/components/parameters/includeTasks'
-        - $ref: '#/components/parameters/pageParam'
-        - $ref: '#/components/parameters/pageSizeParam'
       summary: Retrieve all stages for a specific job in execution order
       description: >
         Fetches all stages associated with the specified job ID, automatically
@@ -684,7 +682,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/stagesPaginatedResponse'
+                type: array
+                items:
+                  $ref: '#/components/schemas/getStageResponse'
         '400':
           description: Invalid job ID format or other parameter error
           content:

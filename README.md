@@ -10,7 +10,7 @@ This server provides a management interface for job trees and includes a RESTful
 
 ## Pagination
 
-All 5 list endpoints support `page` (1-based, default `1`) and `page_size` (1–100, default `10`) query parameters.
+The `GET /v1/jobs`, `GET /v1/stages`, and `GET /v1/tasks` list endpoints support `page` (1-based, default `1`) and `page_size` (1–100, default `10`) query parameters.
 
 Responses are wrapped in `{ total, items }` instead of a plain array — `total` is the full match count regardless of page.
 
@@ -20,6 +20,8 @@ GET /v1/jobs?page=2&page_size=5
 ```
 
 Requesting beyond the last page returns `items: []`, not an error.
+
+`GET /v1/jobs/:jobId/stages` is scoped to a single job and returns a plain array — a job's stages are bounded in number, so pagination isn't needed there.
 
 **Requirements:**
 

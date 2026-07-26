@@ -40,7 +40,9 @@ export class StageControllerV1 {
 
   public getStagesByJobId: TypedRequestHandlers['getStagesByJobIdV1'] = async (req, res, next) => {
     try {
-      const response = await this.manager.getStagesByJobId(req.params.jobId, req.query);
+      const includeTasks: boolean | undefined = req.query?.should_return_tasks ?? false;
+
+      const response = await this.manager.getStagesByJobId(req.params.jobId, includeTasks);
       return res.status(httpStatus.OK).json(response);
     } catch (err) {
       if (err instanceof JobNotFoundError) {

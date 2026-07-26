@@ -26,7 +26,6 @@ import type {
   StageModel,
   StageSummary,
   StagesPaginatedResponse,
-  StagesByJobIdQuery,
   UpdateSummaryCount,
 } from './models';
 import {
@@ -178,7 +177,7 @@ export class StageManager {
   }
 
   @withSpanAsyncV4
-  public async getStagesByJobId(jobId: string, query: StagesByJobIdQuery): Promise<StagesPaginatedResponse> {
+  public async getStagesByJobId(jobId: string, includeTasks?: boolean): Promise<StageModel[]> {
     const spanActive = trace.getActiveSpan();
     spanActive?.setAttributes({
       [ATTR_MESSAGING_MESSAGE_CONVERSATION_ID]: jobId,
@@ -187,23 +186,21 @@ export class StageManager {
     // To validate existence of job, if not will throw JobNotFoundError
     await this.jobManager.getJobById(jobId);
 
-    const { take, skip } = paginationParamsToTakeAndSkip(query?.page, query?.page_size);
+    const queryBody = {
+      where: {
+        jobId,
+      },
+      include: {
+        task: includeTasks,
+      },
+      orderBy: {
+        order: 'asc' as const,
+      },
+    };
 
-    const where = { jobId };
-
-    const [stages, total] = await Promise.all([
-      this.prisma.stage.findMany({
-        where,
-        include: { task: query?.should_return_tasks ?? false },
-        orderBy: { order: 'asc' as const },
-        take,
-        skip,
-      }),
-      this.prisma.stage.count({ where }),
-    ]);
-
-    const items = stages.map((stage) => convertPrismaToStageResponse(stage));
-    return { total, items };
+    const stages = await this.prisma.stage.findMany(queryBody);
+    const result = stages.map((stage) => convertPrismaToStageResponse(stage));
+    return result;
   }
 
   @withSpanAsyncV4
