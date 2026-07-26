@@ -14,7 +14,7 @@ import { type PrismaTransaction } from '@src/db/types';
 import { resolveTraceContext } from '@src/common/utils/tracingHelpers';
 import { IllegalJobStatusTransitionError, JobNotInFiniteStateError, JobNotFoundError } from '@src/common/generated/errors';
 import { ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
-import { paginationParamsToTakeAndSkip } from '@src/common/utils/pagination';
+import { paginate } from '@src/common/utils/pagination';
 import { errorMessages as jobsErrorMessages, SamePriorityChangeError } from './errors';
 import type { JobCreateModel, JobModel, JobFindCriteriaArg, JobPrismaObject, JobsPaginatedResponse } from './models';
 import { jobStateMachine, OperationStatusMapper } from './jobStateMachine';
@@ -30,7 +30,6 @@ export class JobManager {
   @withSpanAsyncV4
   public async getJobs(params: JobFindCriteriaArg): Promise<JobsPaginatedResponse> {
     const { page, page_size, ...filterParams } = params ?? {};
-    const { take, skip } = paginationParamsToTakeAndSkip(page, page_size);
 
     const where = {
       AND: {
@@ -40,15 +39,12 @@ export class JobManager {
       },
     };
 
-    const queryOptions = {
-      where,
-      include: { stage: filterParams.should_return_stages ?? false },
-      take,
-      skip,
-      orderBy: { creationTime: 'asc' as const },
-    };
-
-    const [jobs, total] = await Promise.all([this.prisma.job.findMany(queryOptions), this.prisma.job.count({ where })]);
+    const { total, items: jobs } = await paginate(
+      this.prisma.job,
+      { where, include: { stage: filterParams.should_return_stages ?? false }, orderBy: { creationTime: 'asc' as const } },
+      page,
+      page_size
+    );
 
     const items = jobs.map((job) => this.convertPrismaToJobResponse(job));
     return { total, items };

@@ -16,7 +16,7 @@ import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundEr
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { PrismaTransaction } from '@src/db/types';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
-import { paginationParamsToTakeAndSkip } from '@src/common/utils/pagination';
+import { paginate } from '@src/common/utils/pagination';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateModel,
@@ -131,7 +131,6 @@ export class StageManager {
   @withSpanAsyncV4
   public async getStages(params: StageFindCriteriaArg): Promise<StagesPaginatedResponse> {
     const { page, page_size, ...filterParams } = params ?? {};
-    const { take, skip } = paginationParamsToTakeAndSkip(page, page_size);
 
     const where = {
       AND: {
@@ -141,16 +140,12 @@ export class StageManager {
       },
     };
 
-    const [stages, total] = await Promise.all([
-      this.prisma.stage.findMany({
-        where,
-        include: { task: filterParams.should_return_tasks ?? false },
-        take,
-        skip,
-        orderBy: { id: 'asc' as const },
-      }),
-      this.prisma.stage.count({ where }),
-    ]);
+    const { total, items: stages } = await paginate(
+      this.prisma.stage,
+      { where, include: { task: filterParams.should_return_tasks ?? false }, orderBy: { id: 'asc' as const } },
+      page,
+      page_size
+    );
 
     const items = convertArrayPrismaStageToStageResponse(stages);
     return { total, items };

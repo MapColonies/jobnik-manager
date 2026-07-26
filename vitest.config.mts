@@ -21,12 +21,6 @@ if (process.env.GITHUB_ACTIONS) {
 
 export default defineConfig({
   test: {
-    // Integration spec files share one physical Postgres database and each test truncates it
-    // before running (see truncateAllTables), so no two test files may run concurrently or one
-    // file's truncation could wipe data another file is mid-test with. `fileParallelism` only
-    // has effect at this top level (it controls the global worker pool size) - it is silently
-    // ignored if set inside an individual project's config.
-    fileParallelism: false,
     projects: [
       {
         test: {
@@ -51,6 +45,7 @@ export default defineConfig({
           setupFiles: ['./tests/configurations/initJestOpenapi.setup.ts', './tests/configurations/vite.setup.ts'],
           include: ['tests/integration/**/*.spec.ts'],
           environment: 'node',
+          fileParallelism: false,
           server: {
             deps: {
               external: ['node-cron', /prisma[\/]generated[\/]client[\/]runtime[\/]library/],
