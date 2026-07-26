@@ -33,7 +33,7 @@ import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobRequestBody } from '../jobs/helpers';
 import { addJobRecord, addStageRecord, createStageBody } from '../stages/helpers';
-import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { createJobnikTree, createMockPrismaError, createMockUnknownDbError, truncateAllTables } from '../common/utils';
 import { createTaskBody, createTaskRecords } from './helpers';
 
 const expectResponseStatus: ExpectResponseStatus = expectResponseStatusFactory(expect);
@@ -62,6 +62,7 @@ describe('task', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    await truncateAllTables(prisma);
 
     // Ensure Prisma methods exist before they can be spied on (Vitest 4.0 requirement)
   });

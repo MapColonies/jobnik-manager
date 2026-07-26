@@ -23,7 +23,7 @@ import type { JobCreateModel } from '@src/jobs/models/models';
 import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
-import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { createJobnikTree, createMockPrismaError, createMockUnknownDbError, truncateAllTables } from '../common/utils';
 import { createJobRecord, createJobRequestBody, testJobId } from './helpers';
 
 const memoryExporter = new InMemorySpanExporter();
@@ -52,6 +52,7 @@ describe('job', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    await truncateAllTables(prisma);
   });
 
   afterEach(async function () {
