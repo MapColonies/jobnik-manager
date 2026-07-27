@@ -9,6 +9,7 @@ mclabels:
   partOf: jobnik
   prometheus:
     enabled: true
+  criticality: customer
     
 enabled: true
 replicaCount: 1
