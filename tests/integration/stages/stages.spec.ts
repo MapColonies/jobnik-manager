@@ -18,7 +18,7 @@ import { getApp } from '@src/app';
 import { SERVICES } from '@common/constants';
 import { initConfig } from '@src/common/config';
 import { errorMessages as jobsErrorMessages } from '@src/jobs/models/errors';
-import type { StageCreateModel, StageModel } from '@src/stages/models/models';
+import type { StageCreateModel, StageModel, StagesPaginatedResponse } from '@src/stages/models/models';
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import {
@@ -33,7 +33,7 @@ import { DEFAULT_TRACEPARENT } from '@src/common/utils/tracingHelpers';
 import { illegalStatusTransitionErrorMessage } from '@src/common/errors';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
 import { createJobRecord, createJobRequestBody, testJobId, testStageId } from '../jobs/helpers';
-import { createJobnikTree, createMockPrismaError, createMockUnknownDbError } from '../common/utils';
+import { createJobnikTree, createMockPrismaError, createMockUnknownDbError, truncateAllTables } from '../common/utils';
 
 const expectResponseStatus: ExpectResponseStatus = expectResponseStatusFactory(expect);
 
@@ -63,6 +63,7 @@ describe('stage', function () {
 
     requestSender = await createRequestSender<paths, operations>('openapi3.yaml', app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    await truncateAllTables(prisma);
 
     // Ensure Prisma methods exist before they can be spied on (Vitest 4.0 requirement)
   });
@@ -85,15 +86,18 @@ describe('stage', function () {
 
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [
-            {
-              jobId,
-              status: StageOperationStatus.CREATED,
-              type: 'SOME_STAGE_TYPE',
-              data: { avi: 'is the best' },
-              order: 1,
-            },
-          ],
+          body: {
+            total: 1,
+            items: [
+              {
+                jobId,
+                status: StageOperationStatus.CREATED,
+                type: 'SOME_STAGE_TYPE',
+                data: { avi: 'is the best' },
+                order: 1,
+              },
+            ],
+          },
         });
       });
 
@@ -103,7 +107,7 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [],
+          body: { total: 0, items: [] },
         });
       });
 
@@ -114,8 +118,41 @@ describe('stage', function () {
 
         expect(response).toSatisfyApiSpec();
         expect(response).toHaveProperty('status', StatusCodes.OK);
-        expect(response.body).toBeArray();
-        expect(response.body).not.toHaveLength(0);
+
+        const stagesBody = response.body as StagesPaginatedResponse;
+
+        expect(stagesBody.items).toBeArray();
+        expect(stagesBody.items).not.toHaveLength(0);
+      });
+
+      it('should return 200 with total and items when paginating', async function () {
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+
+        const response = await requestSender.getStagesV1({ queryParams: { page: 1, page_size: 1 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const paginatedBody = response.body;
+
+        expect(paginatedBody.total).toBeGreaterThanOrEqual(2);
+        expect(paginatedBody.items).toHaveLength(1);
+      });
+
+      it('should return 200 with empty items array when page is beyond total', async function () {
+        await createJobnikTree(prisma, {}, {}, [], { createStage: true, createTasks: false });
+
+        const response = await requestSender.getStagesV1({ queryParams: { page: 9999, page_size: 10 } });
+
+        expectResponseStatus(response, 200);
+
+        expect(response).toSatisfyApiSpec();
+
+        const beyondPageBody = response.body;
+
+        expect(beyondPageBody.items).toHaveLength(0);
       });
 
       it('should return 200 status code and the matching stage with related tasks', async function () {
@@ -137,10 +174,15 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          body: {
+            total: 1,
+            items: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          },
         });
 
-        expect(response.body).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
+        const stagesBodyWithTasks = response.body as StagesPaginatedResponse;
+
+        expect(stagesBodyWithTasks.items).toMatchObject([{ tasks: [{ data: tasks[0]!.data, userMetadata: tasks[0]!.userMetadata }] }]);
       });
 
       it('should return 200 status code and the matching stage without related tasks', async function () {
@@ -162,10 +204,15 @@ describe('stage', function () {
         expect(response).toSatisfyApiSpec();
         expect(response).toMatchObject({
           status: StatusCodes.OK,
-          body: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          body: {
+            total: 1,
+            items: [{ jobId: job.id, status: StageOperationStatus.PENDING, type: stage.type, data: stage.data, userMetadata: stage.userMetadata }],
+          },
         });
 
-        expect(response.body[0]).not.toHaveProperty('tasks');
+        const stagesBodyNoTasks = response.body;
+
+        expect(stagesBodyNoTasks.items[0]).not.toHaveProperty('tasks');
       });
     });
 

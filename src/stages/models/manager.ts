@@ -16,6 +16,7 @@ import { IllegalStageStatusTransitionError, JobInFiniteStateError, JobNotFoundEr
 import { errorMessages as stagesErrorMessages } from '@src/stages/models/errors';
 import type { PrismaTransaction } from '@src/db/types';
 import { ATTR_MESSAGING_DESTINATION_NAME, ATTR_MESSAGING_MESSAGE_CONVERSATION_ID } from '@src/common/semconv';
+import { paginate } from '@src/common/utils/pagination';
 import { StageRepository } from '../DAL/stageRepository';
 import type {
   StageCreateModel,
@@ -24,6 +25,7 @@ import type {
   StageIncludingJob,
   StageModel,
   StageSummary,
+  StagesPaginatedResponse,
   UpdateSummaryCount,
 } from './models';
 import {
@@ -127,25 +129,26 @@ export class StageManager {
   }
 
   @withSpanAsyncV4
-  public async getStages(params: StageFindCriteriaArg): Promise<StageModel[]> {
-    let queryBody = undefined;
-    if (params !== undefined) {
-      queryBody = {
-        where: {
-          AND: {
-            jobId: { equals: params.job_id },
-            type: { equals: params.stage_type },
-            status: { equals: params.stage_operation_status },
-          },
-        },
-        include: { task: params.should_return_tasks },
-      };
-    }
+  public async getStages(params: StageFindCriteriaArg): Promise<StagesPaginatedResponse> {
+    const { page, page_size, ...filterParams } = params ?? {};
 
-    const stages = await this.prisma.stage.findMany(queryBody);
+    const where = {
+      AND: {
+        jobId: { equals: filterParams.job_id },
+        type: { equals: filterParams.stage_type },
+        status: { equals: filterParams.stage_operation_status },
+      },
+    };
 
-    const result = convertArrayPrismaStageToStageResponse(stages);
-    return result;
+    const { total, items: stages } = await paginate(
+      this.prisma.stage,
+      { where, include: { task: filterParams.should_return_tasks ?? false }, orderBy: { id: 'asc' as const } },
+      page,
+      page_size
+    );
+
+    const items = convertArrayPrismaStageToStageResponse(stages);
+    return { total, items };
   }
 
   @withSpanAsyncV4

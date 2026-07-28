@@ -6,6 +6,7 @@ import type { PrismaClient } from '@prismaClient';
 import { getApp } from '@src/app';
 import { SERVICES } from '@src/common/constants';
 import { initConfig } from '@src/common/config';
+import { truncateAllTables } from '../common/utils';
 import { DocsRequestSender } from './helpers/docsRequestSender';
 
 describe('docs', function () {
@@ -27,6 +28,7 @@ describe('docs', function () {
 
     requestSender = new DocsRequestSender(app);
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
+    await truncateAllTables(prisma);
   });
 
   afterEach(async function () {

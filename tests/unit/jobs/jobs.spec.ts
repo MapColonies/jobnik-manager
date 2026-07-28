@@ -71,8 +71,9 @@ describe('JobManager', () => {
         it('should return formatted jobs matching the search criteria', async function () {
           const mediumPriorityJob = { ...jobEntityWithoutStages, priority: Priority.MEDIUM };
           prisma.job.findMany.mockResolvedValue([mediumPriorityJob]);
+          prisma.job.count.mockResolvedValue(1);
 
-          const jobs = await jobManager.getJobs({ priority: Priority.MEDIUM });
+          const result = await jobManager.getJobs({ priority: Priority.MEDIUM });
 
           const { xstate, stage, ...rest } = mediumPriorityJob;
           const expectedJob = [
@@ -85,19 +86,22 @@ describe('JobManager', () => {
             },
           ];
 
-          expect(jobs).toMatchObject(expectedJob);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedJob);
         });
 
         it('should return all formatted jobs when no criteria is provided', async function () {
           const jobEntity = { ...jobEntityWithoutStages };
           prisma.job.findMany.mockResolvedValue([jobEntity]);
+          prisma.job.count.mockResolvedValue(1);
 
-          const jobs = await jobManager.getJobs(undefined);
+          const result = await jobManager.getJobs(undefined);
 
           const { xstate, stage, tracestate, ...rest } = jobEntity;
           const expectedJob = [{ ...rest, stages: stage, creationTime: rest.creationTime.toISOString(), updateTime: rest.updateTime.toISOString() }];
 
-          expect(jobs).toMatchObject(expectedJob);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedJob);
         });
       });
 

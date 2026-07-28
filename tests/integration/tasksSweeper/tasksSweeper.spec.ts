@@ -10,7 +10,7 @@ import { inProgressStageXstatePersistentSnapshot } from '@tests/unit/data';
 import { defaultStatusCounts } from '@src/stages/models/helper';
 import { TaskManager } from '@src/tasks/models/manager';
 import { createProxyMock } from '@tests/configurations/mockPrisma';
-import { createJobnikTree } from '../common/utils';
+import { createJobnikTree, truncateAllTables } from '../common/utils';
 
 describe('TaskSweeper', () => {
   let prisma: PrismaClient;
@@ -31,6 +31,7 @@ describe('TaskSweeper', () => {
 
     prisma = container.resolve<PrismaClient>(SERVICES.PRISMA);
     taskManager = container.resolve(TaskManager);
+    await truncateAllTables(prisma);
 
     // Ensure Prisma methods exist before they can be spied on (Vitest 4.0 requirement)
   });

@@ -64,14 +64,16 @@ describe('JobManager', () => {
         it('should return array with single stage formatted object by criteria without tasks', async function () {
           const stageEntity = createStageEntity({ type: 'SOME_STAGE_TYPE' });
           prisma.stage.findMany.mockResolvedValue([stageEntity]);
+          prisma.stage.count.mockResolvedValue(1);
 
-          const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
+          const result = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE' });
           const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
-          expect(stages).toMatchObject(expectedStage);
-          expect(stages[0]?.tasks).toBeUndefined();
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedStage);
+          expect(result.items[0]?.tasks).toBeUndefined();
         });
 
         it('should return array with single stage formatted object by criteria with related tasks', async function () {
@@ -79,26 +81,30 @@ describe('JobManager', () => {
           const taskEntity = createTaskEntity({ stageId });
           const stageEntity = createStageEntity({ id: stageId, task: [taskEntity], type: 'SOME_STAGE_TYPE' });
           prisma.stage.findMany.mockResolvedValue([stageEntity]);
+          prisma.stage.count.mockResolvedValue(1);
 
-          const stages = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE', should_return_tasks: true });
+          const result = await stageManager.getStages({ stage_type: 'SOME_STAGE_TYPE', should_return_tasks: true });
           const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
-          expect(stages).toMatchObject(expectedStage);
-          expect(stages[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedStage);
+          expect(result.items[0]?.tasks).toMatchObject([{ id: taskEntity.id }]);
         });
 
         it('should return array with all stages when no criteria is provided', async function () {
           const stageEntity = createStageEntity({});
           prisma.stage.findMany.mockResolvedValue([stageEntity]);
+          prisma.stage.count.mockResolvedValue(1);
 
-          const stages = await stageManager.getStages(undefined);
+          const result = await stageManager.getStages(undefined);
           const { xstate, task, tracestate, ...rest } = stageEntity;
 
           const expectedStage = [rest];
 
-          expect(stages).toMatchObject(expectedStage);
+          expect(result.total).toBe(1);
+          expect(result.items).toMatchObject(expectedStage);
         });
       });
 
@@ -188,7 +194,7 @@ describe('JobManager', () => {
           prisma.job.findUnique.mockResolvedValue(jobEntityWithStages);
           prisma.stage.findMany.mockResolvedValue([stageEntity]);
 
-          const stage = await stageManager.getStagesByJobId(stageEntity.jobId);
+          const stage = await stageManager.getStagesByJobId(stageEntity.jobId, true);
 
           const { xstate, task, tracestate, ...rest } = stageEntity;
 

@@ -45,6 +45,7 @@ export default defineConfig({
           setupFiles: ['./tests/configurations/initJestOpenapi.setup.ts', './tests/configurations/vite.setup.ts'],
           include: ['tests/integration/**/*.spec.ts'],
           environment: 'node',
+          fileParallelism: false,
           server: {
             deps: {
               external: ['node-cron', /prisma[\/]generated[\/]client[\/]runtime[\/]library/],
