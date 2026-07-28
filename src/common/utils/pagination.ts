@@ -20,14 +20,8 @@ export interface PaginatedResult<T> {
 
 /**
  * Runs a paginated `findMany` and a matching `count` in parallel and returns `{ total, items }`.
- *
- * `items` is typed to the exact payload of `args` (relations from `include`/`select` are reflected),
- * and `total` is the full number of rows matching `args.where`, independent of `page` / `pageSize`.
- * Callers pass a Prisma model delegate (e.g. `prisma.job`) plus the usual `findMany` args minus
- * `take` / `skip`, which are derived here from the 1-based `page` / `pageSize`.
- *
  * @param delegate - a Prisma model delegate (`prisma.job`, `prisma.stage`, `prisma.task`, ...)
- * @param args - `findMany` args (`where` / `include` / `select` / `orderBy`); `take` and `skip` are injected
+ * @param args - `findMany` args; `take` and `skip` are injected from `page` / `pageSize`
  * @param page - 1-based page number (defaults to {@link DEFAULT_PAGE})
  * @param pageSize - number of items per page (defaults to {@link DEFAULT_PAGE_SIZE})
  */
