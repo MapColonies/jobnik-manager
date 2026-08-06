@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/MapColonies/jobnik-manager/compare/v0.2.1...v0.3.0) (2026-08-06)
+
+
+### Features
+
+* add pagination support to all list endpoints MAPCO-9304 ([#263](https://github.com/MapColonies/jobnik-manager/issues/263)) ([755984a](https://github.com/MapColonies/jobnik-manager/commit/755984a22febe3257e16b8c4458139216f5c54d9))
+* upgraded eslint config to v8 ([#244](https://github.com/MapColonies/jobnik-manager/issues/244)) ([f22f2a3](https://github.com/MapColonies/jobnik-manager/commit/f22f2a3f704c8ebda18004ee3412bb2536687453))
+
 ## [0.2.1](https://github.com/MapColonies/jobnik-manager/compare/v0.2.0...v0.2.1) (2026-06-01)
 
 
