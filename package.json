@@ -116,7 +116,7 @@
     "rimraf": "^6.1.2",
     "supertest": "^7.1.4",
     "tsc-alias": "^1.8.11",
-    "type-fest": "^4.38.0",
+    "type-fest": "^5.8.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.16",
     "vitest-mock-extended": "^3.1.0",
